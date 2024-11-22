@@ -1,4 +1,4 @@
-flask==2.3.3
+flask==3.1.0
 flask-httpauth==4.8.0
 sqlalchemy==2.0.21
 psycopg2-binary==2.9.7
