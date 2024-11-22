@@ -9,10 +9,13 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Copy the application source code to the working directory
-COPY . /app
+COPY ./api /app
+
+# Copy the requirements file to the working directory
+COPY ./requirements.txt /app/requirements.txt
 
 # Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Expose the API port
 EXPOSE 5000
