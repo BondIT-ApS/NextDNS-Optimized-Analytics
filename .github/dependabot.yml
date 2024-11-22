@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # Check for updates in Python dependencies (pip)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Check for updates in Docker dependencies (single entry for all Dockerfiles)
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
