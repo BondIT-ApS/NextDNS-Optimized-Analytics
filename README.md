@@ -1,4 +1,4 @@
-![Build Status](https://img.shields.io/github/actions/workflow/status/MaBoNi/NextDNS-Optimized-Analytics/ci.yml?branch=main&style=for-the-badge)
+![Build Status](https://img.shields.io/github/actions/workflow/status/MaBoNi/NextDNS-Optimized-Analytics/docker-publish.yml?branch=main&style=for-the-badge)
 ![License](https://img.shields.io/github/license/MaBoNi/NextDNS-Optimized-Analytics?style=for-the-badge)
 ![Repo Size](https://img.shields.io/github/repo-size/MaBoNi/NextDNS-Optimized-Analytics?style=for-the-badge)
 
