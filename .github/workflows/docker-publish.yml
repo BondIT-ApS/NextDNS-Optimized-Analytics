@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Images
 
 on:
   push:
@@ -12,6 +12,10 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service: [backend, frontend]  # Build both backend and frontend
 
     steps:
       - name: Check out code
@@ -40,18 +44,40 @@ jobs:
           VERSION_TAG="${VERSION}-${DATE_TAG}"
           echo "tag=${VERSION_TAG}" >> $GITHUB_ENV
 
+      - name: Cache pip dependencies (backend only)
+        if: matrix.service == 'backend'
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies (backend only)
+        if: matrix.service == 'backend'
+        run: |
+          pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile.${{ matrix.service }}  # Uses Dockerfile.backend or Dockerfile.frontend
           push: false
-          tags: maboni82/nextdns-optimized-analytics:latest,maboni82/nextdns-optimized-analytics:${{ env.tag }}
+          tags: maboni82/nextdns-optimized-analytics-${{ matrix.service }}:latest,
+                maboni82/nextdns-optimized-analytics-${{ matrix.service }}:${{ env.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           builder: ${{ steps.buildx.outputs.name }}
 
       - name: Push Docker images to Docker Hub
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile.${{ matrix.service }}
           push: true
-          tags: maboni82/nextdns-optimized-analytics:latest,maboni82/nextdns-optimized-analytics:${{ env.tag }}
+          tags: maboni82/nextdns-optimized-analytics-${{ matrix.service }}:latest,
+                maboni82/nextdns-optimized-analytics-${{ matrix.service }}:${{ env.tag }}
+          cache-from: type=gha
           builder: ${{ steps.buildx.outputs.name }}
