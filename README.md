@@ -9,7 +9,6 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/maboni82/nextdns-optimized-analytics-backend?style=for-the-badge)](https://hub.docker.com/r/maboni82/nextdns-optimized-analytics-backend)
 
 
-
 A Dockerized solution which fetches, stores, and visualizes logs from the NextDNS API. It includes a Python-based API for querying logs with filtering options (e.g., excluding domains), stores data in a local database, and integrates with Grafana for DNS activity visualization. Docker is used for containerization.
 
 ## Features
@@ -25,13 +24,12 @@ A Dockerized solution which fetches, stores, and visualizes logs from the NextDN
 - [Docker Compose](https://docs.docker.com/compose/install/)
 - [NextDNS Account](https://my.nextdns.io/signup/)
 
-
 ### Installation
 
 1. **Clone the repository**:
     ```bash
-    git clone https://github.com/maboni/ha-gps-tracker.git
-    cd ha-gps-tracker
+    git clone hhttps://github.com/MaBoNi/NextDNS-Optimized-Analytics.git
+    cd NextDNS-Optimized-Analytics
 
 2. **Set up Docker environment**:
     Update the `./config/.env` file and configure the details:
@@ -48,8 +46,8 @@ A Dockerized solution which fetches, stores, and visualizes logs from the NextDN
 
 ### Docker Hub Repositories
 
-- **Backend**: <a href="https://hub.docker.com/r/maboni82/homeassistant-tracker-backend" target="_blank">homeassistant-tracker-backend</a>
-- **Frontend**: <a href="https://hub.docker.com/r/maboni82/homeassistant-tracker-frontend" target="_blank">homeassistant-tracker-frontend</a>
+- **Backend**: <a href="https://hub.docker.com/r/maboni82/nextdns-optimized-analytics-backend" target="_blank">nextdns-optimized-analytics-backend</a>
+- **Frontend**: <a href="https://hub.docker.com/r/maboni82/nextdns-optimized-analytics-frontend" target="_blank">nextdns-optimized-analytics-frontend</a>
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
@@ -60,7 +58,6 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Contributing
 Contributions are welcome! Feel free to open an issue or submit a pull request.
 
-
 ##  Using the API
 The API requires Basic Authentication with the following:
 
@@ -68,6 +65,6 @@ The API requires Basic Authentication with the following:
 ## Repobeats Analytics
 ---
 
-![Alt](https://repobeats.axiom.co/api/embed/bdefb2b5821082ae5d7ef63926053e0edc2ec335.svg "Repobeats analytics image")
+![Alt](https://repobeats.axiom.co/api/embed/abcc9fac036c51dc10cd34ef580cca8475df93ad.svg "Repobeats analytics image")
 
 ---
