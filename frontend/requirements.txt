@@ -1,5 +1,5 @@
 flask==3.1.0
-flask-cors==5.0.0
+flask-cors==5.0.1
 Flask-httpauth==4.8.0
 sqlalchemy==2.0.38
 psycopg2-binary==2.9.10
