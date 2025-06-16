@@ -1,21 +1,13 @@
 {
-    "name": "nextdns-frontend",
-    "version": "1.0.0",
-    "private": true,
-    "dependencies": {
-      "react": "^18.2.0",
-      "react-dom": "^18.2.0"
-    },
-    "scripts": {
-      "start": "npx serve -s build",
-      "build": "npx babel src --out-dir public --presets=@babel/preset-react && cp src/index.html public/",
-      "dev": "npx serve public"
-    },
-    "devDependencies": {
-      "@babel/cli": "^7.22.10",
-      "@babel/core": "^7.23.0",
-      "@babel/preset-react": "^7.22.5",
-      "serve": "^14.2.0"
-    }
+  "name": "nextdns-frontend",
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^4.0.0"
   }
-  
+}
