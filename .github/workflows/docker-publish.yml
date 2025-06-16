@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        service: [backend, frontend]  # Build both backend and frontend
+        service: [backend, frontend]
 
     steps:
       - name: Check out code
