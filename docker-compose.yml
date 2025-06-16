@@ -14,11 +14,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        PUBLIC_LOCAL_API_KEY: ${LOCAL_API_KEY}
     container_name: nextdns_analytics_frontend
     ports:
       - "5001:80"
     depends_on:
       - backend
+    env_file: ./config/.env
 
   db:
     image: postgres:15
