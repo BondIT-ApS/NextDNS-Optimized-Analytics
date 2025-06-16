@@ -1,0 +1,60 @@
+---
+import { onMount } from 'astro/client';
+
+let logs = [];
+
+onMount(async () => {
+  const authHeader = 'Basic ' + btoa('admin:' + import.meta.env.PUBLIC_LOCAL_API_KEY);
+  const res = await fetch('/api/logs', {
+    headers: {
+      Authorization: authHeader
+    }
+  });
+
+  if (res.ok) {
+    const data = await res.json();
+    logs = data.data;
+    document.getElementById('log-body').innerHTML = logs.map(log => `
+      <tr>
+        <td>${log.id}</td>
+        <td>${log.timestamp}</td>
+        <td>${log.domain}</td>
+        <td>${log.action}</td>
+        <td>${log.device}</td>
+      </tr>
+    `).join('');
+  } else {
+    console.error('Failed to fetch logs');
+  }
+});
+---
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>NextDNS Logs</title>
+    <style>
+      body { font-family: sans-serif; padding: 20px; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #ccc; padding: 8px; }
+      th { background: #f4f4f4; }
+    </style>
+  </head>
+  <body>
+    <h1>NextDNS Logs</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Timestamp</th>
+          <th>Domain</th>
+          <th>Action</th>
+          <th>Device</th>
+        </tr>
+      </thead>
+      <tbody id="log-body">
+        <tr><td colspan="5">Loading...</td></tr>
+      </tbody>
+    </table>
+  </body>
+</html>
