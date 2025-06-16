@@ -1,24 +1,12 @@
-# Use an official Python runtime as the base image
-FROM python:3.11-slim
+FROM nginx:alpine
 
-# Set environment variables to ensure Python runs in an unbuffered and consistent mode
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Copy static frontend files
+COPY . /usr/share/nginx/html
 
-# Set the working directory inside the container
-WORKDIR /app
+# Copy entrypoint script and make it executable
+COPY ./frontend/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-# Copy the application source code to the working directory
-COPY ./api /app
+EXPOSE 80
 
-# Copy the requirements file to the working directory
-COPY ./requirements.txt /app/requirements.txt
-
-# Install dependencies
-RUN pip install --no-cache-dir -r /app/requirements.txt
-
-# Expose the FRONTEND port
-EXPOSE 5000
-
-# Run the application
-CMD ["python", "app.py"]
+CMD ["/entrypoint.sh"]
