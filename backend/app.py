@@ -1,3 +1,4 @@
+# file: backend/app.py
 from flask import Flask, request, jsonify
 from flask_httpauth import HTTPBasicAuth
 from models import init_db, get_logs, add_log
