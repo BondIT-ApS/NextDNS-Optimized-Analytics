@@ -1,15 +1,12 @@
-FROM node:20-slim as builder
-
-WORKDIR /app
-COPY . .
-
-# Pass the build arg into Astro's environment
-ARG PUBLIC_LOCAL_API_KEY
-ENV PUBLIC_LOCAL_API_KEY=$PUBLIC_LOCAL_API_KEY
-
-RUN npm install && npm run build
-
 FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy static frontend files
+COPY . /usr/share/nginx/html
+
+# Copy entrypoint script and make it executable
+COPY ./frontend/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+
+CMD ["/entrypoint.sh"]
