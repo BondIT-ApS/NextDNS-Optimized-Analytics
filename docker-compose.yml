@@ -1,23 +1,33 @@
 services:
-  api:
+  backend:
     build:
-      context: ./api
-      dockerfile: Dockerfile
-    container_name: nextdns_api
+      context: .
+      dockerfile: Dockerfile.backend
     env_file: ./config/.env
+    restart: always
     ports:
-      - "5000:5000"
+      - "5001:5000"
     depends_on:
       - db
 
-  db:
-    image: postgres:15
-    container_name: nextdns_db
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    env_file: ./config/.env
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      LOCAL_API_KEY: ${LOCAL_API_KEY}
+      BACKEND_API_URL: http://backend:5001/api
+    ports:
+      - "5002:80"
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:15
+    env_file: ./config/.env
+    restart: always
     volumes:
       - ./db:/docker-entrypoint-initdb.d
     ports:
