@@ -1,9 +1,5 @@
 ---
-import LogTableClient from './LogTableClient.js';
+import LogTableClient from './LogTableClient.jsx';
 ---
 
-<div id="log-table-root">
-  <p>Loading logs...</p>
-</div>
-
-<script type="module" src="./LogTableClient.js"></script>
+<LogTableClient client:load />
