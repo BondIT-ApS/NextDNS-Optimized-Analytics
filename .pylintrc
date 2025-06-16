@@ -1,8 +1,12 @@
 [MASTER]
+init-hook='import sys; sys.path.append("./backend")'
 ignore=venv
-jobs=1
 load-plugins=
-    pylint.extensions.docparams
+    pylint.extensions.docparams,
+    pylint.extensions.logging
+
+[TYPECHECK]
+ignored-modules=requests,pytest
 
 [MESSAGES CONTROL]
 disable=
