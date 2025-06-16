@@ -3,7 +3,8 @@ init-hook='import sys; sys.path.append("./backend")'
 ignore=venv
 load-plugins=
     pylint.extensions.docparams,
-    pylint.extensions.logging
+    pylint.extensions.logging,
+    pylint.extensions.typecheck
 
 [TYPECHECK]
 ignored-modules=requests,pytest
