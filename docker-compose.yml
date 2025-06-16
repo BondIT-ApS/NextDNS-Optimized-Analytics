@@ -1,14 +1,24 @@
 services:
-  api:
+  backend:
     build:
-      context: ./api
-      dockerfile: Dockerfile
-    container_name: nextdns_api
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: nextdns_analytics_backend
     env_file: ./config/.env
     ports:
       - "5000:5000"
     depends_on:
       - db
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: nextdns_analytics_frontend
+    ports:
+      - "5001:80"
+    depends_on:
+      - backend
 
   db:
     image: postgres:15
