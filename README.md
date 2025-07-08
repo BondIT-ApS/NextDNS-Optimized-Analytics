@@ -28,7 +28,7 @@ A Dockerized solution which fetches, stores, and visualizes logs from the NextDN
 
 1. **Clone the repository**:
     ```bash
-    git clone hhttps://github.com/MaBoNi/NextDNS-Optimized-Analytics.git
+    git clone https://github.com/MaBoNi/NextDNS-Optimized-Analytics.git
     cd NextDNS-Optimized-Analytics
 
 2. **Set up Docker environment**:
