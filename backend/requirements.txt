@@ -1,5 +1,5 @@
 # file: backend/requirements.txt
-flask==3.1.1
+flask==3.1.2
 flask-cors==6.0.1
 Flask-httpauth==4.8.0
 sqlalchemy==2.0.43
