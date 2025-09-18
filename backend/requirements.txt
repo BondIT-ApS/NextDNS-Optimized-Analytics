@@ -1,9 +1,23 @@
 # file: backend/requirements.txt
+
+# FastAPI and ASGI server
+fastapi==0.115.0
+uvicorn[standard]==0.32.1
+python-multipart==0.0.19
+
+# Database
+sqlalchemy==2.0.43
+psycopg2-binary==2.9.10
+alembic==1.13.3
+
+# HTTP requests and scheduling
+requests==2.32.4
+apscheduler==3.11.0
+
+# System monitoring
+psutil==6.1.0
+
+# Legacy Flask dependencies (to be removed after migration)
 flask==3.1.2
 flask-cors==6.0.1
 Flask-httpauth==4.8.0
-sqlalchemy==2.0.43
-psycopg2-binary==2.9.10
-requests==2.32.4
-apscheduler==3.11.0
-alembic==1.13.3
