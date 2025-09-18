@@ -1,6 +1,7 @@
 # file: backend/scheduler.py
 from apscheduler.schedulers.background import BackgroundScheduler
-from models import add_log, get_total_record_count
+from models import add_log, get_total_record_count, get_last_fetch_timestamp, update_fetch_status
+from datetime import datetime, timezone
 import requests
 import os
 import sys
@@ -25,37 +26,75 @@ else:
     logger.info(f"✅ NextDNS API configured for profile: {PROFILE_ID}")
 
     def fetch_logs():
-        """Fetch logs from NextDNS API and store them in the database."""
+        """Fetch logs from NextDNS API with timestamp-based incremental fetching."""
         # Log initial database state
         initial_count = get_total_record_count()
-        logger.info(f"🔄 Starting NextDNS log fetch (Database has {initial_count:,} records)")
+        logger.info(f"🔄 Starting incremental NextDNS log fetch (Database has {initial_count:,} records)")
         
         try:
+            # Get last fetch timestamp for incremental fetching
+            last_fetch = get_last_fetch_timestamp(PROFILE_ID)
+            
             headers = {"X-Api-Key": API_KEY}
-            params = {"from": "-1h", "to": "now", "raw": "false", "limit": FETCH_LIMIT}
+            
+            # Build parameters for incremental fetching
+            if last_fetch:
+                # Fetch records newer than last fetch (with small overlap for safety)
+                from_time = last_fetch.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+                params = {"from": from_time, "to": "now", "raw": "false", "limit": FETCH_LIMIT}
+                logger.info(f"📅 Incremental fetch from: {from_time} (last fetch: {last_fetch})")
+            else:
+                # First fetch - get last hour of data
+                params = {"from": "-1h", "to": "now", "raw": "false", "limit": FETCH_LIMIT}
+                logger.info(f"📅 Initial fetch: last {FETCH_LIMIT} records from past hour")
             
             logger.debug(f"🌐 Making API request to NextDNS: {NEXTDNS_API_URL}")
+            logger.debug(f"🔧 Request params: {params}")
             response = requests.get(NEXTDNS_API_URL, headers=headers, params=params)
             
             if response.status_code == 200:
                 logs = response.json().get("data", [])
                 logger.info(f"🔄 Fetched {len(logs)} DNS logs from NextDNS API")
                 
+                if not logs:
+                    logger.info(f"✅ No new records to process")
+                    return
+                
+                # Process logs with duplicate tracking
                 added_count = 0
                 skipped_count = 0
+                latest_timestamp = None
+                
                 for log in logs:
-                    result = add_log(log)
-                    if result:
-                        added_count += 1
+                    record_id, is_new = add_log(log)
+                    if record_id:
+                        if is_new:
+                            added_count += 1
+                            # Track the latest timestamp for incremental fetching
+                            log_timestamp_str = log.get("timestamp")
+                            if log_timestamp_str:
+                                log_timestamp = datetime.fromisoformat(log_timestamp_str.replace('Z', '+00:00'))
+                                if not latest_timestamp or log_timestamp > latest_timestamp:
+                                    latest_timestamp = log_timestamp
+                        else:
+                            skipped_count += 1
                     else:
-                        skipped_count += 1
+                        logger.warning(f"⚠️  Failed to process log for domain: {log.get('domain')}")
                 
-                # Log final statistics
+                # Update fetch status with latest timestamp
+                if latest_timestamp and added_count > 0:
+                    update_fetch_status(PROFILE_ID, latest_timestamp, added_count)
+                    logger.debug(f"📅 Updated fetch status: latest_timestamp={latest_timestamp}")
+                
+                # Log comprehensive statistics
                 final_count = get_total_record_count()
-                new_records = final_count - initial_count
                 
-                logger.info(f"💾 Fetch completed: {added_count} added, {skipped_count} skipped")
-                logger.info(f"📊 Database now has {final_count:,} total records (+{new_records:,} new)")
+                logger.info(f"💾 Fetch completed: {added_count} NEW records added, {skipped_count} duplicates skipped")
+                logger.info(f"📊 Database now has {final_count:,} total records (+{added_count:,} new this fetch)")
+                
+                if skipped_count > 0:
+                    logger.info(f"🔄 Duplicate prevention working: {skipped_count}/{len(logs)} records were duplicates")
+                    
             else:
                 logger.error(f"⚠️  NextDNS API returned status {response.status_code}: {response.text}")
                 
