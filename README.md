@@ -32,7 +32,7 @@ Just like building a LEGO masterpiece, we've crafted a solution that assembles N
 
 - [Docker](https://www.docker.com/get-started) - Your primary building tool
 - [Docker Compose](https://docs.docker.com/compose/install/) - For connecting the pieces
-- [NextDNS Account](https://my.nextdns.io/signup/) - The raw materials
+- [NextDNS Account](https://nextdns.io/?from=dzgsz9sg) - The raw materials
 
 ### Installation - Assembly Instructions
 
