@@ -11,7 +11,7 @@ psycopg2-binary==2.9.10
 alembic==1.13.3
 
 # HTTP requests and scheduling
-requests==2.32.4
+requests==2.32.5
 apscheduler==3.11.0
 
 # System monitoring
