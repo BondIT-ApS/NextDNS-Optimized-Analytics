@@ -1,3 +1,7 @@
+# NextDNS Optimized Analytics - .gitignore
+# BondIT-ApS standard .gitignore with Python, Docker, macOS, and IDE support
+# Like building a LEGO set - we only track the pieces that matter! 🧱
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -98,6 +102,9 @@ ENV/
 env.bak/
 venv.bak/
 
+# Project specific environment files
+config/.env
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -122,3 +129,121 @@ dmypy.json
 
 # Ignore dependencies
 node_modules
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+
+# Linux
+*~
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# JetBrains IDEs
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+.*.sw[a-p]
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+.docker/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+db_data/
+postgres_data/
+
+# Environment and configuration
+.env.local
+.env.development
+.env.test
+.env.production
+.env.staging
+config/.env.local
+config/.env.development
+config/.env.test
+config/.env.production
+config/.env.staging
+
+# Keep template files but ignore actual .env files
+# .env.template should be tracked
+!config/.env.template
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Security and secrets
+*.pem
+*.key
+*.cert
+*.crt
+secrets/
+
+# NextDNS specific
+*.nextdns
+nextdns_cache/
+
+# Alembic
+# Note: Keep migration files but ignore temp/cache
+alembic.ini.bak
+
+# Temporary and cache directories
+tmp/
+temp/
+cache/
+.cache/
+
+# OS generated files
+.Trashes
+.Spotlight-V100
+.TemporaryItems
+.fseventsd
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Network drives
+.apdisk
