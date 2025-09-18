@@ -6,3 +6,4 @@ sqlalchemy==2.0.43
 psycopg2-binary==2.9.10
 requests==2.32.4
 apscheduler==3.11.0
+alembic==1.13.3

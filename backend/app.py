@@ -4,6 +4,14 @@ from flask_httpauth import HTTPBasicAuth
 from models import init_db, get_logs, add_log
 import os
 
+# Import scheduler to start NextDNS log fetching
+try:
+    from scheduler import scheduler
+    print("🔄 NextDNS log scheduler started successfully")
+except ImportError as e:
+    print(f"⚠️  Could not start scheduler: {e}")
+    print("🧱 App will work but won't automatically fetch NextDNS logs")
+
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 
