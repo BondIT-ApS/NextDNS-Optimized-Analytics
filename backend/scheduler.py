@@ -12,6 +12,7 @@ logger = get_logger(__name__)
 API_KEY = os.getenv("API_KEY")
 PROFILE_ID = os.getenv("PROFILE_ID")
 FETCH_INTERVAL = int(os.getenv("FETCH_INTERVAL", 60))  # Default to 60 minutes
+FETCH_LIMIT = int(os.getenv("FETCH_LIMIT", 100))  # Default to 100 records per request
 
 # Check if required variables are set
 if not API_KEY or not PROFILE_ID:
@@ -31,7 +32,7 @@ else:
         
         try:
             headers = {"X-Api-Key": API_KEY}
-            params = {"from": "-1h", "to": "now", "raw": "false"}
+            params = {"from": "-1h", "to": "now", "raw": "false", "limit": FETCH_LIMIT}
             
             logger.debug(f"🌐 Making API request to NextDNS: {NEXTDNS_API_URL}")
             response = requests.get(NEXTDNS_API_URL, headers=headers, params=params)
@@ -69,3 +70,4 @@ else:
     scheduler.start()
     logger.info(f"🔄 NextDNS log fetching scheduler started (runs every {FETCH_INTERVAL} minutes)")
     logger.info(f"🕰️ Fetch interval configured: {FETCH_INTERVAL} minutes ({FETCH_INTERVAL/60:.1f} hours)")
+    logger.info(f"📊 Fetch limit configured: {FETCH_LIMIT} records per request")
