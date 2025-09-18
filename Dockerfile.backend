@@ -12,4 +12,5 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+# Use uvicorn for production-ready ASGI server
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000", "--log-level", "info"]
