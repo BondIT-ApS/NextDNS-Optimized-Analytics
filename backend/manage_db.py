@@ -22,20 +22,25 @@ import sys
 import subprocess
 from pathlib import Path
 
+# Set up logging
+from logging_config import setup_logging, get_logger
+setup_logging()
+logger = get_logger(__name__)
+
 def run_alembic_command(command_args):
     """Run an Alembic command with proper error handling."""
     try:
         cmd = ['alembic'] + command_args
-        print(f"🧱 Running: {' '.join(cmd)}")
+        logger.info(f"🧱 Running: {' '.join(cmd)}")
         result = subprocess.run(cmd, cwd=Path(__file__).parent, check=True, capture_output=True, text=True)
-        print(result.stdout)
+        logger.info(result.stdout)
         if result.stderr:
-            print(f"⚠️ Warnings: {result.stderr}")
+            logger.warning(f"⚠️ Warnings: {result.stderr}")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ Error running Alembic command: {e}")
-        print(f"stdout: {e.stdout}")
-        print(f"stderr: {e.stderr}")
+        logger.error(f"❌ Error running Alembic command: {e}")
+        logger.debug(f"stdout: {e.stdout}")
+        logger.debug(f"stderr: {e.stderr}")
         return False
 
 def check_environment():
@@ -57,24 +62,24 @@ def check_environment():
             missing_api_vars.append(var)
     
     if missing_db_vars:
-        print(f"❌ Missing required database variables: {', '.join(missing_db_vars)}")
-        print("💡 Make sure to set these variables or load your .env file")
+        logger.error(f"❌ Missing required database variables: {', '.join(missing_db_vars)}")
+        logger.info("💡 Make sure to set these variables or load your .env file")
         return False
     
     if missing_api_vars:
-        print(f"⚠️  Missing NextDNS API variables: {', '.join(missing_api_vars)}")
-        print("💡 These are needed for the application to fetch NextDNS logs")
-        print("🧱 Database migrations will work, but the app won't fetch logs")
+        logger.warning(f"⚠️  Missing NextDNS API variables: {', '.join(missing_api_vars)}")
+        logger.info("💡 These are needed for the application to fetch NextDNS logs")
+        logger.info("🧱 Database migrations will work, but the app won't fetch logs")
     
-    print("✅ Database environment variables are properly configured")
+    logger.info("✅ Database environment variables are properly configured")
     if not missing_api_vars:
-        print("✅ NextDNS API environment variables are properly configured")
+        logger.info("✅ NextDNS API environment variables are properly configured")
     
     return True
 
 def init_database():
     """Initialize the database with the latest schema."""
-    print("🏗️ Initializing database schema...")
+    logger.info("🏧️ Initializing database schema...")
     if not check_environment():
         return False
     
@@ -82,7 +87,7 @@ def init_database():
 
 def upgrade_database():
     """Upgrade database to the latest schema."""
-    print("⬆️ Upgrading database schema...")
+    logger.info("⬆️ Upgrading database schema...")
     if not check_environment():
         return False
     
@@ -90,7 +95,7 @@ def upgrade_database():
 
 def show_status():
     """Show current migration status."""
-    print("📊 Checking migration status...")
+    logger.info("📊 Checking migration status...")
     if not check_environment():
         return False
     
@@ -98,7 +103,7 @@ def show_status():
 
 def show_history():
     """Show migration history."""
-    print("📜 Migration history:")
+    logger.info("📜 Migration history:")
     return run_alembic_command(['history'])
 
 def main():
@@ -117,19 +122,19 @@ def main():
     }
     
     if command not in commands:
-        print(f"❌ Unknown command: {command}")
+        logger.error(f"❌ Unknown command: {command}")
         print(__doc__)
         sys.exit(1)
     
-    print("🧱 NextDNS Optimized Analytics - Database Management")
-    print("=" * 50)
+    logger.info("🧱 NextDNS Optimized Analytics - Database Management")
+    logger.info("=" * 50)
     
     success = commands[command]()
     
     if success:
-        print("✅ Command completed successfully!")
+        logger.info("✅ Command completed successfully!")
     else:
-        print("❌ Command failed!")
+        logger.error("❌ Command failed!")
         sys.exit(1)
 
 if __name__ == '__main__':
