@@ -190,6 +190,10 @@ config/.env.test
 config/.env.production
 config/.env.staging
 
+# Keep template files but ignore actual .env files
+# .env.template should be tracked
+!config/.env.template
+
 # Logs
 logs/
 *.log
