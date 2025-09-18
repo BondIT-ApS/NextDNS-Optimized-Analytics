@@ -127,8 +127,31 @@ dmypy.json
 .pytype/
 
 
-# Ignore dependencies
-node_modules
+# Node.js and npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# React/Vite build outputs
+dist/
+build/
+.vite/
+
+# React/TypeScript cache
+.tsbuildinfo
+
+# Package manager lock files (keep package-lock.json but ignore yarn.lock)
+yarn.lock
+
+# Environment variables for frontend
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
 
 # macOS
 .DS_Store
@@ -180,6 +203,7 @@ docker-compose.override.yml
 *.sqlite3
 db_data/
 postgres_data/
+db/
 
 # Environment and configuration
 .env.local
