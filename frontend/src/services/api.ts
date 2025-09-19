@@ -55,7 +55,7 @@ export const apiClient = {
   },
 
   // Logs endpoints
-  async getLogs(filters: LogFilters = {}): Promise<LogsResponse> {
+  async getLogs(filters: LogFilters & { status?: string } = {}): Promise<LogsResponse> {
     const params = new URLSearchParams()
     
     if (filters.exclude && filters.exclude.length > 0) {
@@ -64,6 +64,7 @@ export const apiClient = {
     if (filters.limit) params.append('limit', filters.limit.toString())
     if (filters.offset) params.append('offset', filters.offset.toString())
     if (filters.search) params.append('search', filters.search)
+    if (filters.status && filters.status !== 'all') params.append('status', filters.status)
     if (filters.profile) params.append('profile', filters.profile)
 
     const response = await api.get(`/logs?${params.toString()}`)
