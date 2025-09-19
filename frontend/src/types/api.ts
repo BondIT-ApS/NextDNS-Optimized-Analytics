@@ -20,6 +20,40 @@ export interface LogsResponse {
   excluded_domains?: string[] | null
 }
 
+export interface LogsStatsResponse {
+  total: number
+  blocked: number
+  allowed: number
+  blocked_percentage: number
+  allowed_percentage: number
+  profile_id?: string | null
+}
+
+export interface ProfileInfo {
+  profile_id: string
+  record_count: number
+  last_activity?: string | null
+}
+
+export interface ProfileListResponse {
+  profiles: ProfileInfo[]
+  total_profiles: number
+}
+
+export interface NextDNSProfileInfo {
+  id: string
+  name: string
+  fingerprint?: string | null
+  created?: string | null
+  updated?: string | null
+  error?: string | null
+}
+
+export interface ProfileInfoResponse {
+  profiles: { [key: string]: NextDNSProfileInfo }
+  total_profiles: number
+}
+
 export interface StatsResponse {
   total_records: number
   message: string
@@ -94,6 +128,7 @@ export interface LogFilters {
   endDate?: string
   blocked?: boolean
   deviceFilter?: string
+  profile?: string
 }
 
 // Chart data types

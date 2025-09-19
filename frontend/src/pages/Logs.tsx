@@ -6,12 +6,14 @@ import { LoadingState, ErrorState } from '@/components/LoadingSkeletons'
 import { StatsCards } from '@/components/StatsCards'
 import { FilterPanel } from '@/components/FilterPanel'
 import { LogsTable } from '@/components/LogsTable'
+import { ProfileSelector } from '@/components/ProfileSelector'
 import { useState, useMemo, useEffect, useCallback, useTransition } from 'react'
 
 export function Logs() {
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'blocked' | 'allowed'>('all')
+  const [selectedProfile, setSelectedProfile] = useState<string | undefined>(undefined)
   const [, startTransition] = useTransition()
   
   // Debounce search query with transition for non-blocking updates
@@ -29,8 +31,9 @@ export function Logs() {
   const queryParams = useMemo(() => ({
     limit: 100,
     search: debouncedSearchQuery,
-    status: statusFilter
-  }), [debouncedSearchQuery, statusFilter])
+    status: statusFilter,
+    profile: selectedProfile
+  }), [debouncedSearchQuery, statusFilter, selectedProfile])
   
   const { 
     data: logsResponse, 
@@ -39,11 +42,11 @@ export function Logs() {
     refetch 
   } = useLogs(queryParams)
   
-  // Get total stats from entire database
+  // Get total stats from entire database (or filtered by profile)
   const { 
     data: totalStats,
     isLoading: statsLoading
-  } = useLogsStats()
+  } = useLogsStats(selectedProfile)
 
   // Since filtering is now done on the backend, use the response data directly
   const filteredLogs = useMemo(() => {
@@ -78,6 +81,12 @@ export function Logs() {
   const handleStatusFilterChange = useCallback((status: 'all' | 'blocked' | 'allowed') => {
     startTransition(() => {
       setStatusFilter(status)
+    })
+  }, [])
+  
+  const handleProfileChange = useCallback((profileId: string | undefined) => {
+    startTransition(() => {
+      setSelectedProfile(profileId)
     })
   }, [])
 
@@ -149,16 +158,29 @@ export function Logs() {
           statusFilter={statusFilter}
         />
 
-        {/* Filters */}
-        <FilterPanel 
-          searchQuery={searchQuery}
-          onSearchChange={handleSearchChange}
-          statusFilter={statusFilter}
-          onStatusFilterChange={handleStatusFilterChange}
-          debouncedSearchQuery={debouncedSearchQuery}
-          filteredLogsCount={filteredLogs.length}
-          totalLogsCount={stats.totalInDatabase}
-        />
+        {/* Profile Selector and Search Filter - Side by Side */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex-1">
+            <ProfileSelector 
+              selectedProfile={selectedProfile}
+              onProfileChange={handleProfileChange}
+              showStats={true}
+            />
+          </div>
+          
+          <div className="flex-1">
+            <FilterPanel 
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+              statusFilter={statusFilter}
+              onStatusFilterChange={handleStatusFilterChange}
+              debouncedSearchQuery={debouncedSearchQuery}
+              filteredLogsCount={filteredLogs.length}
+              totalLogsCount={stats.totalInDatabase}
+              selectedProfile={selectedProfile}
+            />
+          </div>
+        </div>
 
         {/* Logs Table */}
         <LogsTable 
