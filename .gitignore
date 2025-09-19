@@ -271,3 +271,4 @@ cache/
 
 # Network drives
 .apdisk
+frontend/tsconfig.tsbuildinfo

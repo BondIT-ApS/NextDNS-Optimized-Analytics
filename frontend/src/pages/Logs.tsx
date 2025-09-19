@@ -1,29 +1,25 @@
 import { useLogs, useLogsStats } from '@/hooks/useLogs'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { SearchInput } from '@/components/SearchInput'
-import { 
-  RefreshCw, 
-  Database,
-  Shield,
-  Clock,
-  CheckCircle,
-  XCircle
-} from 'lucide-react'
-import { formatNumber } from '@/lib/utils'
+import { RefreshCw } from 'lucide-react'
 import { ApiErrorBoundary } from '@/components/ErrorBoundary'
 import { LoadingState, ErrorState } from '@/components/LoadingSkeletons'
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { StatsCards } from '@/components/StatsCards'
+import { FilterPanel } from '@/components/FilterPanel'
+import { LogsTable } from '@/components/LogsTable'
+import { useState, useMemo, useEffect, useCallback, useTransition } from 'react'
 
 export function Logs() {
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'blocked' | 'allowed'>('all')
+  const [, startTransition] = useTransition()
   
-  // Debounce search query to prevent API calls on every keystroke
+  // Debounce search query with transition for non-blocking updates
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery)
+      startTransition(() => {
+        setDebouncedSearchQuery(searchQuery)
+      })
     }, 500) // 500ms delay for more stability
     
     return () => clearTimeout(timer)
@@ -74,24 +70,15 @@ export function Logs() {
       allowedPercentage: totalDatabaseStats.allowed_percentage
     }
   }, [filteredLogs, totalStats])
-
-  const formatTime = useCallback((timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString()
-  }, [])
-
-  const formatDevice = useCallback((device: any) => {
-    if (!device) return 'Unknown'
-    if (typeof device === 'string') return device
-    return device.name || device.id || 'Unknown'
-  }, [])
   
   const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value)
   }, [])
   
-  
   const handleStatusFilterChange = useCallback((status: 'all' | 'blocked' | 'allowed') => {
-    setStatusFilter(status)
+    startTransition(() => {
+      setStatusFilter(status)
+    })
   }, [])
 
   if (isLoading || statsLoading) {
@@ -156,185 +143,29 @@ export function Logs() {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">DNS Queries</CardTitle>
-              <Database className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-lego-blue">
-                {formatNumber(stats.total)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {debouncedSearchQuery || statusFilter !== 'all' 
-                  ? `Filtered from ${formatNumber(stats.totalInDatabase)} total queries`
-                  : `From ${formatNumber(stats.totalInDatabase)} total queries`
-                }
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Blocked</CardTitle>
-              <Shield className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-lego-red">
-                {formatNumber(stats.blocked)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {stats.blockedPercentage}% of all queries
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Allowed</CardTitle>
-              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-lego-green">
-                {formatNumber(stats.allowed)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {stats.allowedPercentage}% of all queries
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+        <StatsCards 
+          stats={stats}
+          debouncedSearchQuery={debouncedSearchQuery}
+          statusFilter={statusFilter}
+        />
 
         {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Filters</CardTitle>
-            <CardDescription>Search and filter DNS logs</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Search Input */}
-              <SearchInput 
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder="Search domains..."
-              />
-
-              {/* Status Filter Buttons */}
-              <div className="flex gap-2">
-                {[
-                  { key: 'all', label: 'All', color: 'outline' },
-                  { key: 'blocked', label: 'Blocked', color: 'destructive' },
-                  { key: 'allowed', label: 'Allowed', color: 'default' }
-                ].map(({ key, label, color }) => (
-                  <Button
-                    key={key}
-                    variant={statusFilter === key ? (color as any) : 'outline'}
-                    size="sm"
-                    onClick={() => handleStatusFilterChange(key as any)}
-                    className={
-                      statusFilter === key && key === 'allowed' 
-                        ? 'bg-lego-green hover:bg-lego-green/90 text-white' 
-                        : ''
-                    }
-                  >
-                    {label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Filter Summary */}
-            {(debouncedSearchQuery || statusFilter !== 'all') && (
-              <div className="mt-4 text-sm text-muted-foreground">
-                Showing {filteredLogs.length} of {stats.totalInDatabase} logs
-                {debouncedSearchQuery && ` matching "${debouncedSearchQuery}"`}
-                {statusFilter !== 'all' && ` (${statusFilter} only)`}
-                {searchQuery !== debouncedSearchQuery && (
-                  <span className="text-muted-foreground/70"> (searching...)</span>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <FilterPanel 
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          statusFilter={statusFilter}
+          onStatusFilterChange={handleStatusFilterChange}
+          debouncedSearchQuery={debouncedSearchQuery}
+          filteredLogsCount={filteredLogs.length}
+          totalLogsCount={stats.totalInDatabase}
+        />
 
         {/* Logs Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              DNS Query Log
-            </CardTitle>
-            <CardDescription>
-              {filteredLogs.length > 0 
-                ? `${filteredLogs.length} recent DNS queries`
-                : 'No logs match your filters'
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {filteredLogs.length === 0 ? (
-              <div className="text-center py-8">
-                <Database className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">No logs found</h3>
-                <p className="text-muted-foreground">
-                  {debouncedSearchQuery || statusFilter !== 'all'
-                    ? 'Try adjusting your filters'
-                    : 'No DNS logs available'
-                  }
-                </p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Time</th>
-                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Domain</th>
-                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Device</th>
-                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-muted-foreground">Type</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredLogs.map((log: any) => (
-                      <tr key={log.id} className="border-b hover:bg-muted/50 transition-colors">
-                        <td className="py-3 px-4 font-mono text-sm">
-                          {formatTime(log.timestamp)}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-medium">{log.domain}</div>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-muted-foreground">
-                          {formatDevice(log.device)}
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            {log.blocked ? (
-                              <>
-                                <XCircle className="h-4 w-4 text-lego-red" />
-                                <span className="text-lego-red font-medium">Blocked</span>
-                              </>
-                            ) : (
-                              <>
-                                <CheckCircle className="h-4 w-4 text-lego-green" />
-                                <span className="text-lego-green font-medium">Allowed</span>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 font-mono text-sm">
-                          {log.query_type}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <LogsTable 
+          logs={filteredLogs}
+          debouncedSearchQuery={debouncedSearchQuery}
+          statusFilter={statusFilter}
+        />
       </div>
     </ApiErrorBoundary>
   )
