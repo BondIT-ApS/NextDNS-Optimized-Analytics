@@ -170,7 +170,7 @@ export const ProfileSelector = memo<ProfileSelectorProps>(({
         {profilesInfo && (
           <div className="mt-4 pt-3 border-t text-xs text-muted-foreground">
             <p>
-              {Object.keys(profilesInfo.profiles).length} of {profileOptions.length} profiles configured
+              {profileOptions.length} profiles found, {Object.keys(profilesInfo.profiles).length} configured
             </p>
           </div>
         )}
