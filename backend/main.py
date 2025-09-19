@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 app_start_time = datetime.now(timezone.utc)
 
 # Import models and scheduler
-from models import init_db, get_logs, get_total_record_count
+from models import init_db, get_logs, get_total_record_count, get_logs_stats
 try:
     from scheduler import scheduler
     logger.info("🔄 NextDNS log scheduler started successfully")
@@ -136,6 +136,14 @@ class StatsResponse(BaseModel):
     """Response model for statistics."""
     total_records: int
     message: str
+
+class LogsStatsResponse(BaseModel):
+    """Response model for logs statistics."""
+    total: int
+    blocked: int
+    allowed: int
+    blocked_percentage: float
+    allowed_percentage: float
 
 class HealthResponse(BaseModel):
     """Simple health response model."""
@@ -304,22 +312,40 @@ async def get_stats():
         message=f"Database contains {total_records:,} DNS log records"
     )
 
+@app.get("/logs/stats", response_model=LogsStatsResponse, tags=["Logs"])
+async def get_logs_statistics():
+    """Get statistics for all DNS logs in the database."""
+    logger.debug("📊 API request for logs statistics")
+    stats = get_logs_stats()
+    logger.info(f"📊 Returning stats: {stats}")
+    return LogsStatsResponse(**stats)
+
 @app.get("/logs", response_model=LogsResponse, tags=["Logs"])
 async def get_dns_logs(
     exclude: Optional[List[str]] = Query(default=None, description="Domains to exclude from results"),
-    limit: int = Query(default=1000, ge=1, le=10000, description="Maximum number of records to return"),
+    search: Optional[str] = Query(default="", description="Search query for domain names"),
+    status: Optional[str] = Query(default="all", description="Filter by status: all, blocked, allowed"),
+    limit: int = Query(default=100, ge=1, le=10000, description="Maximum number of records to return"),
     offset: int = Query(default=0, ge=0, description="Number of records to skip")
 ):
     """
     Get DNS logs with optional filtering and pagination.
     
     - **exclude**: List of domains to exclude from results
+    - **search**: Search query for domain names
+    - **status**: Filter by status (all, blocked, allowed)
     - **limit**: Maximum number of records to return (1-10000)
     - **offset**: Number of records to skip for pagination
     """
-    logger.debug(f"📊 API request: exclude={exclude}, limit={limit}, offset={offset}")
+    logger.debug(f"📊 API request: exclude={exclude}, search='{search}', status={status}, limit={limit}, offset={offset}")
     
-    logs = get_logs(exclude_domains=exclude, limit=limit, offset=offset)
+    logs = get_logs(
+        exclude_domains=exclude, 
+        search_query=search,
+        status_filter=status,
+        limit=limit, 
+        offset=offset
+    )
     total_records = get_total_record_count()
     
     logger.info(f"📊 Returning {len(logs)} DNS logs")
