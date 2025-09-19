@@ -1,99 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
+import { apiClient } from '@/services/api'
+import type { LogFilters } from '@/types/api'
 
-export interface DNSLog {
-  id: number
-  timestamp: string
-  domain: string
-  action: string
-  device?: {
-    id: string
-    name: string
-    model?: string
-  } | null
-  client_ip: string
-  query_type: string
-  blocked: boolean
-  profile_id?: string | null
-  data: {
-    timestamp: string
-    domain: string
-    root: string
-    tracker?: string
-    encrypted: boolean
-    protocol: string
-    clientIp: string
-    client?: string
-    device?: {
-      id: string
-      name: string
-      model?: string
-    }
-    status: string
-    reasons: Array<{
-      id: string
-      name: string
-    }>
-    matched?: string
-  }
-  created_at: string
-}
-
-interface LogsResponse {
-  data: DNSLog[]
-  meta?: {
-    total: number
-    page: number
-    limit: number
-  }
-}
-
-const API_BASE_URL = 'http://localhost:5002/api'
-
-interface LogsParams {
-  limit?: number
-  search?: string
+interface LogsParams extends LogFilters {
   status?: 'all' | 'blocked' | 'allowed'
-}
-
-interface LogsStats {
-  total: number
-  blocked: number
-  allowed: number
-  blocked_percentage: number
-  allowed_percentage: number
-}
-
-async function fetchLogs(params: LogsParams = {}): Promise<LogsResponse> {
-  const { limit = 100, search = '', status = 'all' } = params
-  const searchParams = new URLSearchParams({
-    limit: limit.toString()
-  })
-  
-  if (search.trim()) {
-    searchParams.append('search', search)
-  }
-  
-  if (status !== 'all') {
-    searchParams.append('status', status)
-  }
-  
-  const response = await fetch(`${API_BASE_URL}/logs?${searchParams}`)
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch logs: ${response.status} ${response.statusText}`)
-  }
-  
-  return response.json()
-}
-
-async function fetchLogsStats(): Promise<LogsStats> {
-  const response = await fetch(`${API_BASE_URL}/logs/stats`)
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch logs stats: ${response.status} ${response.statusText}`)
-  }
-  
-  return response.json()
 }
 
 export function useLogs(params: LogsParams = {}) {
@@ -102,7 +12,8 @@ export function useLogs(params: LogsParams = {}) {
   const normalizedParams = {
     limit: params.limit || 100,
     search: params.search?.trim() || undefined,
-    status: params.status === 'all' ? undefined : params.status
+    status: params.status === 'all' ? undefined : params.status,
+    profile: params.profile || undefined
   }
   
   // Remove undefined values to create cleaner query key
@@ -112,20 +23,38 @@ export function useLogs(params: LogsParams = {}) {
   
   return useQuery({
     queryKey,
-    queryFn: () => fetchLogs(params),
+    queryFn: () => apiClient.getLogs(params),
     staleTime: 30000, // 30 seconds
-    refetchInterval: params.search || params.status !== 'all' ? false : 60000, // Only auto-refresh when no filters
+    refetchInterval: params.search || params.status !== 'all' || params.profile ? false : 60000, // Only auto-refresh when no filters
     // Enable query deduplication and background updates
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   })
 }
 
-export function useLogsStats() {
+export function useLogsStats(profile?: string) {
   return useQuery({
-    queryKey: ['logs-stats'],
-    queryFn: fetchLogsStats,
+    queryKey: ['logs-stats', profile],
+    queryFn: () => apiClient.getLogsStats(profile),
     staleTime: 60000, // 60 seconds
     refetchInterval: 120000, // Refetch every 2 minutes
+  })
+}
+
+export function useProfiles() {
+  return useQuery({
+    queryKey: ['profiles'],
+    queryFn: () => apiClient.getAvailableProfiles(),
+    staleTime: 300000, // 5 minutes
+    refetchInterval: false, // Don't auto-refresh
+  })
+}
+
+export function useProfilesInfo() {
+  return useQuery({
+    queryKey: ['profiles-info'],
+    queryFn: () => apiClient.getProfilesInfo(),
+    staleTime: 300000, // 5 minutes
+    refetchInterval: false, // Don't auto-refresh
   })
 }
