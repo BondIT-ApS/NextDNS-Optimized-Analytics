@@ -1,4 +1,4 @@
-import { useLogs } from '@/hooks/useApi'
+import { useLogs, useLogsStats } from '@/hooks/useLogs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,40 +25,43 @@ export function Logs() {
     isLoading, 
     error, 
     refetch 
-  } = useLogs({ limit: 100 }) // Get last 100 logs
+  } = useLogs({ 
+    limit: 100, 
+    search: searchQuery, 
+    status: statusFilter 
+  }) 
+  
+  // Get total stats from entire database
+  const { 
+    data: totalStats,
+    isLoading: statsLoading
+  } = useLogsStats()
 
-  // Filter logs based on search and status
+  // Since filtering is now done on the backend, use the response data directly
   const filteredLogs = useMemo(() => {
-    if (!logsResponse?.data) return []
-    
-    let filtered = logsResponse.data
-    
-    // Filter by search query (domain name)
-    if (searchQuery.trim()) {
-      filtered = filtered.filter(log => 
-        log.domain.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    }
-    
-    // Filter by status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(log => 
-        statusFilter === 'blocked' ? log.blocked : !log.blocked
-      )
-    }
-    
-    return filtered
-  }, [logsResponse?.data, searchQuery, statusFilter])
+    return logsResponse?.data || []
+  }, [logsResponse?.data])
 
   const stats = useMemo(() => {
-    if (!logsResponse?.data) return { total: 0, blocked: 0, allowed: 0 }
+    // Current filtered results counts
+    const filteredTotal = filteredLogs.length
+    const filteredBlocked = filteredLogs.filter(log => log.blocked).length
+    const filteredAllowed = filteredTotal - filteredBlocked
     
-    const total = logsResponse.data.length
-    const blocked = logsResponse.data.filter(log => log.blocked).length
-    const allowed = total - blocked
+    // Use total database stats for percentages
+    const totalDatabaseStats = totalStats || { total: 0, blocked: 0, allowed: 0, blocked_percentage: 0, allowed_percentage: 0 }
     
-    return { total, blocked, allowed }
-  }, [logsResponse?.data])
+    return {
+      // Show filtered counts as main numbers
+      total: filteredTotal,
+      blocked: filteredBlocked,
+      allowed: filteredAllowed,
+      // Use database totals for percentage calculations
+      totalInDatabase: totalDatabaseStats.total,
+      blockedPercentage: totalDatabaseStats.blocked_percentage,
+      allowedPercentage: totalDatabaseStats.allowed_percentage
+    }
+  }, [filteredLogs, totalStats])
 
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString()
@@ -70,7 +73,7 @@ export function Logs() {
     return device.name || device.id || 'Unknown'
   }
 
-  if (isLoading) {
+  if (isLoading || statsLoading) {
     return (
       <div className="space-y-6">
         {/* Header */}
@@ -143,7 +146,10 @@ export function Logs() {
                 {formatNumber(stats.total)}
               </div>
               <p className="text-xs text-muted-foreground">
-                Last 100 entries
+                {searchQuery || statusFilter !== 'all' 
+                  ? `Filtered from ${formatNumber(stats.totalInDatabase)} total`
+                  : `From ${formatNumber(stats.totalInDatabase)} total entries`
+                }
               </p>
             </CardContent>
           </Card>
@@ -158,7 +164,7 @@ export function Logs() {
                 {formatNumber(stats.blocked)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {stats.total > 0 ? Math.round((stats.blocked / stats.total) * 100) : 0}% blocked
+                {stats.blockedPercentage}% of all entries
               </p>
             </CardContent>
           </Card>
@@ -173,7 +179,7 @@ export function Logs() {
                 {formatNumber(stats.allowed)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {stats.total > 0 ? Math.round((stats.allowed / stats.total) * 100) : 0}% allowed
+                {stats.allowedPercentage}% of all entries
               </p>
             </CardContent>
           </Card>
