@@ -243,12 +243,14 @@ def update_fetch_status(profile_id, last_timestamp, records_count):
     finally:
         session.close()
 
-# Retrieve logs with optional exclusion of domains
-def get_logs(exclude_domains=None, limit=1000, offset=0):
+# Retrieve logs with optional exclusion of domains and advanced filtering
+def get_logs(exclude_domains=None, search_query="", status_filter="all", limit=100, offset=0):
     """Retrieve DNS logs with optional filtering and pagination.
     
     Args:
         exclude_domains (list): List of domains to exclude from results
+        search_query (str): Domain name search query
+        status_filter (str): Filter by status - 'all', 'blocked', 'allowed'
         limit (int): Maximum number of records to return
         offset (int): Number of records to skip for pagination
     
@@ -256,20 +258,34 @@ def get_logs(exclude_domains=None, limit=1000, offset=0):
         list: List of DNS log dictionaries
     """
     total_records = get_total_record_count()
-    logger.debug(f"📊 Retrieving logs with limit={limit}, offset={offset}, exclude_domains={exclude_domains}")
+    logger.debug(f"📊 Retrieving logs with limit={limit}, offset={offset}, exclude_domains={exclude_domains}, search='{search_query}', status='{status_filter}'")
     logger.info(f"📊 Database query: requesting {limit} records from {total_records:,} total records")
     session = Session()
     try:
         query = session.query(DNSLog).order_by(DNSLog.timestamp.desc())
         
+        # Apply domain exclusions
         if exclude_domains:
             query = query.filter(~DNSLog.domain.in_(exclude_domains))
             logger.debug(f"🚫 Excluding {len(exclude_domains)} domains from results")
         
+        # Apply search filter on domain name
+        if search_query.strip():
+            query = query.filter(DNSLog.domain.ilike(f"%{search_query}%"))
+            logger.debug(f"🔍 Filtering by domain search: '{search_query}'")
+        
+        # Apply status filter
+        if status_filter == "blocked":
+            query = query.filter(DNSLog.blocked == True)
+            logger.debug("🚫 Filtering for blocked requests only")
+        elif status_filter == "allowed":
+            query = query.filter(DNSLog.blocked == False)
+            logger.debug("✅ Filtering for allowed requests only")
+        
         # Apply pagination
         query = query.offset(offset).limit(limit)
         
-        return [
+        result = [
             {
                 "id": log.id,
                 "timestamp": log.timestamp.isoformat(),
@@ -290,5 +306,49 @@ def get_logs(exclude_domains=None, limit=1000, offset=0):
     except SQLAlchemyError as e:
         logger.error(f"❌ Error retrieving logs from database: {e}")
         return []
+    finally:
+        session.close()
+
+# Get total statistics for all logs in the database
+def get_logs_stats():
+    """Get total statistics for all DNS logs in the database.
+    
+    Returns:
+        dict: Dictionary containing total, blocked, and allowed counts and percentages
+    """
+    session = Session()
+    try:
+        # Get total count
+        total_count = session.query(DNSLog).count()
+        
+        # Get blocked count
+        blocked_count = session.query(DNSLog).filter(DNSLog.blocked == True).count()
+        
+        # Calculate allowed count
+        allowed_count = total_count - blocked_count
+        
+        # Calculate percentages
+        blocked_percentage = (blocked_count / total_count * 100) if total_count > 0 else 0
+        allowed_percentage = (allowed_count / total_count * 100) if total_count > 0 else 0
+        
+        stats = {
+            "total": total_count,
+            "blocked": blocked_count,
+            "allowed": allowed_count,
+            "blocked_percentage": round(blocked_percentage, 1),
+            "allowed_percentage": round(allowed_percentage, 1)
+        }
+        
+        logger.debug(f"📊 Database stats: {stats}")
+        return stats
+    except SQLAlchemyError as e:
+        logger.error(f"❌ Error getting logs statistics: {e}")
+        return {
+            "total": 0,
+            "blocked": 0,
+            "allowed": 0,
+            "blocked_percentage": 0,
+            "allowed_percentage": 0
+        }
     finally:
         session.close()
