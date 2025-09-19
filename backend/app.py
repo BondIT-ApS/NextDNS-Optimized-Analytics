@@ -33,10 +33,32 @@ def verify_password(username, password):
 @auth.login_required
 def logs():
     exclude_domains = request.args.getlist("exclude")
-    logger.debug(f"📊 API request for logs with exclude_domains: {exclude_domains}")
-    logs = get_logs(exclude_domains)
+    search_query = request.args.get("search", "")
+    status_filter = request.args.get("status", "all")  # all, blocked, allowed
+    limit = int(request.args.get("limit", 100))
+    
+    logger.debug(f"📊 API request for logs with exclude_domains: {exclude_domains}, search: '{search_query}', status: {status_filter}, limit: {limit}")
+    
+    logs = get_logs(
+        exclude_domains=exclude_domains,
+        search_query=search_query,
+        status_filter=status_filter,
+        limit=limit
+    )
+    
     logger.info(f"📊 Returning {len(logs)} DNS logs")
     return jsonify({"data": logs})
+
+@app.route("/logs/stats", methods=["GET"])
+@auth.login_required
+def logs_stats():
+    """Get total statistics for all logs in the database."""
+    from models import get_logs_stats
+    
+    logger.debug("📊 API request for logs statistics")
+    stats = get_logs_stats()
+    logger.info(f"📊 Returning stats: {stats}")
+    return jsonify(stats)
 
 if __name__ == "__main__":
     logger.info("🚀 Starting NextDNS Optimized Analytics Backend")
