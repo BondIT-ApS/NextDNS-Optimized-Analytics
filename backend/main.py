@@ -337,6 +337,7 @@ async def get_dns_logs(
     exclude: Optional[List[str]] = Query(default=None, description="Domains to exclude from results"),
     search: Optional[str] = Query(default="", description="Search query for domain names"),
     status: Optional[str] = Query(default="all", description="Filter by status: all, blocked, allowed"),
+    profile: Optional[str] = Query(default=None, description="Filter by specific profile ID"),
     limit: int = Query(default=100, ge=1, le=10000, description="Maximum number of records to return"),
     offset: int = Query(default=0, ge=0, description="Number of records to skip")
 ):
@@ -346,15 +347,17 @@ async def get_dns_logs(
     - **exclude**: List of domains to exclude from results
     - **search**: Search query for domain names
     - **status**: Filter by status (all, blocked, allowed)
+    - **profile**: Filter by specific profile ID
     - **limit**: Maximum number of records to return (1-10000)
     - **offset**: Number of records to skip for pagination
     """
-    logger.debug(f"📊 API request: exclude={exclude}, search='{search}', status={status}, limit={limit}, offset={offset}")
+    logger.debug(f"📊 API request: exclude={exclude}, search='{search}', status={status}, profile='{profile}', limit={limit}, offset={offset}")
     
     logs = get_logs(
         exclude_domains=exclude, 
         search_query=search,
         status_filter=status,
+        profile_filter=profile,
         limit=limit, 
         offset=offset
     )
