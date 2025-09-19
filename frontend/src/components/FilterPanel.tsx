@@ -11,6 +11,7 @@ interface FilterPanelProps {
   debouncedSearchQuery: string
   filteredLogsCount: number
   totalLogsCount: number
+  selectedProfile?: string
 }
 
 export const FilterPanel = memo<FilterPanelProps>(({ 
@@ -20,7 +21,8 @@ export const FilterPanel = memo<FilterPanelProps>(({
   onStatusFilterChange,
   debouncedSearchQuery,
   filteredLogsCount,
-  totalLogsCount
+  totalLogsCount,
+  selectedProfile
 }) => {
   return (
     <Card>
@@ -62,9 +64,10 @@ export const FilterPanel = memo<FilterPanelProps>(({
         </div>
 
         {/* Filter Summary */}
-        {(debouncedSearchQuery || statusFilter !== 'all') && (
+        {(debouncedSearchQuery || statusFilter !== 'all' || selectedProfile) && (
           <div className="mt-4 text-sm text-muted-foreground">
             Showing {filteredLogsCount} of {totalLogsCount} logs
+            {selectedProfile && ` from profile ${selectedProfile}`}
             {debouncedSearchQuery && ` matching "${debouncedSearchQuery}"`}
             {statusFilter !== 'all' && ` (${statusFilter} only)`}
             {searchQuery !== debouncedSearchQuery && (
