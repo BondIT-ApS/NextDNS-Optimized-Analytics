@@ -170,13 +170,6 @@ export function Layout({ children }: LayoutProps) {
               </p>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-2">
-            <div className="hidden md:flex items-center space-x-2 text-sm text-muted-foreground">
-              <div className="w-2 h-2 bg-lego-green rounded-full animate-pulse" />
-              <span>Connected</span>
-            </div>
-          </div>
         </div>
 
         {/* Page content */}
