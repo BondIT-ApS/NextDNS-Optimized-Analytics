@@ -2,6 +2,7 @@ import React, { memo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/SearchInput'
+import { Search } from 'lucide-react'
 
 interface FilterPanelProps {
   searchQuery: string
@@ -27,7 +28,10 @@ export const FilterPanel = memo<FilterPanelProps>(({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Filters</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Search className="h-5 w-5" />
+          Search Filter
+        </CardTitle>
         <CardDescription>Search and filter DNS logs</CardDescription>
       </CardHeader>
       <CardContent>
