@@ -1,10 +1,9 @@
 import { useLogs, useLogsStats } from '@/hooks/useLogs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/SearchInput'
 import { 
   RefreshCw, 
-  Search,
   Database,
   Shield,
   Clock,
@@ -14,22 +13,35 @@ import {
 import { formatNumber } from '@/lib/utils'
 import { ApiErrorBoundary } from '@/components/ErrorBoundary'
 import { LoadingState, ErrorState } from '@/components/LoadingSkeletons'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 
 export function Logs() {
   const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'blocked' | 'allowed'>('all')
+  
+  // Debounce search query to prevent API calls on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 500) // 500ms delay for more stability
+    
+    return () => clearTimeout(timer)
+  }, [searchQuery])
+  
+  // Memoize the query parameters to prevent unnecessary re-renders
+  const queryParams = useMemo(() => ({
+    limit: 100,
+    search: debouncedSearchQuery,
+    status: statusFilter
+  }), [debouncedSearchQuery, statusFilter])
   
   const { 
     data: logsResponse, 
     isLoading, 
     error, 
     refetch 
-  } = useLogs({ 
-    limit: 100, 
-    search: searchQuery, 
-    status: statusFilter 
-  }) 
+  } = useLogs(queryParams)
   
   // Get total stats from entire database
   const { 
@@ -45,7 +57,7 @@ export function Logs() {
   const stats = useMemo(() => {
     // Current filtered results counts
     const filteredTotal = filteredLogs.length
-    const filteredBlocked = filteredLogs.filter(log => log.blocked).length
+    const filteredBlocked = filteredLogs.filter((log: any) => log.blocked).length
     const filteredAllowed = filteredTotal - filteredBlocked
     
     // Use total database stats for percentages
@@ -63,15 +75,24 @@ export function Logs() {
     }
   }, [filteredLogs, totalStats])
 
-  const formatTime = (timestamp: string) => {
+  const formatTime = useCallback((timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString()
-  }
+  }, [])
 
-  const formatDevice = (device: any) => {
+  const formatDevice = useCallback((device: any) => {
     if (!device) return 'Unknown'
     if (typeof device === 'string') return device
     return device.name || device.id || 'Unknown'
-  }
+  }, [])
+  
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value)
+  }, [])
+  
+  
+  const handleStatusFilterChange = useCallback((status: 'all' | 'blocked' | 'allowed') => {
+    setStatusFilter(status)
+  }, [])
 
   if (isLoading || statsLoading) {
     return (
@@ -138,7 +159,7 @@ export function Logs() {
         <div className="grid gap-6 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Queries</CardTitle>
+              <CardTitle className="text-sm font-medium">DNS Queries</CardTitle>
               <Database className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -146,9 +167,9 @@ export function Logs() {
                 {formatNumber(stats.total)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {searchQuery || statusFilter !== 'all' 
-                  ? `Filtered from ${formatNumber(stats.totalInDatabase)} total`
-                  : `From ${formatNumber(stats.totalInDatabase)} total entries`
+                {debouncedSearchQuery || statusFilter !== 'all' 
+                  ? `Filtered from ${formatNumber(stats.totalInDatabase)} total queries`
+                  : `From ${formatNumber(stats.totalInDatabase)} total queries`
                 }
               </p>
             </CardContent>
@@ -164,7 +185,7 @@ export function Logs() {
                 {formatNumber(stats.blocked)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {stats.blockedPercentage}% of all entries
+                {stats.blockedPercentage}% of all queries
               </p>
             </CardContent>
           </Card>
@@ -179,7 +200,7 @@ export function Logs() {
                 {formatNumber(stats.allowed)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {stats.allowedPercentage}% of all entries
+                {stats.allowedPercentage}% of all queries
               </p>
             </CardContent>
           </Card>
@@ -194,15 +215,11 @@ export function Logs() {
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4">
               {/* Search Input */}
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search domains..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <SearchInput 
+                value={searchQuery}
+                onChange={handleSearchChange}
+                placeholder="Search domains..."
+              />
 
               {/* Status Filter Buttons */}
               <div className="flex gap-2">
@@ -215,7 +232,7 @@ export function Logs() {
                     key={key}
                     variant={statusFilter === key ? (color as any) : 'outline'}
                     size="sm"
-                    onClick={() => setStatusFilter(key as any)}
+                    onClick={() => handleStatusFilterChange(key as any)}
                     className={
                       statusFilter === key && key === 'allowed' 
                         ? 'bg-lego-green hover:bg-lego-green/90 text-white' 
@@ -229,11 +246,14 @@ export function Logs() {
             </div>
 
             {/* Filter Summary */}
-            {(searchQuery || statusFilter !== 'all') && (
+            {(debouncedSearchQuery || statusFilter !== 'all') && (
               <div className="mt-4 text-sm text-muted-foreground">
-                Showing {filteredLogs.length} of {stats.total} logs
-                {searchQuery && ` matching "${searchQuery}"`}
+                Showing {filteredLogs.length} of {stats.totalInDatabase} logs
+                {debouncedSearchQuery && ` matching "${debouncedSearchQuery}"`}
                 {statusFilter !== 'all' && ` (${statusFilter} only)`}
+                {searchQuery !== debouncedSearchQuery && (
+                  <span className="text-muted-foreground/70"> (searching...)</span>
+                )}
               </div>
             )}
           </CardContent>
@@ -259,7 +279,7 @@ export function Logs() {
                 <Database className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">No logs found</h3>
                 <p className="text-muted-foreground">
-                  {searchQuery || statusFilter !== 'all'
+                  {debouncedSearchQuery || statusFilter !== 'all'
                     ? 'Try adjusting your filters'
                     : 'No DNS logs available'
                   }
@@ -278,7 +298,7 @@ export function Logs() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredLogs.map((log) => (
+                    {filteredLogs.map((log: any) => (
                       <tr key={log.id} className="border-b hover:bg-muted/50 transition-colors">
                         <td className="py-3 px-4 font-mono text-sm">
                           {formatTime(log.timestamp)}
