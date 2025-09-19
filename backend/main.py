@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 app_start_time = datetime.now(timezone.utc)
 
 # Import models and scheduler
-from models import init_db, get_logs, get_total_record_count, get_logs_stats
+from models import init_db, get_logs, get_total_record_count, get_logs_stats, get_available_profiles
 try:
     from scheduler import scheduler
     logger.info("🔄 NextDNS log scheduler started successfully")
@@ -144,6 +144,18 @@ class LogsStatsResponse(BaseModel):
     allowed: int
     blocked_percentage: float
     allowed_percentage: float
+    profile_id: Optional[str] = None
+
+class ProfileInfo(BaseModel):
+    """Profile information model."""
+    profile_id: str
+    record_count: int
+    last_activity: Optional[str] = None
+
+class ProfileListResponse(BaseModel):
+    """Response model for profile list."""
+    profiles: List[ProfileInfo]
+    total_profiles: int
 
 class HealthResponse(BaseModel):
     """Simple health response model."""
