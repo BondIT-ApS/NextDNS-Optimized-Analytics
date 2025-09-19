@@ -18,7 +18,8 @@ logger = get_logger(__name__)
 app_start_time = datetime.now(timezone.utc)
 
 # Import models and scheduler
-from models import init_db, get_logs, get_total_record_count, get_logs_stats, get_available_profiles
+from models import init_db, get_logs, get_total_record_count, get_logs_stats
+from models import get_available_profiles as get_profiles_from_db
 from profile_service import get_profile_info, get_multiple_profiles_info, get_configured_profile_ids
 try:
     from scheduler import scheduler
@@ -390,10 +391,10 @@ async def get_dns_logs(
     )
 
 @app.get("/profiles", response_model=ProfileListResponse, tags=["Profiles"])
-async def get_available_profiles():
+async def list_available_profiles():
     """Get list of available profiles with their record counts and last activity."""
     logger.debug("🧱 API request for available profiles")
-    profiles = get_available_profiles()
+    profiles = get_profiles_from_db()
     logger.info(f"🧱 Returning {len(profiles)} profiles")
     return ProfileListResponse(
         profiles=profiles,
