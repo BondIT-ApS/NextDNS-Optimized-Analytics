@@ -10,7 +10,7 @@ import type {
 // Create axios instance
 const api = axios.create({
   baseURL: '/api',
-  timeout: 30000,
+  timeout: 5000, // 5 seconds for faster failure detection
   headers: {
     'Content-Type': 'application/json',
   },
