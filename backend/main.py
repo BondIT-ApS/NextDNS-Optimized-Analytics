@@ -1,6 +1,6 @@
 # file: backend/main.py
-from fastapi import FastAPI, Depends, HTTPException, Query
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi import FastAPI, Depends, HTTPException, Query, Header
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
 import os
@@ -14,8 +14,11 @@ from logging_config import setup_logging, get_logger
 setup_logging()
 logger = get_logger(__name__)
 
+# Track application start time for accurate uptime
+app_start_time = datetime.now(timezone.utc)
+
 # Import models and scheduler
-from models import init_db, get_logs, get_total_record_count
+from models import init_db, get_logs, get_total_record_count, get_logs_stats
 try:
     from scheduler import scheduler
     logger.info("🔄 NextDNS log scheduler started successfully")
@@ -26,7 +29,17 @@ except ImportError as e:
 # Initialize FastAPI app
 app = FastAPI(
     title="NextDNS Optimized Analytics API",
-    description="FastAPI backend for NextDNS log analytics with automated data fetching",
+    description="""FastAPI backend for NextDNS log analytics with automated data fetching.
+    
+    ## Authentication
+    
+    Use one of these methods to authenticate:
+    
+    1. **Bearer Token**: Add `Authorization: Bearer YOUR_API_KEY` header
+    2. **X-API-Key Header**: Add `X-API-Key: YOUR_API_KEY` header
+    
+    The API key is configured via the `LOCAL_API_KEY` environment variable.
+    """,
     version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc"
@@ -42,21 +55,57 @@ app.add_middleware(
 )
 
 # Authentication setup
-security = HTTPBasic()
+security = HTTPBearer()
 LOCAL_API_KEY = os.getenv("LOCAL_API_KEY")
 
-def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
-    """Authenticate user with basic auth."""
-    correct_username = secrets.compare_digest(credentials.username, "admin")
-    correct_password = secrets.compare_digest(credentials.password, LOCAL_API_KEY)
-    
-    if not (correct_username and correct_password):
+def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Authenticate user with API key."""
+    if not credentials or not credentials.credentials:
         raise HTTPException(
             status_code=401,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Basic"},
+            detail="API key required",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    return credentials.username
+    
+    if not secrets.compare_digest(credentials.credentials, LOCAL_API_KEY or ""):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    return "authenticated"
+
+# Flexible authentication supporting both Bearer and X-API-Key
+def verify_api_key_flexible(
+    x_api_key: str = Header(None),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))
+):
+    """Authenticate user with API key via Bearer token or X-API-Key header."""
+    api_key = None
+    
+    # Try Bearer token first
+    if credentials and credentials.credentials:
+        api_key = credentials.credentials
+    # Fall back to X-API-Key header
+    elif x_api_key:
+        api_key = x_api_key
+    
+    if not api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="API key required via Authorization header (Bearer token) or X-API-Key header",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if not secrets.compare_digest(api_key, LOCAL_API_KEY or ""):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid API key",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    return "authenticated"
 
 # Pydantic models for request/response
 from pydantic import BaseModel
@@ -87,6 +136,14 @@ class StatsResponse(BaseModel):
     """Response model for statistics."""
     total_records: int
     message: str
+
+class LogsStatsResponse(BaseModel):
+    """Response model for logs statistics."""
+    total: int
+    blocked: int
+    allowed: int
+    blocked_percentage: float
+    allowed_percentage: float
 
 class HealthResponse(BaseModel):
     """Simple health response model."""
@@ -167,9 +224,8 @@ async def detailed_health_check():
         cpu_percent = psutil.cpu_percent(interval=1)
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage('/')
-        boot_time = psutil.boot_time()
-        current_time = datetime.now(timezone.utc).timestamp()
-        uptime_seconds = current_time - boot_time
+        current_time = datetime.now(timezone.utc)
+        uptime_seconds = (current_time - app_start_time).total_seconds()
         
         # Get environment variables
         fetch_interval = int(os.getenv("FETCH_INTERVAL", 60))
@@ -193,7 +249,15 @@ async def detailed_health_check():
             "hostname": platform.node(),
             "python_version": platform.python_version(),
             "cpu_count": psutil.cpu_count(),
-            "cpu_count_logical": psutil.cpu_count(logical=True)
+            "cpu_count_logical": psutil.cpu_count(logical=True),
+            "frontend_stack": {
+                "framework": "React 19.1.1",
+                "build_tool": "Vite 7.1.6",
+                "language": "TypeScript 5.5.3",
+                "styling": "Tailwind CSS 3.4.0",
+                "ui_library": "shadcn/ui + Radix UI",
+                "state_management": "TanStack Query 5.56.2"
+            }
         }
         
         api_healthy = True  # API is responding if we get here
@@ -238,36 +302,53 @@ async def detailed_health_check():
         )
 
 @app.get("/stats", response_model=StatsResponse, tags=["Statistics"])
-async def get_stats(current_user: str = Depends(get_current_user)):
+async def get_stats():
     """Get database statistics."""
     total_records = get_total_record_count()
-    logger.info(f"📊 Stats requested by {current_user}: {total_records:,} total records")
+    logger.info(f"📊 Stats requested: {total_records:,} total records")
     
     return StatsResponse(
         total_records=total_records,
         message=f"Database contains {total_records:,} DNS log records"
     )
 
+@app.get("/logs/stats", response_model=LogsStatsResponse, tags=["Logs"])
+async def get_logs_statistics():
+    """Get statistics for all DNS logs in the database."""
+    logger.debug("📊 API request for logs statistics")
+    stats = get_logs_stats()
+    logger.info(f"📊 Returning stats: {stats}")
+    return LogsStatsResponse(**stats)
+
 @app.get("/logs", response_model=LogsResponse, tags=["Logs"])
 async def get_dns_logs(
     exclude: Optional[List[str]] = Query(default=None, description="Domains to exclude from results"),
-    limit: int = Query(default=1000, ge=1, le=10000, description="Maximum number of records to return"),
-    offset: int = Query(default=0, ge=0, description="Number of records to skip"),
-    current_user: str = Depends(get_current_user)
+    search: Optional[str] = Query(default="", description="Search query for domain names"),
+    status: Optional[str] = Query(default="all", description="Filter by status: all, blocked, allowed"),
+    limit: int = Query(default=100, ge=1, le=10000, description="Maximum number of records to return"),
+    offset: int = Query(default=0, ge=0, description="Number of records to skip")
 ):
     """
     Get DNS logs with optional filtering and pagination.
     
     - **exclude**: List of domains to exclude from results
+    - **search**: Search query for domain names
+    - **status**: Filter by status (all, blocked, allowed)
     - **limit**: Maximum number of records to return (1-10000)
     - **offset**: Number of records to skip for pagination
     """
-    logger.debug(f"📊 API request from {current_user}: exclude={exclude}, limit={limit}, offset={offset}")
+    logger.debug(f"📊 API request: exclude={exclude}, search='{search}', status={status}, limit={limit}, offset={offset}")
     
-    logs = get_logs(exclude_domains=exclude, limit=limit, offset=offset)
+    logs = get_logs(
+        exclude_domains=exclude, 
+        search_query=search,
+        status_filter=status,
+        limit=limit, 
+        offset=offset
+    )
     total_records = get_total_record_count()
     
-    logger.info(f"📊 Returning {len(logs)} DNS logs to {current_user}")
+    logger.info(f"📊 Returning {len(logs)} DNS logs")
     
     return LogsResponse(
         data=logs,

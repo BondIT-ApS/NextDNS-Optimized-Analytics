@@ -1,8 +1,13 @@
 #!/bin/sh
 
-# Inject environment variables into static JS file
-sed -i "s|__LOCAL_API_KEY__|$LOCAL_API_KEY|g" /usr/share/nginx/html/script.js
-sed -i "s|__BACKEND_API_URL__|$BACKEND_API_URL|g" /usr/share/nginx/html/script.js
+# Create a runtime configuration that can be read by the app
+cat > /usr/share/nginx/html/config.js << EOF
+window.ENV = {
+  API_BASE_URL: "${API_BASE_URL:-/api}",
+  LOCAL_API_KEY: "${LOCAL_API_KEY:-}",
+  ENVIRONMENT: "${NODE_ENV:-production}"
+};
+EOF
 
 # Start Nginx
 nginx -g 'daemon off;'
