@@ -158,24 +158,29 @@ export function Logs() {
           statusFilter={statusFilter}
         />
 
-        {/* Profile Selector */}
-        <ProfileSelector 
-          selectedProfile={selectedProfile}
-          onProfileChange={handleProfileChange}
-          showStats={true}
-        />
-
-        {/* Filters */}
-        <FilterPanel 
-          searchQuery={searchQuery}
-          onSearchChange={handleSearchChange}
-          statusFilter={statusFilter}
-          onStatusFilterChange={handleStatusFilterChange}
-          debouncedSearchQuery={debouncedSearchQuery}
-          filteredLogsCount={filteredLogs.length}
-          totalLogsCount={stats.totalInDatabase}
-          selectedProfile={selectedProfile}
-        />
+        {/* Profile Selector and Search Filter - Side by Side */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex-1">
+            <ProfileSelector 
+              selectedProfile={selectedProfile}
+              onProfileChange={handleProfileChange}
+              showStats={true}
+            />
+          </div>
+          
+          <div className="flex-1">
+            <FilterPanel 
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+              statusFilter={statusFilter}
+              onStatusFilterChange={handleStatusFilterChange}
+              debouncedSearchQuery={debouncedSearchQuery}
+              filteredLogsCount={filteredLogs.length}
+              totalLogsCount={stats.totalInDatabase}
+              selectedProfile={selectedProfile}
+            />
+          </div>
+        </div>
 
         {/* Logs Table */}
         <LogsTable 
