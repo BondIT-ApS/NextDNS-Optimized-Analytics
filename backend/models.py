@@ -275,12 +275,12 @@ def get_logs(exclude_domains=None, limit=1000, offset=0):
                 "timestamp": log.timestamp.isoformat(),
                 "domain": log.domain,
                 "action": log.action,
-                "device": json.loads(log.device) if log.device else None,
+                "device": json.loads(log.device) if log.device and isinstance(log.device, str) else log.device,
                 "client_ip": log.client_ip,
                 "query_type": log.query_type,
                 "blocked": log.blocked,
                 "profile_id": log.profile_id,
-                "data": json.loads(log.data) if log.data else None,
+                "data": json.loads(log.data) if log.data and isinstance(log.data, str) else log.data,
                 "created_at": log.created_at.isoformat(),
             }
             for log in query.all()
