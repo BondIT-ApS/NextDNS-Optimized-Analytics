@@ -1,9 +1,13 @@
 import axios, { AxiosError, AxiosResponse } from 'axios'
 import type { 
   LogsResponse, 
+  LogsStatsResponse,
   StatsResponse, 
   HealthResponse, 
   DetailedHealthResponse,
+  ProfileListResponse,
+  ProfileInfoResponse,
+  NextDNSProfileInfo,
   LogFilters
 } from '@/types/api'
 
@@ -51,7 +55,7 @@ export const apiClient = {
   },
 
   // Logs endpoints
-  async getLogs(filters: LogFilters = {}): Promise<LogsResponse> {
+  async getLogs(filters: LogFilters & { status?: string } = {}): Promise<LogsResponse> {
     const params = new URLSearchParams()
     
     if (filters.exclude && filters.exclude.length > 0) {
@@ -59,8 +63,35 @@ export const apiClient = {
     }
     if (filters.limit) params.append('limit', filters.limit.toString())
     if (filters.offset) params.append('offset', filters.offset.toString())
+    if (filters.search) params.append('search', filters.search)
+    if (filters.status && filters.status !== 'all') params.append('status', filters.status)
+    if (filters.profile) params.append('profile', filters.profile)
 
     const response = await api.get(`/logs?${params.toString()}`)
+    return response.data
+  },
+
+  async getLogsStats(profile?: string): Promise<LogsStatsResponse> {
+    const params = new URLSearchParams()
+    if (profile) params.append('profile', profile)
+    
+    const response = await api.get(`/logs/stats?${params.toString()}`)
+    return response.data
+  },
+
+  // Profile endpoints
+  async getAvailableProfiles(): Promise<ProfileListResponse> {
+    const response = await api.get('/profiles')
+    return response.data
+  },
+
+  async getProfilesInfo(): Promise<ProfileInfoResponse> {
+    const response = await api.get('/profiles/info')
+    return response.data
+  },
+
+  async getProfileInfo(profileId: string): Promise<NextDNSProfileInfo> {
+    const response = await api.get(`/profiles/${profileId}/info`)
     return response.data
   },
 

@@ -244,13 +244,14 @@ def update_fetch_status(profile_id, last_timestamp, records_count):
         session.close()
 
 # Retrieve logs with optional exclusion of domains and advanced filtering
-def get_logs(exclude_domains=None, search_query="", status_filter="all", limit=100, offset=0):
+def get_logs(exclude_domains=None, search_query="", status_filter="all", profile_filter=None, limit=100, offset=0):
     """Retrieve DNS logs with optional filtering and pagination.
     
     Args:
         exclude_domains (list): List of domains to exclude from results
         search_query (str): Domain name search query
         status_filter (str): Filter by status - 'all', 'blocked', 'allowed'
+        profile_filter (str): Filter by specific profile ID
         limit (int): Maximum number of records to return
         offset (int): Number of records to skip for pagination
     
@@ -258,7 +259,7 @@ def get_logs(exclude_domains=None, search_query="", status_filter="all", limit=1
         list: List of DNS log dictionaries
     """
     total_records = get_total_record_count()
-    logger.debug(f"📊 Retrieving logs with limit={limit}, offset={offset}, exclude_domains={exclude_domains}, search='{search_query}', status='{status_filter}'")
+    logger.debug(f"📊 Retrieving logs with limit={limit}, offset={offset}, exclude_domains={exclude_domains}, search='{search_query}', status='{status_filter}', profile='{profile_filter}'")
     logger.info(f"📊 Database query: requesting {limit} records from {total_records:,} total records")
     session = Session()
     try:
@@ -281,6 +282,11 @@ def get_logs(exclude_domains=None, search_query="", status_filter="all", limit=1
         elif status_filter == "allowed":
             query = query.filter(DNSLog.blocked == False)
             logger.debug("✅ Filtering for allowed requests only")
+        
+        # Apply profile filter
+        if profile_filter and profile_filter.strip():
+            query = query.filter(DNSLog.profile_id == profile_filter)
+            logger.debug(f"🧱 Filtering for profile: '{profile_filter}'")
         
         # Apply pagination
         query = query.offset(offset).limit(limit)
@@ -310,19 +316,29 @@ def get_logs(exclude_domains=None, search_query="", status_filter="all", limit=1
         session.close()
 
 # Get total statistics for all logs in the database
-def get_logs_stats():
-    """Get total statistics for all DNS logs in the database.
+def get_logs_stats(profile_filter=None):
+    """Get statistics for DNS logs in the database, optionally filtered by profile.
+    
+    Args:
+        profile_filter (str): Optional profile ID to filter statistics
     
     Returns:
         dict: Dictionary containing total, blocked, and allowed counts and percentages
     """
     session = Session()
     try:
+        query = session.query(DNSLog)
+        
+        # Apply profile filter if specified
+        if profile_filter and profile_filter.strip():
+            query = query.filter(DNSLog.profile_id == profile_filter)
+            logger.debug(f"🧱 Getting stats for profile: '{profile_filter}'")
+        
         # Get total count
-        total_count = session.query(DNSLog).count()
+        total_count = query.count()
         
         # Get blocked count
-        blocked_count = session.query(DNSLog).filter(DNSLog.blocked == True).count()
+        blocked_count = query.filter(DNSLog.blocked == True).count()
         
         # Calculate allowed count
         allowed_count = total_count - blocked_count
@@ -336,7 +352,8 @@ def get_logs_stats():
             "blocked": blocked_count,
             "allowed": allowed_count,
             "blocked_percentage": round(blocked_percentage, 1),
-            "allowed_percentage": round(allowed_percentage, 1)
+            "allowed_percentage": round(allowed_percentage, 1),
+            "profile_id": profile_filter
         }
         
         logger.debug(f"📊 Database stats: {stats}")
@@ -348,7 +365,47 @@ def get_logs_stats():
             "blocked": 0,
             "allowed": 0,
             "blocked_percentage": 0,
-            "allowed_percentage": 0
+            "allowed_percentage": 0,
+            "profile_id": profile_filter
         }
+    finally:
+        session.close()
+
+# Get list of available profiles in the database
+def get_available_profiles():
+    """Get list of profile IDs that have data in the database.
+    
+    Returns:
+        list: List of profile IDs with record counts
+    """
+    session = Session()
+    try:
+        # Query for distinct profile IDs and their counts
+        from sqlalchemy import func
+        results = session.query(
+            DNSLog.profile_id,
+            func.count(DNSLog.id).label('record_count'),
+            func.max(DNSLog.timestamp).label('last_activity')
+        ).filter(
+            DNSLog.profile_id.isnot(None)
+        ).group_by(
+            DNSLog.profile_id
+        ).order_by(
+            func.count(DNSLog.id).desc()
+        ).all()
+        
+        profiles = []
+        for result in results:
+            profiles.append({
+                "profile_id": result.profile_id,
+                "record_count": result.record_count,
+                "last_activity": result.last_activity.isoformat() if result.last_activity else None
+            })
+        
+        logger.debug(f"🧱 Found {len(profiles)} profiles with data")
+        return profiles
+    except SQLAlchemyError as e:
+        logger.error(f"❌ Error getting available profiles: {e}")
+        return []
     finally:
         session.close()

@@ -19,6 +19,8 @@ app_start_time = datetime.now(timezone.utc)
 
 # Import models and scheduler
 from models import init_db, get_logs, get_total_record_count, get_logs_stats
+from models import get_available_profiles as get_profiles_from_db
+from profile_service import get_profile_info, get_multiple_profiles_info, get_configured_profile_ids
 try:
     from scheduler import scheduler
     logger.info("🔄 NextDNS log scheduler started successfully")
@@ -144,6 +146,32 @@ class LogsStatsResponse(BaseModel):
     allowed: int
     blocked_percentage: float
     allowed_percentage: float
+    profile_id: Optional[str] = None
+
+class ProfileInfo(BaseModel):
+    """Profile information model."""
+    profile_id: str
+    record_count: int
+    last_activity: Optional[str] = None
+
+class ProfileListResponse(BaseModel):
+    """Response model for profile list."""
+    profiles: List[ProfileInfo]
+    total_profiles: int
+
+class NextDNSProfileInfo(BaseModel):
+    """NextDNS profile detailed information."""
+    id: str
+    name: str
+    fingerprint: Optional[str] = None
+    created: Optional[str] = None
+    updated: Optional[str] = None
+    error: Optional[str] = None
+
+class ProfileInfoResponse(BaseModel):
+    """Response model for profile information."""
+    profiles: Dict[str, NextDNSProfileInfo]
+    total_profiles: int
 
 class HealthResponse(BaseModel):
     """Simple health response model."""
@@ -313,10 +341,12 @@ async def get_stats():
     )
 
 @app.get("/logs/stats", response_model=LogsStatsResponse, tags=["Logs"])
-async def get_logs_statistics():
-    """Get statistics for all DNS logs in the database."""
-    logger.debug("📊 API request for logs statistics")
-    stats = get_logs_stats()
+async def get_logs_statistics(
+    profile: Optional[str] = Query(default=None, description="Filter statistics by specific profile ID")
+):
+    """Get statistics for DNS logs in the database, optionally filtered by profile."""
+    logger.debug(f"📊 API request for logs statistics (profile: '{profile}')")
+    stats = get_logs_stats(profile_filter=profile)
     logger.info(f"📊 Returning stats: {stats}")
     return LogsStatsResponse(**stats)
 
@@ -325,6 +355,7 @@ async def get_dns_logs(
     exclude: Optional[List[str]] = Query(default=None, description="Domains to exclude from results"),
     search: Optional[str] = Query(default="", description="Search query for domain names"),
     status: Optional[str] = Query(default="all", description="Filter by status: all, blocked, allowed"),
+    profile: Optional[str] = Query(default=None, description="Filter by specific profile ID"),
     limit: int = Query(default=100, ge=1, le=10000, description="Maximum number of records to return"),
     offset: int = Query(default=0, ge=0, description="Number of records to skip")
 ):
@@ -334,15 +365,17 @@ async def get_dns_logs(
     - **exclude**: List of domains to exclude from results
     - **search**: Search query for domain names
     - **status**: Filter by status (all, blocked, allowed)
+    - **profile**: Filter by specific profile ID
     - **limit**: Maximum number of records to return (1-10000)
     - **offset**: Number of records to skip for pagination
     """
-    logger.debug(f"📊 API request: exclude={exclude}, search='{search}', status={status}, limit={limit}, offset={offset}")
+    logger.debug(f"📊 API request: exclude={exclude}, search='{search}', status={status}, profile='{profile}', limit={limit}, offset={offset}")
     
     logs = get_logs(
         exclude_domains=exclude, 
         search_query=search,
         status_filter=status,
+        profile_filter=profile,
         limit=limit, 
         offset=offset
     )
@@ -356,6 +389,52 @@ async def get_dns_logs(
         returned_records=len(logs),
         excluded_domains=exclude
     )
+
+@app.get("/profiles", response_model=ProfileListResponse, tags=["Profiles"])
+async def list_available_profiles():
+    """Get list of available profiles with their record counts and last activity."""
+    logger.debug("🧱 API request for available profiles")
+    profiles = get_profiles_from_db()
+    logger.info(f"🧱 Returning {len(profiles)} profiles")
+    return ProfileListResponse(
+        profiles=profiles,
+        total_profiles=len(profiles)
+    )
+
+@app.get("/profiles/info", response_model=ProfileInfoResponse, tags=["Profiles"])
+async def get_profile_information():
+    """Get detailed information for all configured profiles from NextDNS API."""
+    logger.debug("🧱 API request for profile information")
+    
+    configured_profiles = get_configured_profile_ids()
+    if not configured_profiles:
+        return ProfileInfoResponse(
+            profiles={},
+            total_profiles=0
+        )
+    
+    profile_info = get_multiple_profiles_info(configured_profiles)
+    logger.info(f"🧱 Returning information for {len(profile_info)} profiles")
+    
+    return ProfileInfoResponse(
+        profiles=profile_info,
+        total_profiles=len(profile_info)
+    )
+
+@app.get("/profiles/{profile_id}/info", response_model=NextDNSProfileInfo, tags=["Profiles"])
+async def get_single_profile_info(profile_id: str):
+    """Get detailed information for a specific profile from NextDNS API."""
+    logger.debug(f"🧱 API request for profile {profile_id} information")
+    
+    profile_info = get_profile_info(profile_id)
+    if not profile_info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Profile {profile_id} not found or could not be fetched"
+        )
+    
+    logger.info(f"🧱 Returning information for profile {profile_id}")
+    return NextDNSProfileInfo(**profile_info)
 
 if __name__ == "__main__":
     import uvicorn
