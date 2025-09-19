@@ -97,11 +97,27 @@ async function fetchLogsStats(): Promise<LogsStats> {
 }
 
 export function useLogs(params: LogsParams = {}) {
+  // Create a stable query key that doesn't change frequently
+  // Normalize the parameters to prevent unnecessary re-fetches
+  const normalizedParams = {
+    limit: params.limit || 100,
+    search: params.search?.trim() || undefined,
+    status: params.status === 'all' ? undefined : params.status
+  }
+  
+  // Remove undefined values to create cleaner query key
+  const queryKey = ['logs', Object.fromEntries(
+    Object.entries(normalizedParams).filter(([_, value]) => value !== undefined)
+  )]
+  
   return useQuery({
-    queryKey: ['logs', params],
+    queryKey,
     queryFn: () => fetchLogs(params),
     staleTime: 30000, // 30 seconds
     refetchInterval: params.search || params.status !== 'all' ? false : 60000, // Only auto-refresh when no filters
+    // Enable query deduplication and background updates
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   })
 }
 
