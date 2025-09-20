@@ -3,6 +3,7 @@ import os
 
 from flask import Flask, request, jsonify
 from flask_httpauth import HTTPBasicAuth
+
 from models import init_db, get_logs, get_logs_stats
 
 # Set up logging first
