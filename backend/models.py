@@ -1,4 +1,8 @@
 # file: backend/models.py
+import json
+import os
+from datetime import datetime, timezone
+
 from sqlalchemy import (
     create_engine,
     Column,
@@ -10,13 +14,11 @@ from sqlalchemy import (
     Index,
     TypeDecorator,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from datetime import datetime, timezone
-import os
-import json
 
 # Set up logging
 from logging_config import get_logger
@@ -25,29 +27,47 @@ logger = get_logger(__name__)
 
 
 # Custom Text type that forces TEXT without JSON casting
-class ForceText(TypeDecorator):
-    impl = Text
+class ForceText(TypeDecorator):  # pylint: disable=too-many-ancestors
+    """Custom SQLAlchemy type that forces values to be stored as text."""
 
-    def process_bind_param(self, value, dialect):
+    impl = Text
+    cache_ok = True  # SQLAlchemy 1.4+ requirement
+
+    def process_bind_param(self, value, dialect):  # pylint: disable=unused-argument
         if value is not None:
             return str(value)
         return value
 
-    def process_result_value(self, value, dialect):
+    def process_result_value(self, value, dialect):  # pylint: disable=unused-argument
         return value
+
+    def process_literal_param(self, value, dialect):  # pylint: disable=unused-argument
+        """Process literal parameter for SQL compilation."""
+        return str(value) if value is not None else value
+
+    @property
+    def python_type(self):
+        """Return the Python type object expected by this type."""
+        return str
 
 
 # Base declaration
 Base = declarative_base()
 
 # Database connection setup
-DATABASE_URL = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}/{os.getenv('POSTGRES_DB')}"
+DATABASE_URL = (
+    f"postgresql://{os.getenv('POSTGRES_USER')}:"
+    f"{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}/"
+    f"{os.getenv('POSTGRES_DB')}"
+)
 engine = create_engine(DATABASE_URL, echo=False)
 Session = sessionmaker(bind=engine)
 
 
 # Database model for DNS logs
 class DNSLog(Base):
+    """Model representing a DNS log entry from NextDNS."""
+
     __tablename__ = "dns_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -73,7 +93,8 @@ class DNSLog(Base):
         Index("idx_dns_logs_timestamp_domain", "timestamp", "domain"),
         Index("idx_dns_logs_domain_action", "domain", "action"),
         Index("idx_dns_logs_profile_timestamp", "profile_id", "timestamp"),
-        # Unique constraint to prevent duplicates based on timestamp, domain, and client_ip
+        # Unique constraint to prevent duplicates based on
+        # timestamp, domain, and client_ip
         UniqueConstraint(
             "timestamp",
             "domain",
@@ -85,6 +106,8 @@ class DNSLog(Base):
 
 # Database model for tracking fetch progress
 class FetchStatus(Base):
+    """Model for tracking DNS log fetch progress and status."""
+
     __tablename__ = "fetch_status"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -155,7 +178,8 @@ def add_log(log):
         log (dict): DNS log data containing domain, action, device, and other fields
 
     Returns:
-        tuple: (record_id, is_new) where record_id is the ID and is_new indicates if it's a new record
+        tuple: (record_id, is_new) where record_id is the ID and
+        is_new indicates if it's a new record
     """
     session = Session()
     try:
@@ -189,7 +213,8 @@ def add_log(log):
 
         if existing_log:
             logger.debug(
-                f"🔄 Duplicate found for domain {log.get('domain')} at {log_timestamp} - skipping"
+                f"🔄 Duplicate found for domain {log.get('domain')} "
+                f"at {log_timestamp} - skipping"
             )
             return existing_log.id, False  # Return existing ID, not new
 
@@ -209,7 +234,8 @@ def add_log(log):
             f"🐛 Data serialization - device type: {type(device_str)}, device value: {device_str}"
         )
         logger.debug(
-            f"🐛 Data serialization - data type: {type(data_str)}, data value (first 100 chars): {str(data_str)[:100]}"
+            f"🐛 Data serialization - data type: {type(data_str)}, "
+            f"data value (first 100 chars): {str(data_str)[:100]}"
         )
 
         new_log = DNSLog(
@@ -257,9 +283,9 @@ def get_last_fetch_timestamp(profile_id):
                 f"📅 Last fetch for profile {profile_id}: {fetch_status.last_fetch_timestamp}"
             )
             return fetch_status.last_fetch_timestamp
-        else:
-            logger.debug(f"📅 No previous fetch found for profile {profile_id}")
-            return None
+
+        logger.debug(f"📅 No previous fetch found for profile {profile_id}")
+        return None
     except SQLAlchemyError as e:
         logger.error(f"❌ Error getting last fetch timestamp: {e}")
         return None
@@ -268,6 +294,7 @@ def get_last_fetch_timestamp(profile_id):
 
 
 # Update fetch status after successful fetch
+# pylint: disable=too-many-positional-arguments
 def update_fetch_status(profile_id, last_timestamp, records_count):
     """Update or create fetch status record.
 
@@ -289,7 +316,9 @@ def update_fetch_status(profile_id, last_timestamp, records_count):
             fetch_status.records_fetched += records_count
             fetch_status.updated_at = datetime.now(timezone.utc)
             logger.debug(
-                f"📅 Updated fetch status for profile {profile_id}: last_timestamp={last_timestamp}, total_records={fetch_status.records_fetched}"
+                f"📅 Updated fetch status for profile {profile_id}: "
+                f"last_timestamp={last_timestamp}, "
+                f"total_records={fetch_status.records_fetched}"
             )
         else:
             # Create new record
@@ -300,7 +329,8 @@ def update_fetch_status(profile_id, last_timestamp, records_count):
             )
             session.add(fetch_status)
             logger.debug(
-                f"📅 Created new fetch status for profile {profile_id}: last_timestamp={last_timestamp}, records={records_count}"
+                f"📅 Created new fetch status for profile {profile_id}: "
+                f"last_timestamp={last_timestamp}, records={records_count}"
             )
 
         session.commit()
@@ -314,7 +344,7 @@ def update_fetch_status(profile_id, last_timestamp, records_count):
 
 
 # Retrieve logs with optional exclusion of domains and advanced filtering
-def get_logs(
+def get_logs(  # pylint: disable=too-many-positional-arguments
     exclude_domains=None,
     search_query="",
     status_filter="all",
@@ -337,7 +367,9 @@ def get_logs(
     """
     total_records = get_total_record_count()
     logger.debug(
-        f"📊 Retrieving logs with limit={limit}, offset={offset}, exclude_domains={exclude_domains}, search='{search_query}', status='{status_filter}', profile='{profile_filter}'"
+        f"📊 Retrieving logs with limit={limit}, offset={offset}, "
+        f"exclude_domains={exclude_domains}, search='{search_query}', "
+        f"status='{status_filter}', profile='{profile_filter}'"
     )
     logger.info(
         f"📊 Database query: requesting {limit} records from {total_records:,} total records"
@@ -358,10 +390,10 @@ def get_logs(
 
         # Apply status filter
         if status_filter == "blocked":
-            query = query.filter(DNSLog.blocked == True)
+            query = query.filter(DNSLog.blocked is True)
             logger.debug("🚫 Filtering for blocked requests only")
         elif status_filter == "allowed":
-            query = query.filter(DNSLog.blocked == False)
+            query = query.filter(DNSLog.blocked is False)
             logger.debug("✅ Filtering for allowed requests only")
 
         # Apply profile filter
@@ -428,7 +460,7 @@ def get_logs_stats(profile_filter=None):
         total_count = query.count()
 
         # Get blocked count
-        blocked_count = query.filter(DNSLog.blocked == True).count()
+        blocked_count = query.filter(DNSLog.blocked is True).count()
 
         # Calculate allowed count
         allowed_count = total_count - blocked_count
@@ -476,17 +508,16 @@ def get_available_profiles():
     session = Session()
     try:
         # Query for distinct profile IDs and their counts
-        from sqlalchemy import func
 
         results = (
             session.query(
                 DNSLog.profile_id,
-                func.count(DNSLog.id).label("record_count"),
+                func.count(DNSLog.id).label("record_count"),  # noqa: E1102
                 func.max(DNSLog.timestamp).label("last_activity"),
             )
             .filter(DNSLog.profile_id.isnot(None))
             .group_by(DNSLog.profile_id)
-            .order_by(func.count(DNSLog.id).desc())
+            .order_by(func.count(DNSLog.id).desc())  # noqa: E1102
             .all()
         )
 

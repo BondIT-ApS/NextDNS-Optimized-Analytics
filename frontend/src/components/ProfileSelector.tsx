@@ -1,14 +1,14 @@
-import { memo, useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Users, AlertCircle } from "lucide-react";
-import { useProfiles, useProfilesInfo } from "@/hooks/useLogs";
+import { memo, useMemo } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Loader2, Users, AlertCircle } from 'lucide-react'
+import { useProfiles, useProfilesInfo } from '@/hooks/useLogs'
 
 interface ProfileSelectorProps {
-  selectedProfile?: string;
-  onProfileChange: (profileId: string | undefined) => void;
-  showStats?: boolean;
+  selectedProfile?: string
+  onProfileChange: (profileId: string | undefined) => void
+  showStats?: boolean
 }
 
 export const ProfileSelector = memo<ProfileSelectorProps>(
@@ -17,19 +17,19 @@ export const ProfileSelector = memo<ProfileSelectorProps>(
       data: profilesData,
       isLoading: profilesLoading,
       error: profilesError,
-    } = useProfiles();
+    } = useProfiles()
 
-    const { data: profilesInfo, isLoading: infoLoading } = useProfilesInfo();
+    const { data: profilesInfo, isLoading: infoLoading } = useProfilesInfo()
 
     const profileOptions = useMemo(() => {
-      if (!profilesData?.profiles) return [];
+      if (!profilesData?.profiles) return []
 
       return profilesData.profiles
-        .map((profile) => {
-          const info = profilesInfo?.profiles[profile.profile_id];
+        .map(profile => {
+          const info = profilesInfo?.profiles[profile.profile_id]
           const displayName = info?.name
             ? `${info.name} (${profile.profile_id})`
-            : `Profile ${profile.profile_id}`;
+            : `Profile ${profile.profile_id}`
 
           return {
             id: profile.profile_id,
@@ -38,10 +38,10 @@ export const ProfileSelector = memo<ProfileSelectorProps>(
             lastActivity: profile.last_activity,
             hasError: info?.error,
             isConfigured: !!info,
-          };
+          }
         })
-        .sort((a, b) => b.recordCount - a.recordCount); // Sort by record count descending
-    }, [profilesData, profilesInfo]);
+        .sort((a, b) => b.recordCount - a.recordCount) // Sort by record count descending
+    }, [profilesData, profilesInfo])
 
     if (profilesLoading || infoLoading) {
       return (
@@ -59,7 +59,7 @@ export const ProfileSelector = memo<ProfileSelectorProps>(
             </div>
           </CardContent>
         </Card>
-      );
+      )
     }
 
     if (profilesError || !profilesData) {
@@ -77,7 +77,7 @@ export const ProfileSelector = memo<ProfileSelectorProps>(
             </p>
           </CardContent>
         </Card>
-      );
+      )
     }
 
     if (profileOptions.length === 0) {
@@ -96,7 +96,7 @@ export const ProfileSelector = memo<ProfileSelectorProps>(
             </p>
           </CardContent>
         </Card>
-      );
+      )
     }
 
     return (
@@ -116,7 +116,7 @@ export const ProfileSelector = memo<ProfileSelectorProps>(
           <div className="space-y-2">
             {/* All Profiles Button */}
             <Button
-              variant={!selectedProfile ? "default" : "outline"}
+              variant={!selectedProfile ? 'default' : 'outline'}
               size="sm"
               onClick={() => onProfileChange(undefined)}
               className="w-full justify-start"
@@ -126,17 +126,17 @@ export const ProfileSelector = memo<ProfileSelectorProps>(
                 <Badge variant="secondary" className="ml-auto">
                   {profilesData.profiles
                     .reduce((sum, p) => sum + p.record_count, 0)
-                    .toLocaleString()}{" "}
+                    .toLocaleString()}{' '}
                   logs
                 </Badge>
               )}
             </Button>
 
             {/* Individual Profile Buttons */}
-            {profileOptions.map((profile) => (
+            {profileOptions.map(profile => (
               <Button
                 key={profile.id}
-                variant={selectedProfile === profile.id ? "default" : "outline"}
+                variant={selectedProfile === profile.id ? 'default' : 'outline'}
                 size="sm"
                 onClick={() => onProfileChange(profile.id)}
                 className="w-full justify-start text-left"
@@ -154,7 +154,7 @@ export const ProfileSelector = memo<ProfileSelectorProps>(
                   <div className="flex items-center gap-2 ml-2">
                     <Badge
                       variant={
-                        selectedProfile === profile.id ? "secondary" : "outline"
+                        selectedProfile === profile.id ? 'secondary' : 'outline'
                       }
                       className="text-xs"
                     >
@@ -170,15 +170,15 @@ export const ProfileSelector = memo<ProfileSelectorProps>(
           {profilesInfo && (
             <div className="mt-4 pt-3 border-t text-xs text-muted-foreground">
               <p>
-                {profileOptions.length} profiles found,{" "}
+                {profileOptions.length} profiles found,{' '}
                 {Object.keys(profilesInfo.profiles).length} configured
               </p>
             </div>
           )}
         </CardContent>
       </Card>
-    );
-  },
-);
+    )
+  }
+)
 
-ProfileSelector.displayName = "ProfileSelector";
+ProfileSelector.displayName = 'ProfileSelector'

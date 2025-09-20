@@ -1,8 +1,10 @@
 # file: backend/app.py
+import os
+
 from flask import Flask, request, jsonify
 from flask_httpauth import HTTPBasicAuth
-from models import init_db, get_logs, add_log
-import os
+
+from models import init_db, get_logs, get_logs_stats
 
 # Set up logging first
 from logging_config import setup_logging, get_logger
@@ -12,7 +14,7 @@ logger = get_logger(__name__)
 
 # Import scheduler to start NextDNS log fetching
 try:
-    from scheduler import scheduler
+    from scheduler import scheduler  # pylint: disable=unused-import,duplicate-code
 
     logger.info("🔄 NextDNS log scheduler started successfully")
 except ImportError as e:
@@ -42,25 +44,25 @@ def logs():
     limit = int(request.args.get("limit", 100))
 
     logger.debug(
-        f"📊 API request for logs with exclude_domains: {exclude_domains}, search: '{search_query}', status: {status_filter}, limit: {limit}"
+        f"📊 API request for logs with exclude_domains: {exclude_domains}, "
+        f"search: '{search_query}', status: {status_filter}, limit: {limit}"
     )
 
-    logs = get_logs(
+    log_results = get_logs(
         exclude_domains=exclude_domains,
         search_query=search_query,
         status_filter=status_filter,
         limit=limit,
     )
 
-    logger.info(f"📊 Returning {len(logs)} DNS logs")
-    return jsonify({"data": logs})
+    logger.info(f"📊 Returning {len(log_results)} DNS logs")
+    return jsonify({"data": log_results})
 
 
 @app.route("/logs/stats", methods=["GET"])
 @auth.login_required
 def logs_stats():
     """Get total statistics for all logs in the database."""
-    from models import get_logs_stats
 
     logger.debug("📊 API request for logs statistics")
     stats = get_logs_stats()

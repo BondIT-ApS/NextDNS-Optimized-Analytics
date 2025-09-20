@@ -1,18 +1,18 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import React from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { AlertTriangle, RefreshCw } from 'lucide-react'
 
 interface ErrorBoundaryState {
-  hasError: boolean;
-  error?: Error;
-  errorInfo?: React.ErrorInfo;
+  hasError: boolean
+  error?: Error
+  errorInfo?: React.ErrorInfo
 }
 
 interface ErrorBoundaryProps {
-  children: React.ReactNode;
-  fallback?: React.ComponentType<{ error?: Error; resetError: () => void }>;
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+  children: React.ReactNode
+  fallback?: React.ComponentType<{ error?: Error; resetError: () => void }>
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void
 }
 
 export class ErrorBoundary extends React.Component<
@@ -20,43 +20,43 @@ export class ErrorBoundary extends React.Component<
   ErrorBoundaryState
 > {
   constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
+    super(props)
+    this.state = { hasError: false }
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
+    return { hasError: true, error }
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("Error boundary caught an error:", error, errorInfo);
+    console.error('Error boundary caught an error:', error, errorInfo)
 
     this.setState({
       error,
       errorInfo,
-    });
+    })
 
     // Call the optional error handler
     if (this.props.onError) {
-      this.props.onError(error, errorInfo);
+      this.props.onError(error, errorInfo)
     }
   }
 
   resetError = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
-  };
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined })
+  }
 
   render() {
     if (this.state.hasError) {
       // Use custom fallback component if provided
       if (this.props.fallback) {
-        const FallbackComponent = this.props.fallback;
+        const FallbackComponent = this.props.fallback
         return (
           <FallbackComponent
             error={this.state.error}
             resetError={this.resetError}
           />
-        );
+        )
       }
 
       // Default error UI
@@ -65,16 +65,16 @@ export class ErrorBoundary extends React.Component<
           error={this.state.error}
           resetError={this.resetError}
         />
-      );
+      )
     }
 
-    return this.props.children;
+    return this.props.children
   }
 }
 
 interface DefaultErrorFallbackProps {
-  error?: Error;
-  resetError: () => void;
+  error?: Error
+  resetError: () => void
 }
 
 function DefaultErrorFallback({
@@ -126,23 +126,23 @@ function DefaultErrorFallback({
         </p>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 // API-specific error boundary for dashboard components
 interface ApiErrorBoundaryProps {
-  children: React.ReactNode;
-  componentName?: string;
+  children: React.ReactNode
+  componentName?: string
 }
 
 export function ApiErrorBoundary({
   children,
-  componentName = "component",
+  componentName = 'component',
 }: ApiErrorBoundaryProps) {
   const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
     // Log API-specific errors
-    console.error(`API Error in ${componentName}:`, error, errorInfo);
-  };
+    console.error(`API Error in ${componentName}:`, error, errorInfo)
+  }
 
   return (
     <ErrorBoundary
@@ -175,7 +175,7 @@ export function ApiErrorBoundary({
     >
       {children}
     </ErrorBoundary>
-  );
+  )
 }
 
-export default ErrorBoundary;
+export default ErrorBoundary

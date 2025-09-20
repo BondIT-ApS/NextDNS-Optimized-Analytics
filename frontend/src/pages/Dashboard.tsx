@@ -2,15 +2,15 @@ import {
   useDetailedHealth,
   useStats,
   useGlobalConnectionStatus,
-} from "@/hooks/useApi";
+} from '@/hooks/useApi'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import {
   Activity,
   Database,
@@ -21,9 +21,9 @@ import {
   MemoryStick,
   RefreshCw,
   AlertTriangle,
-} from "lucide-react";
-import { formatBytes, formatNumber } from "@/lib/utils";
-import { ApiErrorBoundary } from "@/components/ErrorBoundary";
+} from 'lucide-react'
+import { formatBytes, formatNumber } from '@/lib/utils'
+import { ApiErrorBoundary } from '@/components/ErrorBoundary'
 import {
   DashboardCardSkeleton,
   SystemResourceCardSkeleton,
@@ -34,7 +34,7 @@ import {
   RetryIndicator,
   OfflineBanner,
   DataFreshnessIndicator,
-} from "@/components/LoadingSkeletons";
+} from '@/components/LoadingSkeletons'
 
 export function Dashboard() {
   const {
@@ -45,7 +45,7 @@ export function Dashboard() {
     failureCount: healthRetries,
     isFromCache: healthFromCache,
     cacheMetadata: healthCacheMetadata,
-  } = useDetailedHealth();
+  } = useDetailedHealth()
 
   const {
     data: stats,
@@ -54,9 +54,9 @@ export function Dashboard() {
     failureCount: statsRetries,
     isFromCache: statsFromCache,
     cacheMetadata: statsCacheMetadata,
-  } = useStats();
+  } = useStats()
 
-  const globalConnection = useGlobalConnectionStatus();
+  const globalConnection = useGlobalConnectionStatus()
 
   // Show loading skeletons on initial load
   if (healthLoading || statsLoading) {
@@ -93,17 +93,17 @@ export function Dashboard() {
 
         <LoadingState message="Loading dashboard data..." className="mt-8" />
       </div>
-    );
+    )
   }
 
-  const systemResources = health?.system_resources;
-  const totalRetries = (healthRetries || 0) + (statsRetries || 0);
-  const hasErrors = Boolean(healthError || statsError);
-  const isOfflineMode = healthFromCache || statsFromCache;
+  const systemResources = health?.system_resources
+  const totalRetries = (healthRetries || 0) + (statsRetries || 0)
+  const hasErrors = Boolean(healthError || statsError)
+  const isOfflineMode = healthFromCache || statsFromCache
   const oldestCacheTimestamp = Math.min(
     healthCacheMetadata?.lastUpdated || Date.now(),
-    statsCacheMetadata?.lastUpdated || Date.now(),
-  );
+    statsCacheMetadata?.lastUpdated || Date.now()
+  )
 
   return (
     <div className="space-y-6">
@@ -128,15 +128,15 @@ export function Dashboard() {
         <Button
           variant="outline"
           onClick={() => {
-            refetchHealth();
+            refetchHealth()
             // Note: stats will auto-refresh due to the global connection hook
           }}
           disabled={healthLoading || statsLoading}
         >
           <RefreshCw
-            className={`mr-2 h-4 w-4 ${healthLoading || statsLoading ? "animate-spin" : ""}`}
+            className={`mr-2 h-4 w-4 ${healthLoading || statsLoading ? 'animate-spin' : ''}`}
           />
-          {healthLoading || statsLoading ? "Refreshing..." : "Refresh"}
+          {healthLoading || statsLoading ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
 
@@ -159,10 +159,10 @@ export function Dashboard() {
             </div>
             <div className="flex flex-col items-end gap-1">
               <div className="text-xs text-muted-foreground">
-                Last checked:{" "}
+                Last checked:{' '}
                 {health?.timestamp
                   ? new Date(health.timestamp).toLocaleTimeString()
-                  : "Never"}
+                  : 'Never'}
               </div>
               <DataFreshnessIndicator
                 isFromCache={isOfflineMode}
@@ -184,7 +184,7 @@ export function Dashboard() {
       <ApiErrorBoundary componentName="Statistics">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* DNS Records Card */}
-          <Card className={statsError ? "border-lego-orange" : ""}>
+          <Card className={statsError ? 'border-lego-orange' : ''}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">DNS Records</CardTitle>
               <Database className="h-4 w-4 text-muted-foreground" />
@@ -199,7 +199,7 @@ export function Dashboard() {
               ) : (
                 <>
                   <div className="text-2xl font-bold text-lego-blue">
-                    {stats ? formatNumber(stats.total_records) : "0"}
+                    {stats ? formatNumber(stats.total_records) : '0'}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Total DNS log entries
@@ -210,7 +210,7 @@ export function Dashboard() {
           </Card>
 
           {/* System Health Card */}
-          <Card className={healthError ? "border-lego-orange" : ""}>
+          <Card className={healthError ? 'border-lego-orange' : ''}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 System Health
@@ -227,9 +227,9 @@ export function Dashboard() {
               ) : (
                 <>
                   <div
-                    className={`text-2xl font-bold ${health?.healthy ? "text-lego-green" : "text-lego-red"}`}
+                    className={`text-2xl font-bold ${health?.healthy ? 'text-lego-green' : 'text-lego-red'}`}
                   >
-                    {health?.healthy ? "Healthy" : "Issues"}
+                    {health?.healthy ? 'Healthy' : 'Issues'}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     API & Database status
@@ -240,7 +240,7 @@ export function Dashboard() {
           </Card>
 
           {/* Fetch Interval Card */}
-          <Card className={healthError ? "border-lego-orange" : ""}>
+          <Card className={healthError ? 'border-lego-orange' : ''}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Fetch Interval
@@ -268,7 +268,7 @@ export function Dashboard() {
           </Card>
 
           {/* Log Level Card */}
-          <Card className={healthError ? "border-lego-orange" : ""}>
+          <Card className={healthError ? 'border-lego-orange' : ''}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Log Level</CardTitle>
               <Server className="h-4 w-4 text-muted-foreground" />
@@ -283,7 +283,7 @@ export function Dashboard() {
               ) : (
                 <>
                   <div className="text-2xl font-bold text-lego-orange">
-                    {health?.log_level || "INFO"}
+                    {health?.log_level || 'INFO'}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Current logging level
@@ -342,7 +342,7 @@ export function Dashboard() {
                     <span className="text-sm font-medium">
                       {formatBytes(
                         systemResources.memory_total -
-                          systemResources.memory_available,
+                          systemResources.memory_available
                       )}
                     </span>
                   </div>
@@ -427,7 +427,7 @@ export function Dashboard() {
                       Platform
                     </h4>
                     <p className="font-mono text-sm">
-                      {health.server_info?.platform || "Unknown"}
+                      {health.server_info?.platform || 'Unknown'}
                     </p>
                   </div>
                   <div>
@@ -435,7 +435,7 @@ export function Dashboard() {
                       Python Version
                     </h4>
                     <p className="font-mono text-sm">
-                      {health.server_info?.python_version || "Unknown"}
+                      {health.server_info?.python_version || 'Unknown'}
                     </p>
                   </div>
                   <div>
@@ -443,7 +443,7 @@ export function Dashboard() {
                       CPU Cores
                     </h4>
                     <p className="font-mono text-sm">
-                      {health.server_info?.cpu_count || "Unknown"}
+                      {health.server_info?.cpu_count || 'Unknown'}
                     </p>
                   </div>
                   <div>
@@ -453,7 +453,7 @@ export function Dashboard() {
                     <p className="font-mono text-sm">
                       {systemResources
                         ? `${Math.floor(systemResources.uptime_seconds / 3600)}h ${Math.floor((systemResources.uptime_seconds % 3600) / 60)}m`
-                        : "Unknown"}
+                        : 'Unknown'}
                     </p>
                   </div>
                   <div>
@@ -463,7 +463,7 @@ export function Dashboard() {
                     <p className="font-mono text-sm">
                       {health.timestamp
                         ? new Date(health.timestamp).toLocaleString()
-                        : "Unknown"}
+                        : 'Unknown'}
                     </p>
                   </div>
                 </div>
@@ -537,5 +537,5 @@ export function Dashboard() {
         ) : null}
       </ApiErrorBoundary>
     </div>
-  );
+  )
 }

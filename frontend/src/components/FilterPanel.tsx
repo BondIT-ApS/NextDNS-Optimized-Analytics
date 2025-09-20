@@ -1,24 +1,24 @@
-import React, { memo } from "react";
+import React, { memo } from 'react'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { SearchInput } from "@/components/SearchInput";
-import { Search } from "lucide-react";
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { SearchInput } from '@/components/SearchInput'
+import { Search } from 'lucide-react'
 
 interface FilterPanelProps {
-  searchQuery: string;
-  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  statusFilter: "all" | "blocked" | "allowed";
-  onStatusFilterChange: (status: "all" | "blocked" | "allowed") => void;
-  debouncedSearchQuery: string;
-  filteredLogsCount: number;
-  totalLogsCount: number;
-  selectedProfile?: string;
+  searchQuery: string
+  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  statusFilter: 'all' | 'blocked' | 'allowed'
+  onStatusFilterChange: (status: 'all' | 'blocked' | 'allowed') => void
+  debouncedSearchQuery: string
+  filteredLogsCount: number
+  totalLogsCount: number
+  selectedProfile?: string
 }
 
 export const FilterPanel = memo<FilterPanelProps>(
@@ -53,19 +53,19 @@ export const FilterPanel = memo<FilterPanelProps>(
             {/* Status Filter Buttons */}
             <div className="flex gap-2">
               {[
-                { key: "all", label: "All", color: "outline" },
-                { key: "blocked", label: "Blocked", color: "destructive" },
-                { key: "allowed", label: "Allowed", color: "default" },
+                { key: 'all', label: 'All', color: 'outline' },
+                { key: 'blocked', label: 'Blocked', color: 'destructive' },
+                { key: 'allowed', label: 'Allowed', color: 'default' },
               ].map(({ key, label, color }) => (
                 <Button
                   key={key}
-                  variant={statusFilter === key ? (color as any) : "outline"}
+                  variant={statusFilter === key ? (color as any) : 'outline'}
                   size="sm"
                   onClick={() => onStatusFilterChange(key as any)}
                   className={
-                    statusFilter === key && key === "allowed"
-                      ? "bg-lego-green hover:bg-lego-green/90 text-white"
-                      : ""
+                    statusFilter === key && key === 'allowed'
+                      ? 'bg-lego-green hover:bg-lego-green/90 text-white'
+                      : ''
                   }
                 >
                   {label}
@@ -76,16 +76,16 @@ export const FilterPanel = memo<FilterPanelProps>(
 
           {/* Filter Summary */}
           {(debouncedSearchQuery ||
-            statusFilter !== "all" ||
+            statusFilter !== 'all' ||
             selectedProfile) && (
             <div className="mt-4 text-sm text-muted-foreground">
               Showing {filteredLogsCount} of {totalLogsCount} logs
               {selectedProfile && ` from profile ${selectedProfile}`}
               {debouncedSearchQuery && ` matching "${debouncedSearchQuery}"`}
-              {statusFilter !== "all" && ` (${statusFilter} only)`}
+              {statusFilter !== 'all' && ` (${statusFilter} only)`}
               {searchQuery !== debouncedSearchQuery && (
                 <span className="text-muted-foreground/70">
-                  {" "}
+                  {' '}
                   (searching...)
                 </span>
               )}
@@ -93,8 +93,8 @@ export const FilterPanel = memo<FilterPanelProps>(
           )}
         </CardContent>
       </Card>
-    );
-  },
-);
+    )
+  }
+)
 
-FilterPanel.displayName = "FilterPanel";
+FilterPanel.displayName = 'FilterPanel'

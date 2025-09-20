@@ -1,4 +1,8 @@
-# file: backend/scheduler.py
+# file: backend/scheduler.py  # pylint: disable=duplicate-code
+import os
+from datetime import datetime
+
+import requests
 from apscheduler.schedulers.background import BackgroundScheduler
 from models import (
     add_log,
@@ -6,10 +10,6 @@ from models import (
     get_last_fetch_timestamp,
     update_fetch_status,
 )
-from datetime import datetime, timezone
-import requests
-import os
-import sys
 
 # Set up logging
 from logging_config import get_logger
@@ -18,8 +18,8 @@ logger = get_logger(__name__)
 
 API_KEY = os.getenv("API_KEY")
 PROFILE_IDS = os.getenv("PROFILE_IDS")
-FETCH_INTERVAL = int(os.getenv("FETCH_INTERVAL", 60))  # Default to 60 minutes
-FETCH_LIMIT = int(os.getenv("FETCH_LIMIT", 100))  # Default to 100 records per request
+FETCH_INTERVAL = int(os.getenv("FETCH_INTERVAL", "60"))  # Default to 60 minutes
+FETCH_LIMIT = int(os.getenv("FETCH_LIMIT", "100"))  # Default to 100 records per request
 
 # Parse profile IDs
 profile_ids = []
@@ -38,13 +38,13 @@ if not API_KEY or not profile_ids:
     logger.warning("⚠️  Missing NextDNS API credentials!")
     logger.info("💡 Please set API_KEY and PROFILE_IDS environment variables")
     logger.warning("🧱 Scheduler will not start - no logs will be fetched")
-    scheduler = None
+    SCHEDULER = None
 else:
     logger.info(
         f"✅ NextDNS API configured with API key and {len(profile_ids)} profile(s)"
     )
 
-    def fetch_logs():
+    def fetch_logs():  # pylint: disable=too-many-locals,too-many-branches,too-many-statements,too-many-nested-blocks
         """Fetch logs from NextDNS API with timestamp-based incremental fetching for multiple profiles."""
         # Log initial database state
         initial_count = get_total_record_count()
@@ -58,7 +58,7 @@ else:
         failed_profiles = 0
 
         # Fetch from each profile
-        for profile_id in profile_ids:
+        for profile_id in profile_ids:  # pylint: disable=too-many-nested-blocks
             try:
                 logger.info(f"🧱 Processing profile: {profile_id}")
 
@@ -137,7 +137,8 @@ else:
                                 profile_skipped += 1
                         else:
                             logger.warning(
-                                f"⚠️  Profile {profile_id}: failed to process log for domain: {log.get('domain')}"
+                                f"⚠️  Profile {profile_id}: failed to process log "
+                                f"for domain: {log.get('domain')}"
                             )
 
                     # Update fetch status with latest timestamp for this profile
@@ -147,7 +148,8 @@ else:
 
                     # Log profile statistics
                     logger.info(
-                        f"💾 Profile {profile_id}: {profile_added} NEW records added, {profile_skipped} duplicates skipped"
+                        f"💾 Profile {profile_id}: {profile_added} NEW records added, "
+                        f"{profile_skipped} duplicates skipped"
                     )
 
                     total_added += profile_added
@@ -156,20 +158,21 @@ else:
 
                 else:
                     logger.error(
-                        f"⚠️  Profile {profile_id}: API returned status {response.status_code}: {response.text}"
+                        f"⚠️  Profile {profile_id}: API returned status "
+                        f"{response.status_code}: {response.text}"
                     )
                     failed_profiles += 1
 
             except requests.exceptions.RequestException as e:
                 logger.error(f"❌ Profile {profile_id}: error fetching logs: {e}")
                 failed_profiles += 1
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 logger.error(f"❌ Profile {profile_id}: unexpected error: {e}")
                 failed_profiles += 1
 
         # Log comprehensive statistics for all profiles
         final_count = get_total_record_count()
-        logger.info(f"🏁 Multi-profile fetch completed:")
+        logger.info("🏁 Multi-profile fetch completed:")
         logger.info(
             f"📊 Total: {total_added} NEW records added, {total_skipped} duplicates skipped"
         )
@@ -181,12 +184,12 @@ else:
         )
 
         if total_skipped > 0:
-            logger.info(f"🔄 Duplicate prevention working across all profiles")
+            logger.info("🔄 Duplicate prevention working across all profiles")
 
     # Initialize and start scheduler
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(fetch_logs, "interval", minutes=FETCH_INTERVAL)
-    scheduler.start()
+    SCHEDULER = BackgroundScheduler()
+    SCHEDULER.add_job(fetch_logs, "interval", minutes=FETCH_INTERVAL)
+    SCHEDULER.start()
     logger.info(
         f"🔄 NextDNS log fetching scheduler started (runs every {FETCH_INTERVAL} minutes)"
     )
@@ -194,3 +197,6 @@ else:
         f"🕰️ Fetch interval configured: {FETCH_INTERVAL} minutes ({FETCH_INTERVAL/60:.1f} hours)"
     )
     logger.info(f"📊 Fetch limit configured: {FETCH_LIMIT} records per request")
+
+    # Expose scheduler for import compatibility
+    scheduler = SCHEDULER  # pylint: disable=invalid-name
