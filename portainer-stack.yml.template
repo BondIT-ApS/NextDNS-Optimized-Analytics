@@ -52,6 +52,7 @@ services:
       # NextDNS API Configuration
       API_KEY: YOUR_NEXTDNS_API_KEY_HERE
       PROFILE_IDS: profile1,profile2,profile3
+      # or just PROFILE_IDS: profile if you only have one
       
       # Local API Authentication
       LOCAL_API_KEY: YOUR_LOCAL_API_KEY_HERE
