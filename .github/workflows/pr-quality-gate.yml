@@ -161,7 +161,7 @@ jobs:
       - name: Check Black formatting
         run: |
           cd backend
-          black . --check --exclude=alembic
+          black . --check --line-length=88 --exclude=alembic
 
       - name: Run Pylint
         run: |
