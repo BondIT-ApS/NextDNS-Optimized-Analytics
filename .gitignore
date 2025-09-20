@@ -252,6 +252,9 @@ pids
 *.crt
 secrets/
 
+# WARP Agent configuration (contains project-specific rules)
+WARP.md
+
 # NextDNS specific
 *.nextdns
 nextdns_cache/
