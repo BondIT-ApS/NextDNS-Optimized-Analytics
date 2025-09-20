@@ -4,8 +4,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Settings as SettingsIcon } from "lucide-react";
+} from '@/components/ui/card'
+import { Settings as SettingsIcon } from 'lucide-react'
 
 export function Settings() {
   return (
@@ -35,5 +35,5 @@ export function Settings() {
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

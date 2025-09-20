@@ -1,6 +1,7 @@
 [MASTER]
 ignore=venv,alembic
 jobs=1
+fail-under=9.5
 load-plugins=
     pylint.extensions.docparams
 
@@ -21,7 +22,7 @@ disable=
     # W0718 catching-too-general-exception - should be specific
 
 [FORMAT]
-max-line-length=88  # Align with Black formatter
+max-line-length=110  # Practical balance for logging statements with emojis
 
 [DESIGN]
 max-args=7        # Allow a few more args for FastAPI endpoints

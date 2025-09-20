@@ -1,41 +1,35 @@
-import { useLogs, useLogsStats } from "@/hooks/useLogs";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
-import { ApiErrorBoundary } from "@/components/ErrorBoundary";
-import { LoadingState, ErrorState } from "@/components/LoadingSkeletons";
-import { StatsCards } from "@/components/StatsCards";
-import { FilterPanel } from "@/components/FilterPanel";
-import { LogsTable } from "@/components/LogsTable";
-import { ProfileSelector } from "@/components/ProfileSelector";
-import {
-  useState,
-  useMemo,
-  useEffect,
-  useCallback,
-  useTransition,
-} from "react";
+import { useLogs, useLogsStats } from '@/hooks/useLogs'
+import { Button } from '@/components/ui/button'
+import { RefreshCw } from 'lucide-react'
+import { ApiErrorBoundary } from '@/components/ErrorBoundary'
+import { LoadingState, ErrorState } from '@/components/LoadingSkeletons'
+import { StatsCards } from '@/components/StatsCards'
+import { FilterPanel } from '@/components/FilterPanel'
+import { LogsTable } from '@/components/LogsTable'
+import { ProfileSelector } from '@/components/ProfileSelector'
+import { useState, useMemo, useEffect, useCallback, useTransition } from 'react'
 
 export function Logs() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<
-    "all" | "blocked" | "allowed"
-  >("all");
+    'all' | 'blocked' | 'allowed'
+  >('all')
   const [selectedProfile, setSelectedProfile] = useState<string | undefined>(
-    undefined,
-  );
-  const [, startTransition] = useTransition();
+    undefined
+  )
+  const [, startTransition] = useTransition()
 
   // Debounce search query with transition for non-blocking updates
   useEffect(() => {
     const timer = setTimeout(() => {
       startTransition(() => {
-        setDebouncedSearchQuery(searchQuery);
-      });
-    }, 500); // 500ms delay for more stability
+        setDebouncedSearchQuery(searchQuery)
+      })
+    }, 500) // 500ms delay for more stability
 
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   // Memoize the query parameters to prevent unnecessary re-renders
   const queryParams = useMemo(
@@ -45,32 +39,27 @@ export function Logs() {
       status: statusFilter,
       profile: selectedProfile,
     }),
-    [debouncedSearchQuery, statusFilter, selectedProfile],
-  );
+    [debouncedSearchQuery, statusFilter, selectedProfile]
+  )
 
-  const {
-    data: logsResponse,
-    isLoading,
-    error,
-    refetch,
-  } = useLogs(queryParams);
+  const { data: logsResponse, isLoading, error, refetch } = useLogs(queryParams)
 
   // Get total stats from entire database (or filtered by profile)
   const { data: totalStats, isLoading: statsLoading } =
-    useLogsStats(selectedProfile);
+    useLogsStats(selectedProfile)
 
   // Since filtering is now done on the backend, use the response data directly
   const filteredLogs = useMemo(() => {
-    return logsResponse?.data || [];
-  }, [logsResponse?.data]);
+    return logsResponse?.data || []
+  }, [logsResponse?.data])
 
   const stats = useMemo(() => {
     // Current filtered results counts
-    const filteredTotal = filteredLogs.length;
+    const filteredTotal = filteredLogs.length
     const filteredBlocked = filteredLogs.filter(
-      (log: any) => log.blocked,
-    ).length;
-    const filteredAllowed = filteredTotal - filteredBlocked;
+      (log: any) => log.blocked
+    ).length
+    const filteredAllowed = filteredTotal - filteredBlocked
 
     // Use total database stats for percentages
     const totalDatabaseStats = totalStats || {
@@ -79,7 +68,7 @@ export function Logs() {
       allowed: 0,
       blocked_percentage: 0,
       allowed_percentage: 0,
-    };
+    }
 
     return {
       // Show filtered counts as main numbers
@@ -90,30 +79,30 @@ export function Logs() {
       totalInDatabase: totalDatabaseStats.total,
       blockedPercentage: totalDatabaseStats.blocked_percentage,
       allowedPercentage: totalDatabaseStats.allowed_percentage,
-    };
-  }, [filteredLogs, totalStats]);
+    }
+  }, [filteredLogs, totalStats])
 
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      setSearchQuery(e.target.value);
+      setSearchQuery(e.target.value)
     },
-    [],
-  );
+    []
+  )
 
   const handleStatusFilterChange = useCallback(
-    (status: "all" | "blocked" | "allowed") => {
+    (status: 'all' | 'blocked' | 'allowed') => {
       startTransition(() => {
-        setStatusFilter(status);
-      });
+        setStatusFilter(status)
+      })
     },
-    [],
-  );
+    []
+  )
 
   const handleProfileChange = useCallback((profileId: string | undefined) => {
     startTransition(() => {
-      setSelectedProfile(profileId);
-    });
-  }, []);
+      setSelectedProfile(profileId)
+    })
+  }, [])
 
   if (isLoading || statsLoading) {
     return (
@@ -134,7 +123,7 @@ export function Logs() {
 
         <LoadingState message="Loading DNS logs..." />
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -158,7 +147,7 @@ export function Logs() {
           onRetry={() => refetch()}
         />
       </div>
-    );
+    )
   }
 
   return (
@@ -178,7 +167,7 @@ export function Logs() {
             disabled={isLoading}
           >
             <RefreshCw
-              className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+              className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
             />
             Refresh
           </Button>
@@ -223,5 +212,5 @@ export function Logs() {
         />
       </div>
     </ApiErrorBoundary>
-  );
+  )
 }

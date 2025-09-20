@@ -1,7 +1,8 @@
 # file: backend/profile_service.py
-import requests
 import os
 from typing import Dict, List, Optional
+
+import requests
 from logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -9,7 +10,9 @@ logger = get_logger(__name__)
 API_KEY = os.getenv("API_KEY")
 
 
-def get_profile_info(profile_id: str) -> Optional[Dict]:
+def get_profile_info(
+    profile_id: str,
+) -> Optional[Dict]:  # pylint: disable=too-many-return-statements
     """Get profile information from NextDNS API.
 
     Args:
@@ -41,29 +44,32 @@ def get_profile_info(profile_id: str) -> Optional[Dict]:
                 "created": profile_data.get("created"),
                 "updated": profile_data.get("updated"),
             }
-        elif response.status_code == 404:
+
+        if response.status_code == 404:
             logger.warning(f"⚠️  Profile {profile_id} not found (404)")
             return {
                 "id": profile_id,
                 "name": f"Profile {profile_id} (Not Found)",
                 "error": "Profile not found",
             }
-        elif response.status_code == 403:
+
+        if response.status_code == 403:
             logger.warning(f"⚠️  Access denied to profile {profile_id} (403)")
             return {
                 "id": profile_id,
                 "name": f"Profile {profile_id} (Access Denied)",
                 "error": "Access denied",
             }
-        else:
-            logger.error(
-                f"❌ Profile {profile_id}: API returned {response.status_code}: {response.text}"
-            )
-            return {
-                "id": profile_id,
-                "name": f"Profile {profile_id} (Error)",
-                "error": f"HTTP {response.status_code}",
-            }
+
+        # Handle all other status codes
+        logger.error(
+            f"❌ Profile {profile_id}: API returned {response.status_code}: {response.text}"
+        )
+        return {
+            "id": profile_id,
+            "name": f"Profile {profile_id} (Error)",
+            "error": f"HTTP {response.status_code}",
+        }
 
     except requests.exceptions.RequestException as e:
         logger.error(f"❌ Profile {profile_id}: Request error: {e}")
@@ -72,7 +78,7 @@ def get_profile_info(profile_id: str) -> Optional[Dict]:
             "name": f"Profile {profile_id} (Network Error)",
             "error": str(e),
         }
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"❌ Profile {profile_id}: Unexpected error: {e}")
         return {
             "id": profile_id,

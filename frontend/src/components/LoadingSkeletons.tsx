@@ -1,13 +1,13 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { WifiOff, Clock } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { WifiOff, Clock } from 'lucide-react'
+import { useState, useEffect } from 'react'
 
 interface SkeletonProps {
-  className?: string;
+  className?: string
 }
 
-export function Skeleton({ className = "" }: SkeletonProps) {
-  return <div className={`animate-pulse bg-muted rounded ${className}`} />;
+export function Skeleton({ className = '' }: SkeletonProps) {
+  return <div className={`animate-pulse bg-muted rounded ${className}`} />
 }
 
 export function DashboardCardSkeleton() {
@@ -22,7 +22,7 @@ export function DashboardCardSkeleton() {
         <Skeleton className="h-3 w-32" />
       </CardContent>
     </Card>
-  );
+  )
 }
 
 export function SystemResourceCardSkeleton() {
@@ -48,7 +48,7 @@ export function SystemResourceCardSkeleton() {
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 export function SystemInfoSkeleton() {
@@ -86,58 +86,58 @@ export function SystemInfoSkeleton() {
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 export function LoadingSpinner({
-  size = "medium",
+  size = 'medium',
 }: {
-  size?: "small" | "medium" | "large";
+  size?: 'small' | 'medium' | 'large'
 }) {
   const sizeClasses = {
-    small: "h-4 w-4",
-    medium: "h-6 w-6",
-    large: "h-8 w-8",
-  };
+    small: 'h-4 w-4',
+    medium: 'h-6 w-6',
+    large: 'h-8 w-8',
+  }
 
   return (
     <div
       className={`animate-spin rounded-full border-2 border-muted border-t-lego-blue ${sizeClasses[size]}`}
     />
-  );
+  )
 }
 
 interface LoadingStateProps {
-  message?: string;
-  showSpinner?: boolean;
-  className?: string;
+  message?: string
+  showSpinner?: boolean
+  className?: string
 }
 
 export function LoadingState({
-  message = "Loading...",
+  message = 'Loading...',
   showSpinner = true,
-  className = "",
+  className = '',
 }: LoadingStateProps) {
   return (
     <div className={`flex items-center justify-center gap-3 p-6 ${className}`}>
       {showSpinner && <LoadingSpinner />}
       <span className="text-muted-foreground">{message}</span>
     </div>
-  );
+  )
 }
 
 interface ErrorStateProps {
-  message?: string;
-  onRetry?: () => void;
-  showRetryButton?: boolean;
-  className?: string;
+  message?: string
+  onRetry?: () => void
+  showRetryButton?: boolean
+  className?: string
 }
 
 export function ErrorState({
-  message = "Something went wrong",
+  message = 'Something went wrong',
   onRetry,
   showRetryButton = true,
-  className = "",
+  className = '',
 }: ErrorStateProps) {
   return (
     <div
@@ -173,20 +173,20 @@ export function ErrorState({
         </button>
       )}
     </div>
-  );
+  )
 }
 
 // Connection status indicators
 interface ConnectionIndicatorProps {
-  isConnected: boolean;
-  isLoading?: boolean;
-  className?: string;
+  isConnected: boolean
+  isLoading?: boolean
+  className?: string
 }
 
 export function ConnectionIndicator({
   isConnected,
   isLoading = false,
-  className = "",
+  className = '',
 }: ConnectionIndicatorProps) {
   if (isLoading) {
     return (
@@ -194,34 +194,34 @@ export function ConnectionIndicator({
         <LoadingSpinner size="small" />
         <span className="text-sm text-muted-foreground">Checking...</span>
       </div>
-    );
+    )
   }
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <div
         className={`w-2 h-2 rounded-full ${
-          isConnected ? "bg-lego-green animate-pulse" : "bg-lego-red"
+          isConnected ? 'bg-lego-green animate-pulse' : 'bg-lego-red'
         }`}
       />
       <span
         className={`text-sm ${
-          isConnected ? "text-lego-green" : "text-lego-red"
+          isConnected ? 'text-lego-green' : 'text-lego-red'
         }`}
       >
-        {isConnected ? "Connected" : "Disconnected"}
+        {isConnected ? 'Connected' : 'Disconnected'}
       </span>
     </div>
-  );
+  )
 }
 
 // Retry logic indicator
 interface RetryIndicatorProps {
-  isRetrying: boolean;
-  retryCount: number;
-  maxRetries: number;
-  nextRetryIn?: number;
-  className?: string;
+  isRetrying: boolean
+  retryCount: number
+  maxRetries: number
+  nextRetryIn?: number
+  className?: string
 }
 
 export function RetryIndicator({
@@ -229,9 +229,9 @@ export function RetryIndicator({
   retryCount,
   maxRetries,
   nextRetryIn,
-  className = "",
+  className = '',
 }: RetryIndicatorProps) {
-  if (!isRetrying && retryCount === 0) return null;
+  if (!isRetrying && retryCount === 0) return null
 
   return (
     <div
@@ -243,43 +243,43 @@ export function RetryIndicator({
           ? `Retrying... (${retryCount}/${maxRetries})`
           : retryCount > 0
             ? `Retried ${retryCount} times`
-            : ""}
+            : ''}
         {nextRetryIn && nextRetryIn > 0 && (
           <span> - Next retry in {nextRetryIn}s</span>
         )}
       </span>
     </div>
-  );
+  )
 }
 
 // Offline mode indicators
 interface OfflineBannerProps {
-  isOffline: boolean;
-  lastUpdated?: number;
-  className?: string;
+  isOffline: boolean
+  lastUpdated?: number
+  className?: string
 }
 
 export function OfflineBanner({
   isOffline,
   lastUpdated,
-  className = "",
+  className = '',
 }: OfflineBannerProps) {
-  const [currentTime, setCurrentTime] = useState(Date.now());
+  const [currentTime, setCurrentTime] = useState(Date.now())
 
   // Update current time every second for live age calculation
   useEffect(() => {
-    if (!isOffline || !lastUpdated) return;
+    if (!isOffline || !lastUpdated) return
 
     const interval = setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 1000);
+      setCurrentTime(Date.now())
+    }, 1000)
 
-    return () => clearInterval(interval);
-  }, [isOffline, lastUpdated]);
+    return () => clearInterval(interval)
+  }, [isOffline, lastUpdated])
 
-  if (!isOffline) return null;
+  if (!isOffline) return null
 
-  const age = lastUpdated ? currentTime - lastUpdated : 0;
+  const age = lastUpdated ? currentTime - lastUpdated : 0
 
   return (
     <div
@@ -294,44 +294,44 @@ export function OfflineBanner({
           <div className="h-1 w-1 rounded-full bg-lego-orange animate-pulse" />
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          Showing cached data from{" "}
-          {lastUpdated ? formatLiveAge(age) : "unknown time"}
+          Showing cached data from{' '}
+          {lastUpdated ? formatLiveAge(age) : 'unknown time'}
         </p>
       </div>
     </div>
-  );
+  )
 }
 
 interface DataFreshnessIndicatorProps {
-  isFromCache: boolean;
-  lastUpdated?: number;
-  isLoading?: boolean;
-  className?: string;
+  isFromCache: boolean
+  lastUpdated?: number
+  isLoading?: boolean
+  className?: string
 }
 
 export function DataFreshnessIndicator({
   isFromCache,
   lastUpdated,
   isLoading = false,
-  className = "",
+  className = '',
 }: DataFreshnessIndicatorProps) {
-  const [currentTime, setCurrentTime] = useState(Date.now());
+  const [currentTime, setCurrentTime] = useState(Date.now())
 
   // Update current time every second for live age calculation
   useEffect(() => {
-    if (isLoading || (!isFromCache && !lastUpdated)) return;
+    if (isLoading || (!isFromCache && !lastUpdated)) return
 
     const interval = setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 1000);
+      setCurrentTime(Date.now())
+    }, 1000)
 
-    return () => clearInterval(interval);
-  }, [isFromCache, lastUpdated, isLoading]);
+    return () => clearInterval(interval)
+  }, [isFromCache, lastUpdated, isLoading])
 
-  if (isLoading || (!isFromCache && !lastUpdated)) return null;
+  if (isLoading || (!isFromCache && !lastUpdated)) return null
 
-  const age = currentTime - (lastUpdated || Date.now());
-  const isStale = age > 60000; // 1 minute
+  const age = currentTime - (lastUpdated || Date.now())
+  const isStale = age > 60000 // 1 minute
 
   return (
     <div className={`flex items-center gap-2 text-xs ${className}`}>
@@ -339,10 +339,10 @@ export function DataFreshnessIndicator({
       <span
         className={`${
           isFromCache
-            ? "text-lego-orange"
+            ? 'text-lego-orange'
             : isStale
-              ? "text-lego-yellow"
-              : "text-muted-foreground"
+              ? 'text-lego-yellow'
+              : 'text-muted-foreground'
         }`}
       >
         {isFromCache
@@ -350,23 +350,23 @@ export function DataFreshnessIndicator({
           : `Updated ${formatLiveAge(age)}`}
       </span>
     </div>
-  );
+  )
 }
 
 // Helper function to format age from milliseconds
 function formatLiveAge(ageInMs: number): string {
-  const seconds = Math.floor(ageInMs / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
+  const seconds = Math.floor(ageInMs / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+  const days = Math.floor(hours / 24)
 
   if (days > 0) {
-    return `${days}d ${hours % 24}h ago`;
+    return `${days}d ${hours % 24}h ago`
   } else if (hours > 0) {
-    return `${hours}h ${minutes % 60}m ago`;
+    return `${hours}h ${minutes % 60}m ago`
   } else if (minutes > 0) {
-    return `${minutes}m ${seconds % 60}s ago`;
+    return `${minutes}m ${seconds % 60}s ago`
   } else {
-    return `${Math.max(0, seconds)}s ago`;
+    return `${Math.max(0, seconds)}s ago`
   }
 }
