@@ -21,7 +21,7 @@ disable=
     # W0718 catching-too-general-exception - should be specific
 
 [FORMAT]
-max-line-length=88  # Align with Black formatter
+max-line-length=88
 
 [DESIGN]
 max-args=7        # Allow a few more args for FastAPI endpoints
