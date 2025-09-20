@@ -55,7 +55,7 @@ jobs:
           pip install -r backend/requirements.txt
 
       - name: 🏢 Assemble Production LEGO Set
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile.${{ matrix.service }}
