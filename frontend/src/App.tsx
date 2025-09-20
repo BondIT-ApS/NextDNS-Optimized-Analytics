@@ -1,10 +1,15 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { Layout } from '@/components/layout/Layout'
-import { Dashboard } from '@/pages/Dashboard'
-import { Logs } from '@/pages/Logs'
-import { Settings } from '@/pages/Settings'
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { Layout } from "@/components/layout/Layout";
+import { Dashboard } from "@/pages/Dashboard";
+import { Logs } from "@/pages/Logs";
+import { Settings } from "@/pages/Settings";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -12,13 +17,13 @@ const queryClient = new QueryClient({
     queries: {
       retry: (failureCount) => {
         // Retry on most errors, but limit attempts
-        return failureCount < 3
+        return failureCount < 3;
       },
       refetchOnWindowFocus: false,
       staleTime: 30000, // 30 seconds
     },
   },
-})
+});
 
 function App() {
   return (
@@ -38,7 +43,7 @@ function App() {
       </Router>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
-  )
+  );
 }
 
-export default App
+export default App;
