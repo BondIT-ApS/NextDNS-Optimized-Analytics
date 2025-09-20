@@ -30,7 +30,7 @@ from profile_service import (
 app_start_time = datetime.now(timezone.utc)
 
 try:
-    from scheduler import scheduler  # pylint: disable=unused-import
+    from scheduler import scheduler  # pylint: disable=unused-import,duplicate-code
 
     logger.info("🔄 NextDNS log scheduler started successfully")
 except ImportError as e:
