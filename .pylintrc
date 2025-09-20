@@ -21,7 +21,7 @@ disable=
     # W0718 catching-too-general-exception - should be specific
 
 [FORMAT]
-max-line-length=88
+max-line-length=110  # Practical balance for logging statements with emojis
 
 [DESIGN]
 max-args=7        # Allow a few more args for FastAPI endpoints

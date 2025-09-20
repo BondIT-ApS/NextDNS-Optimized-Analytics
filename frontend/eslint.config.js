@@ -23,11 +23,16 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
-      // LEGO-friendly rules - not too strict but maintaining quality
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // LEGO-friendly rules - balanced for productivity
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_' },
+      ],
       '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-empty-object-type': 'off', // Allow empty interfaces
+      'react-refresh/only-export-components': 'off', // Allow utility exports
       'prefer-const': 'error',
       'no-var': 'error',
     },
-  },
+  }
 )

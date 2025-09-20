@@ -41,7 +41,11 @@ class ForceText(TypeDecorator):
 Base = declarative_base()
 
 # Database connection setup
-DATABASE_URL = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}/{os.getenv('POSTGRES_DB')}"
+DATABASE_URL = (
+    f"postgresql://{os.getenv('POSTGRES_USER')}:"
+    f"{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}/"
+    f"{os.getenv('POSTGRES_DB')}"
+)
 engine = create_engine(DATABASE_URL, echo=False)
 Session = sessionmaker(bind=engine)
 
@@ -73,7 +77,8 @@ class DNSLog(Base):
         Index("idx_dns_logs_timestamp_domain", "timestamp", "domain"),
         Index("idx_dns_logs_domain_action", "domain", "action"),
         Index("idx_dns_logs_profile_timestamp", "profile_id", "timestamp"),
-        # Unique constraint to prevent duplicates based on timestamp, domain, and client_ip
+        # Unique constraint to prevent duplicates based on
+        # timestamp, domain, and client_ip
         UniqueConstraint(
             "timestamp",
             "domain",
@@ -155,7 +160,8 @@ def add_log(log):
         log (dict): DNS log data containing domain, action, device, and other fields
 
     Returns:
-        tuple: (record_id, is_new) where record_id is the ID and is_new indicates if it's a new record
+        tuple: (record_id, is_new) where record_id is the ID and
+        is_new indicates if it's a new record
     """
     session = Session()
     try:
@@ -189,7 +195,8 @@ def add_log(log):
 
         if existing_log:
             logger.debug(
-                f"🔄 Duplicate found for domain {log.get('domain')} at {log_timestamp} - skipping"
+                f"🔄 Duplicate found for domain {log.get('domain')} "
+                f"at {log_timestamp} - skipping"
             )
             return existing_log.id, False  # Return existing ID, not new
 
@@ -209,7 +216,8 @@ def add_log(log):
             f"🐛 Data serialization - device type: {type(device_str)}, device value: {device_str}"
         )
         logger.debug(
-            f"🐛 Data serialization - data type: {type(data_str)}, data value (first 100 chars): {str(data_str)[:100]}"
+            f"🐛 Data serialization - data type: {type(data_str)}, "
+            f"data value (first 100 chars): {str(data_str)[:100]}"
         )
 
         new_log = DNSLog(
@@ -289,7 +297,9 @@ def update_fetch_status(profile_id, last_timestamp, records_count):
             fetch_status.records_fetched += records_count
             fetch_status.updated_at = datetime.now(timezone.utc)
             logger.debug(
-                f"📅 Updated fetch status for profile {profile_id}: last_timestamp={last_timestamp}, total_records={fetch_status.records_fetched}"
+                f"📅 Updated fetch status for profile {profile_id}: "
+                f"last_timestamp={last_timestamp}, "
+                f"total_records={fetch_status.records_fetched}"
             )
         else:
             # Create new record
@@ -300,7 +310,8 @@ def update_fetch_status(profile_id, last_timestamp, records_count):
             )
             session.add(fetch_status)
             logger.debug(
-                f"📅 Created new fetch status for profile {profile_id}: last_timestamp={last_timestamp}, records={records_count}"
+                f"📅 Created new fetch status for profile {profile_id}: "
+                f"last_timestamp={last_timestamp}, records={records_count}"
             )
 
         session.commit()
@@ -337,7 +348,9 @@ def get_logs(
     """
     total_records = get_total_record_count()
     logger.debug(
-        f"📊 Retrieving logs with limit={limit}, offset={offset}, exclude_domains={exclude_domains}, search='{search_query}', status='{status_filter}', profile='{profile_filter}'"
+        f"📊 Retrieving logs with limit={limit}, offset={offset}, "
+        f"exclude_domains={exclude_domains}, search='{search_query}', "
+        f"status='{status_filter}', profile='{profile_filter}'"
     )
     logger.info(
         f"📊 Database query: requesting {limit} records from {total_records:,} total records"

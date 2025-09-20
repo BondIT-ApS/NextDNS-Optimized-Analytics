@@ -1,30 +1,30 @@
-import { memo, useCallback } from "react";
+import { memo, useCallback } from 'react'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Clock, Database, CheckCircle, XCircle } from "lucide-react";
+} from '@/components/ui/card'
+import { Clock, Database, CheckCircle, XCircle } from 'lucide-react'
 
 interface LogsTableProps {
-  logs: any[];
-  debouncedSearchQuery: string;
-  statusFilter: "all" | "blocked" | "allowed";
+  logs: any[]
+  debouncedSearchQuery: string
+  statusFilter: 'all' | 'blocked' | 'allowed'
 }
 
 export const LogsTable = memo<LogsTableProps>(
   ({ logs, debouncedSearchQuery, statusFilter }) => {
     const formatTime = useCallback((timestamp: string) => {
-      return new Date(timestamp).toLocaleTimeString();
-    }, []);
+      return new Date(timestamp).toLocaleTimeString()
+    }, [])
 
     const formatDevice = useCallback((device: any) => {
-      if (!device) return "Unknown";
-      if (typeof device === "string") return device;
-      return device.name || device.id || "Unknown";
-    }, []);
+      if (!device) return 'Unknown'
+      if (typeof device === 'string') return device
+      return device.name || device.id || 'Unknown'
+    }, [])
 
     return (
       <Card>
@@ -36,7 +36,7 @@ export const LogsTable = memo<LogsTableProps>(
           <CardDescription>
             {logs.length > 0
               ? `${logs.length} recent DNS queries`
-              : "No logs match your filters"}
+              : 'No logs match your filters'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -47,9 +47,9 @@ export const LogsTable = memo<LogsTableProps>(
                 No logs found
               </h3>
               <p className="text-muted-foreground">
-                {debouncedSearchQuery || statusFilter !== "all"
-                  ? "Try adjusting your filters"
-                  : "No DNS logs available"}
+                {debouncedSearchQuery || statusFilter !== 'all'
+                  ? 'Try adjusting your filters'
+                  : 'No DNS logs available'}
               </p>
             </div>
           ) : (
@@ -119,8 +119,8 @@ export const LogsTable = memo<LogsTableProps>(
           )}
         </CardContent>
       </Card>
-    );
-  },
-);
+    )
+  }
+)
 
-LogsTable.displayName = "LogsTable";
+LogsTable.displayName = 'LogsTable'

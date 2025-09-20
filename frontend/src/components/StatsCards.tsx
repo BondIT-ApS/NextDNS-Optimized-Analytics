@@ -1,19 +1,19 @@
-import { memo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Database, Shield, CheckCircle } from "lucide-react";
-import { formatNumber } from "@/lib/utils";
+import { memo } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Database, Shield, CheckCircle } from 'lucide-react'
+import { formatNumber } from '@/lib/utils'
 
 interface StatsCardsProps {
   stats: {
-    total: number;
-    blocked: number;
-    allowed: number;
-    totalInDatabase: number;
-    blockedPercentage: number;
-    allowedPercentage: number;
-  };
-  debouncedSearchQuery: string;
-  statusFilter: "all" | "blocked" | "allowed";
+    total: number
+    blocked: number
+    allowed: number
+    totalInDatabase: number
+    blockedPercentage: number
+    allowedPercentage: number
+  }
+  debouncedSearchQuery: string
+  statusFilter: 'all' | 'blocked' | 'allowed'
 }
 
 export const StatsCards = memo<StatsCardsProps>(
@@ -30,7 +30,7 @@ export const StatsCards = memo<StatsCardsProps>(
               {formatNumber(stats.total)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {debouncedSearchQuery || statusFilter !== "all"
+              {debouncedSearchQuery || statusFilter !== 'all'
                 ? `Filtered from ${formatNumber(stats.totalInDatabase)} total queries`
                 : `From ${formatNumber(stats.totalInDatabase)} total queries`}
             </p>
@@ -67,8 +67,8 @@ export const StatsCards = memo<StatsCardsProps>(
           </CardContent>
         </Card>
       </div>
-    );
-  },
-);
+    )
+  }
+)
 
-StatsCards.displayName = "StatsCards";
+StatsCards.displayName = 'StatsCards'
