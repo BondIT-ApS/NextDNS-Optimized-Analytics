@@ -1,7 +1,7 @@
 # file: backend/models.py
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import (
     create_engine,
@@ -509,17 +509,19 @@ def get_available_profiles():
     try:
         # Query for distinct profile IDs and their counts
 
+        # pylint: disable=not-callable
         results = (
             session.query(
                 DNSLog.profile_id,
-                func.count(DNSLog.id).label("record_count"),  # noqa: E1102
+                func.count(DNSLog.id).label("record_count"),
                 func.max(DNSLog.timestamp).label("last_activity"),
             )
             .filter(DNSLog.profile_id.isnot(None))
             .group_by(DNSLog.profile_id)
-            .order_by(func.count(DNSLog.id).desc())  # noqa: E1102
+            .order_by(func.count(DNSLog.id).desc())
             .all()
         )
+        # pylint: enable=not-callable
 
         profiles = []
         for result in results:
@@ -567,7 +569,6 @@ def get_stats_overview(profile_filter=None, time_range="24h"):
 
         # Apply time range filter
         if time_range != "all":
-            from datetime import timedelta
 
             now = datetime.now(timezone.utc)
 
@@ -587,7 +588,7 @@ def get_stats_overview(profile_filter=None, time_range="24h"):
         total_queries = query.count()
 
         # Get blocked queries
-        blocked_queries = query.filter(DNSLog.blocked == True).count()
+        blocked_queries = query.filter(DNSLog.blocked.is_(True)).count()
 
         # Calculate allowed queries and percentage
         allowed_queries = total_queries - blocked_queries
@@ -606,8 +607,6 @@ def get_stats_overview(profile_filter=None, time_range="24h"):
             # Try to get device name from the most recent record with a device
             recent_device_log = query.filter(DNSLog.device.isnot(None)).first()
             if recent_device_log and recent_device_log.device:
-                import json
-
                 device_data = (
                     json.loads(recent_device_log.device)
                     if isinstance(recent_device_log.device, str)
@@ -615,23 +614,25 @@ def get_stats_overview(profile_filter=None, time_range="24h"):
                 )
                 if device_data and "name" in device_data:
                     most_active_device = device_data["name"]
-        except Exception as e:
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
             logger.debug(f"Could not determine most active device: {e}")
             most_active_device = None
 
         # Get top blocked domain
         top_blocked_domain = None
         try:
+            # pylint: disable=not-callable
             blocked_domain_result = (
                 session.query(DNSLog.domain, func.count(DNSLog.id).label("count"))
-                .filter(DNSLog.blocked == True)
+                .filter(DNSLog.blocked.is_(True))
                 .group_by(DNSLog.domain)
                 .order_by(func.count(DNSLog.id).desc())
                 .first()
             )
+            # pylint: enable=not-callable
             if blocked_domain_result and blocked_domain_result[0]:
                 top_blocked_domain = blocked_domain_result[0]
-        except Exception as e:
+        except SQLAlchemyError as e:
             logger.debug(f"Could not determine top blocked domain: {e}")
             top_blocked_domain = None
 
@@ -677,7 +678,6 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
     """
     session = Session()
     try:
-        from datetime import timedelta
 
         now = datetime.now(timezone.utc)
 
@@ -746,7 +746,7 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
             )
 
             total_queries = interval_query.count()
-            blocked_queries = interval_query.filter(DNSLog.blocked == True).count()
+            blocked_queries = interval_query.filter(DNSLog.blocked.is_(True)).count()
             allowed_queries = total_queries - blocked_queries
 
             data_points.append(
@@ -793,7 +793,6 @@ def get_top_domains(profile_filter=None, time_range="24h", limit=10):
 
         # Apply time range filter
         if time_range != "all":
-            from datetime import timedelta
 
             now = datetime.now(timezone.utc)
 
@@ -815,14 +814,16 @@ def get_top_domains(profile_filter=None, time_range="24h", limit=10):
         blocked_domains = []
         if total_queries > 0:
             try:
+                # pylint: disable=not-callable
                 blocked_results = (
                     session.query(DNSLog.domain, func.count(DNSLog.id).label("count"))
-                    .filter(DNSLog.blocked == True)
+                    .filter(DNSLog.blocked.is_(True))
                     .group_by(DNSLog.domain)
                     .order_by(func.count(DNSLog.id).desc())
                     .limit(limit)
                     .all()
                 )
+                # pylint: enable=not-callable
 
                 for domain_result in blocked_results:
                     domain_name = domain_result[0]
@@ -837,21 +838,23 @@ def get_top_domains(profile_filter=None, time_range="24h", limit=10):
                             "percentage": round(percentage, 1),
                         }
                     )
-            except Exception as e:
+            except SQLAlchemyError as e:
                 logger.error(f"Error getting blocked domains: {e}")
 
         # Get top allowed domains
         allowed_domains = []
         if total_queries > 0:
             try:
+                # pylint: disable=not-callable
                 allowed_results = (
                     session.query(DNSLog.domain, func.count(DNSLog.id).label("count"))
-                    .filter(DNSLog.blocked == False)
+                    .filter(DNSLog.blocked.is_(False))
                     .group_by(DNSLog.domain)
                     .order_by(func.count(DNSLog.id).desc())
                     .limit(limit)
                     .all()
                 )
+                # pylint: enable=not-callable
 
                 for domain_result in allowed_results:
                     domain_name = domain_result[0]
@@ -866,7 +869,7 @@ def get_top_domains(profile_filter=None, time_range="24h", limit=10):
                             "percentage": round(percentage, 1),
                         }
                     )
-            except Exception as e:
+            except SQLAlchemyError as e:
                 logger.error(f"Error getting allowed domains: {e}")
 
         result = {
