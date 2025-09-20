@@ -16,7 +16,7 @@ requests==2.32.5
 apscheduler==3.11.0
 
 # System monitoring
-psutil==6.1.0
+psutil==7.1.0
 
 # Legacy Flask dependencies (to be removed after migration)
 flask==3.1.2
