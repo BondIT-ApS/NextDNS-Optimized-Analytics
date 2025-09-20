@@ -1,0 +1,44 @@
+name: 🛡️ LEGO Security Monitoring
+
+on:
+  schedule:
+    # Weekly security scan - Sundays at 22:40 UTC
+    - cron: '40 22 * * 0'
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: read
+  security-events: write
+  packages: read
+  actions: read
+
+jobs:
+  # 🔍 Weekly deep security analysis
+  weekly-security-scan:
+    name: 🔍 Weekly LEGO Security Fortress Scan
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python, javascript-typescript]
+    
+    steps:
+      - name: 📎 Get LEGO Security Instructions
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Initialize Deep Security Scanner
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+      
+      - name: 🔍 Perform Weekly Security Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+      
+      - name: 📊 Security Scan Complete
+        run: |
+          echo "🛡️ Weekly security analysis completed for ${{ matrix.language }}"
+          echo "Results are available in the GitHub Security tab"

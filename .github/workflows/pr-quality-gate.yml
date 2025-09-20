@@ -9,6 +9,9 @@ permissions:
   contents: read
   pull-requests: write
   checks: write
+  security-events: write
+  packages: read
+  actions: read
 
 jobs:
   # 🔍 Discover changes and post LEGO-themed comment
@@ -93,7 +96,8 @@ jobs:
             The automated quality gates are now running to ensure all LEGO pieces fit together perfectly!
             
             - 🔍 **Linting**: Checking code formatting and style
-            - ✨ **Quality**: Running comprehensive code analysis  
+            - ✨ **Quality**: Running comprehensive code analysis
+            - 🛡️ **Security**: Deep vulnerability scanning with CodeQL
             - 🐳 **Build Test**: Verifying Docker containers build successfully
             
             *Like any good LEGO instruction manual, we'll verify each step before moving to the next! 📋*`;
@@ -232,11 +236,51 @@ jobs:
           cd backend
           python -m pytest --cov=. --cov-report=xml || echo "No tests found, skipping"
 
+  # 🛡️ Deep Security Analysis (parallel)
+  security-analysis:
+    name: 🛡️ Deep LEGO Security Scan (CodeQL)
+    runs-on: ubuntu-latest
+    needs: discover-changes
+    # Run CodeQL if either frontend or backend changed
+    if: needs.discover-changes.outputs.frontend-changed == 'true' || needs.discover-changes.outputs.backend-changed == 'true'
+    
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: python
+            build-mode: none
+            condition: needs.discover-changes.outputs.backend-changed == 'true'
+          - language: javascript-typescript  
+            build-mode: none
+            condition: needs.discover-changes.outputs.frontend-changed == 'true'
+    
+    steps:
+      - name: 📎 Get LEGO Security Instructions
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Initialize Deep Security Scanner
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+      
+      - name: 🔍 Perform Deep Security Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"
+
   # 🐳 Build Test (runs after all quality checks pass)
   build-test:
     name: 🐳 LEGO Assembly Test (Docker Build)
     runs-on: ubuntu-latest
-    needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend]
+    needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend, security-analysis]
     # Run if any component changed and all checks passed (or were skipped due to no changes)
     if: always() && !contains(needs.*.result, 'failure')
 
@@ -270,7 +314,7 @@ jobs:
   quality-gate-summary:
     name: 📊 LEGO Quality Gate Summary
     runs-on: ubuntu-latest
-    needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend, build-test]
+    needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend, security-analysis, build-test]
     if: always()
 
     steps:
@@ -294,6 +338,7 @@ jobs:
                 'lint-backend': '🐍 Backend Linting', 
                 'quality-frontend': '✨ Frontend Quality',
                 'quality-backend': '✨ Backend Quality',
+                'security-analysis': '🛡️ Security Analysis',
                 'build-test': '🐳 Docker Build'
               };
               
