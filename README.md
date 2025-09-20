@@ -16,15 +16,15 @@
 
 Welcome to NextDNS Optimized Analytics - where we do for NextDNS logs what LEGO did for children's toys: make them more structured, easier to work with, and way more fun to explore! 
 
-Just like building a LEGO masterpiece, we've crafted a solution that assembles NextDNS data into something greater than the sum of its parts. This Dockerized solution fetches, stores, and visualizes logs from the NextDNS API with precision and elegance. It includes a Python-based API for querying logs with sophisticated filtering options (e.g., excluding domains), stores data in a local database foundation, and connects all the pieces with Grafana for beautiful DNS activity visualization.
+Just like building a LEGO masterpiece, we've crafted a solution that assembles NextDNS data into something greater than the sum of its parts. This Dockerized solution fetches, stores, and visualizes logs from the NextDNS API with precision and elegance. It includes a FastAPI-based backend for querying logs with sophisticated filtering options (e.g., excluding domains), stores data in a local PostgreSQL database, and connects all the pieces with a modern React frontend for beautiful DNS activity visualization.
 
 ## 🚀 Features - The Building Blocks
 
 - **🔄 Local NextDNS Log Synchronization** – Securely fetch logs and store them locally, like collecting all the right LEGO pieces before starting your build
-- **📊 Interactive Visualization** – Stunning Grafana dashboards that transform raw data into visual insights, like seeing your LEGO creation from every angle
+- **📊 Interactive Web Dashboard** – Modern React-based interface that transforms raw data into visual insights, like seeing your LEGO creation from every angle
 - **🔍 Advanced Data Filtering** – Powerful filtering capabilities that go beyond NextDNS's standard UI, like sorting LEGO bricks by color, shape and size
 - **🐳 Dockerized Deployment** – Quick, containerized setup for both backend and frontend, as easy as following a LEGO instruction manual
-- **🔐 Basic Authentication** – Secure access to your data, because even the best LEGO collections need protection
+- **🔐 API Authentication** – Secure access to your data with API key authentication, because even the best LEGO collections need protection
 
 ## 🧱 Getting Started - The Foundation Pieces
 
@@ -44,10 +44,14 @@ Just like building a LEGO masterpiece, we've crafted a solution that assembles N
 
 2. **⚙️ Configure Your Build**:
     Update the `./config/.env` file with your personal building materials:
-    ```
-    API_KEY=<your_nextdns_api_key>
-    PROFILE_ID=<your_nextdns_profile_id>
-    LOCAL_API_KEY=<your_local_api_key>
+    ```env
+    # Copy the template first
+    cp config/.env.template config/.env
+    
+    # Then edit with your settings
+    API_KEY=your_nextdns_api_key_here
+    PROFILE_IDS=profile1,profile2,profile3
+    LOCAL_API_KEY=your_secure_local_api_key
     ```
 
 3. **🚀 Assemble the Solution**:
@@ -55,6 +59,12 @@ Just like building a LEGO masterpiece, we've crafted a solution that assembles N
     docker-compose up -d
     ```
     Just like that final satisfying "click" when LEGO pieces connect, your containers are now running!
+
+4. **🎯 Access Your Analytics**:
+    - **Web Dashboard**: http://localhost:5003
+    - **API Documentation**: http://localhost:5002/docs
+    - **Health Check**: http://localhost:5002/health
+    - **Database Access**: localhost:5001 (PostgreSQL)
 
 ### 🐳 Docker Hub Building Sets
 
@@ -71,17 +81,23 @@ Use the API to query your data, filter domains, and generate insights that the s
 
 ## 📊 Analytics - Admiring Your Build
 
-Once everything is running, access the Grafana dashboard to visualize your DNS activity. The data is transformed into intuitive charts and graphs, giving you insights into your network traffic patterns, blocked domains, query types, and more.
+Once everything is running, access the web dashboard at `http://localhost:5003` to visualize your DNS activity. The React-based interface transforms raw data into intuitive charts and interactive displays, giving you insights into your network traffic patterns, blocked domains, query types, and more.
 
 It's like stepping back to admire your completed LEGO masterpiece, seeing how all the individual bricks come together to form something spectacular!
+
+## 📚 Documentation - Your Building Instructions
+
+For detailed setup, configuration, and troubleshooting guidance, check out our comprehensive documentation:
+
+🔗 **[Complete Documentation](./docs/README.md)** - Everything you need to build, deploy, and maintain your NextDNS analytics solution
 
 ## 🧰 Project Architecture - The Building Design
 
 Just like a well-designed LEGO set, this solution consists of several key components:
 
-1. **Backend API** - The foundation pieces that connect to NextDNS and store data
-2. **Database** - The stable baseplate that holds all your logs
-3. **Grafana** - The decorative and functional elements that make your data beautiful
+1. **Backend API (FastAPI)** - The foundation pieces that connect to NextDNS and store data
+2. **Database (PostgreSQL)** - The stable baseplate that holds all your logs
+3. **Frontend (React/TypeScript)** - The decorative and functional elements that make your data beautiful
 4. **Docker Containers** - The instruction manual that makes assembly a breeze
 
 ## 👷‍♂️ Contributing - Join Our Building Team

@@ -12,10 +12,14 @@ import { useState, useMemo, useEffect, useCallback, useTransition } from 'react'
 export function Logs() {
   const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'blocked' | 'allowed'>('all')
-  const [selectedProfile, setSelectedProfile] = useState<string | undefined>(undefined)
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'blocked' | 'allowed'
+  >('all')
+  const [selectedProfile, setSelectedProfile] = useState<string | undefined>(
+    undefined
+  )
   const [, startTransition] = useTransition()
-  
+
   // Debounce search query with transition for non-blocking updates
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -23,30 +27,26 @@ export function Logs() {
         setDebouncedSearchQuery(searchQuery)
       })
     }, 500) // 500ms delay for more stability
-    
+
     return () => clearTimeout(timer)
   }, [searchQuery])
-  
+
   // Memoize the query parameters to prevent unnecessary re-renders
-  const queryParams = useMemo(() => ({
-    limit: 100,
-    search: debouncedSearchQuery,
-    status: statusFilter,
-    profile: selectedProfile
-  }), [debouncedSearchQuery, statusFilter, selectedProfile])
-  
-  const { 
-    data: logsResponse, 
-    isLoading, 
-    error, 
-    refetch 
-  } = useLogs(queryParams)
-  
+  const queryParams = useMemo(
+    () => ({
+      limit: 100,
+      search: debouncedSearchQuery,
+      status: statusFilter,
+      profile: selectedProfile,
+    }),
+    [debouncedSearchQuery, statusFilter, selectedProfile]
+  )
+
+  const { data: logsResponse, isLoading, error, refetch } = useLogs(queryParams)
+
   // Get total stats from entire database (or filtered by profile)
-  const { 
-    data: totalStats,
-    isLoading: statsLoading
-  } = useLogsStats(selectedProfile)
+  const { data: totalStats, isLoading: statsLoading } =
+    useLogsStats(selectedProfile)
 
   // Since filtering is now done on the backend, use the response data directly
   const filteredLogs = useMemo(() => {
@@ -56,12 +56,20 @@ export function Logs() {
   const stats = useMemo(() => {
     // Current filtered results counts
     const filteredTotal = filteredLogs.length
-    const filteredBlocked = filteredLogs.filter((log: any) => log.blocked).length
+    const filteredBlocked = filteredLogs.filter(
+      (log: any) => log.blocked
+    ).length
     const filteredAllowed = filteredTotal - filteredBlocked
-    
+
     // Use total database stats for percentages
-    const totalDatabaseStats = totalStats || { total: 0, blocked: 0, allowed: 0, blocked_percentage: 0, allowed_percentage: 0 }
-    
+    const totalDatabaseStats = totalStats || {
+      total: 0,
+      blocked: 0,
+      allowed: 0,
+      blocked_percentage: 0,
+      allowed_percentage: 0,
+    }
+
     return {
       // Show filtered counts as main numbers
       total: filteredTotal,
@@ -70,20 +78,26 @@ export function Logs() {
       // Use database totals for percentage calculations
       totalInDatabase: totalDatabaseStats.total,
       blockedPercentage: totalDatabaseStats.blocked_percentage,
-      allowedPercentage: totalDatabaseStats.allowed_percentage
+      allowedPercentage: totalDatabaseStats.allowed_percentage,
     }
   }, [filteredLogs, totalStats])
-  
-  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value)
-  }, [])
-  
-  const handleStatusFilterChange = useCallback((status: 'all' | 'blocked' | 'allowed') => {
-    startTransition(() => {
-      setStatusFilter(status)
-    })
-  }, [])
-  
+
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchQuery(e.target.value)
+    },
+    []
+  )
+
+  const handleStatusFilterChange = useCallback(
+    (status: 'all' | 'blocked' | 'allowed') => {
+      startTransition(() => {
+        setStatusFilter(status)
+      })
+    },
+    []
+  )
+
   const handleProfileChange = useCallback((profileId: string | undefined) => {
     startTransition(() => {
       setSelectedProfile(profileId)
@@ -97,7 +111,9 @@ export function Logs() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">DNS Logs</h1>
-            <p className="text-muted-foreground">Recent DNS queries and responses</p>
+            <p className="text-muted-foreground">
+              Recent DNS queries and responses
+            </p>
           </div>
           <Button variant="outline" disabled>
             <RefreshCw className="mr-2 h-4 w-4" />
@@ -116,7 +132,9 @@ export function Logs() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">DNS Logs</h1>
-            <p className="text-muted-foreground">Recent DNS queries and responses</p>
+            <p className="text-muted-foreground">
+              Recent DNS queries and responses
+            </p>
           </div>
           <Button variant="outline" onClick={() => refetch()}>
             <RefreshCw className="mr-2 h-4 w-4" />
@@ -124,7 +142,7 @@ export function Logs() {
           </Button>
         </div>
 
-        <ErrorState 
+        <ErrorState
           message="Failed to load DNS logs"
           onRetry={() => refetch()}
         />
@@ -139,20 +157,24 @@ export function Logs() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">DNS Logs</h1>
-            <p className="text-muted-foreground">Recent DNS queries and responses</p>
+            <p className="text-muted-foreground">
+              Recent DNS queries and responses
+            </p>
           </div>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => refetch()}
             disabled={isLoading}
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`}
+            />
             Refresh
           </Button>
         </div>
 
         {/* Quick Stats */}
-        <StatsCards 
+        <StatsCards
           stats={stats}
           debouncedSearchQuery={debouncedSearchQuery}
           statusFilter={statusFilter}
@@ -161,15 +183,15 @@ export function Logs() {
         {/* Profile Selector and Search Filter - Side by Side */}
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-1">
-            <ProfileSelector 
+            <ProfileSelector
               selectedProfile={selectedProfile}
               onProfileChange={handleProfileChange}
               showStats={true}
             />
           </div>
-          
+
           <div className="flex-1">
-            <FilterPanel 
+            <FilterPanel
               searchQuery={searchQuery}
               onSearchChange={handleSearchChange}
               statusFilter={statusFilter}
@@ -183,7 +205,7 @@ export function Logs() {
         </div>
 
         {/* Logs Table */}
-        <LogsTable 
+        <LogsTable
           logs={filteredLogs}
           debouncedSearchQuery={debouncedSearchQuery}
           statusFilter={statusFilter}

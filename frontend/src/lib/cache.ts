@@ -19,13 +19,17 @@ export class ApiCache {
   /**
    * Store data in cache with TTL
    */
-  static set<T>(queryKey: string, data: T, ttl: number = this.DEFAULT_TTL): void {
+  static set<T>(
+    queryKey: string,
+    data: T,
+    ttl: number = this.DEFAULT_TTL
+  ): void {
     try {
       const cacheEntry: CacheEntry<T> = {
         data,
         timestamp: Date.now(),
         ttl,
-        queryKey
+        queryKey,
       }
 
       const storageKey = this.STORAGE_PREFIX + queryKey
@@ -66,8 +70,8 @@ export class ApiCache {
         metadata: {
           isOffline: false, // Will be set by the caller
           lastUpdated: cacheEntry.timestamp,
-          cacheHit: true
-        }
+          cacheHit: true,
+        },
       }
     } catch (error) {
       console.warn('Failed to retrieve cached data:', error)
@@ -78,7 +82,9 @@ export class ApiCache {
   /**
    * Get data from cache even if expired (for offline fallback)
    */
-  static getOffline<T>(queryKey: string): { data: T; metadata: CacheMetadata } | null {
+  static getOffline<T>(
+    queryKey: string
+  ): { data: T; metadata: CacheMetadata } | null {
     try {
       const storageKey = this.STORAGE_PREFIX + queryKey
       const cached = localStorage.getItem(storageKey)
@@ -94,8 +100,8 @@ export class ApiCache {
         metadata: {
           isOffline: true,
           lastUpdated: cacheEntry.timestamp,
-          cacheHit: true
-        }
+          cacheHit: true,
+        },
       }
     } catch (error) {
       console.warn('Failed to retrieve offline cached data:', error)
@@ -138,7 +144,7 @@ export class ApiCache {
     newestEntry: number | null
   } {
     try {
-      const cacheKeys = Object.keys(localStorage).filter(key => 
+      const cacheKeys = Object.keys(localStorage).filter(key =>
         key.startsWith(this.STORAGE_PREFIX)
       )
 
@@ -151,7 +157,7 @@ export class ApiCache {
         if (cached) {
           totalSize += cached.length
           const cacheEntry = JSON.parse(cached)
-          
+
           if (oldestEntry === null || cacheEntry.timestamp < oldestEntry) {
             oldestEntry = cacheEntry.timestamp
           }
@@ -165,7 +171,7 @@ export class ApiCache {
         totalEntries: cacheKeys.length,
         totalSize,
         oldestEntry,
-        newestEntry
+        newestEntry,
       }
     } catch (error) {
       console.warn('Failed to get cache stats:', error)
@@ -173,7 +179,7 @@ export class ApiCache {
         totalEntries: 0,
         totalSize: 0,
         oldestEntry: null,
-        newestEntry: null
+        newestEntry: null,
       }
     }
   }
@@ -183,8 +189,9 @@ export class ApiCache {
    */
   private static cleanupCache(): void {
     try {
-      const cacheKeys = Object.keys(localStorage)
-        .filter(key => key.startsWith(this.STORAGE_PREFIX))
+      const cacheKeys = Object.keys(localStorage).filter(key =>
+        key.startsWith(this.STORAGE_PREFIX)
+      )
 
       if (cacheKeys.length <= this.MAX_CACHE_SIZE) {
         return
@@ -195,7 +202,7 @@ export class ApiCache {
         .map(key => {
           const cached = localStorage.getItem(key)
           if (!cached) return null
-          
+
           try {
             const entry = JSON.parse(cached)
             return { key, timestamp: entry.timestamp }
@@ -242,8 +249,8 @@ export class ApiCache {
     // Simple heuristic: if we have no recent successful cache entries, we might be offline
     const stats = this.getStats()
     if (stats.totalEntries === 0) return false
-    
-    const recentThreshold = Date.now() - (2 * 60 * 1000) // 2 minutes
+
+    const recentThreshold = Date.now() - 2 * 60 * 1000 // 2 minutes
     return stats.newestEntry ? stats.newestEntry < recentThreshold : false
   }
 }
