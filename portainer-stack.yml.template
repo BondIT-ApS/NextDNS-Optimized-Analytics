@@ -25,6 +25,8 @@ services:
       - nextdns_db_data:/var/lib/postgresql/data
     networks:
       - nextdns-network
+    ports:
+      - "5001:5432"  # Expose database for direct access
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U nextdns_user -d nextdns"]
       interval: 30s
@@ -50,16 +52,17 @@ services:
       # NextDNS API Configuration
       API_KEY: YOUR_NEXTDNS_API_KEY_HERE
       PROFILE_IDS: profile1,profile2,profile3
+      # or just PROFILE_IDS: profile if you only have one
       
       # Local API Authentication
       LOCAL_API_KEY: YOUR_LOCAL_API_KEY_HERE
       
       # Application Configuration
-      LOG_LEVEL: DEBUG
-      FETCH_INTERVAL: 1
+      LOG_LEVEL: INFO
+      FETCH_INTERVAL: 60
       FETCH_LIMIT: 1000
     ports:
-      - "5001:5000"
+      - "5002:5000"
     networks:
       - nextdns-network
     command: ["sh", "-c", "python manage_db.py init && uvicorn main:app --host 0.0.0.0 --port 5000 --log-level info"]
@@ -82,7 +85,7 @@ services:
       # Backend API URL (internal to container network)
       BACKEND_API_URL: http://backend:5000/api
     ports:
-      - "3000:80"
+      - "5003:80"
     networks:
       - nextdns-network
     healthcheck:

@@ -1,13 +1,66 @@
+# 🧱 LEGO Dependabot Configuration
+# Automated dependency updates to keep our building blocks current!
+
 version: 2
 updates:
-  # Check for updates in Python dependencies (pip)
+  # 🐍 Python backend dependencies
   - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "21:12"
+      timezone: "Europe/Copenhagen"
+    labels:
+      - "dependencies"
+      - "python"
+      - "backend"
+    commit-message:
+      prefix: "🧱"
+      include: "scope"
+
+  # ⚛️ Frontend npm dependencies  
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "21:12"
+      timezone: "Europe/Copenhagen"
+    labels:
+      - "dependencies"
+      - "npm"
+      - "frontend"
+    commit-message:
+      prefix: "🧱"
+      include: "scope"
+
+  # 🐳 Docker base images
+  - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "21:12"
+      timezone: "Europe/Copenhagen"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "🧱"
+      include: "scope"
 
-  # Check for updates in Docker dependencies (single entry for all Dockerfiles)
-  - package-ecosystem: "docker"
-    directory: "/docker"
+  # 🔧 GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "21:12"
+      timezone: "Europe/Copenhagen"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "🧱"
+      include: "scope"
