@@ -33,15 +33,15 @@ class ForceText(TypeDecorator):  # pylint: disable=too-many-ancestors
     impl = Text
     cache_ok = True  # SQLAlchemy 1.4+ requirement
 
-    def process_bind_param(self, value, dialect):
+    def process_bind_param(self, value, dialect):  # pylint: disable=unused-argument
         if value is not None:
             return str(value)
         return value
 
-    def process_result_value(self, value, dialect):
+    def process_result_value(self, value, dialect):  # pylint: disable=unused-argument
         return value
 
-    def process_literal_param(self, value, dialect):
+    def process_literal_param(self, value, dialect):  # pylint: disable=unused-argument
         """Process literal parameter for SQL compilation."""
         return str(value) if value is not None else value
 
@@ -294,6 +294,7 @@ def get_last_fetch_timestamp(profile_id):
 
 
 # Update fetch status after successful fetch
+# pylint: disable=too-many-positional-arguments
 def update_fetch_status(profile_id, last_timestamp, records_count):
     """Update or create fetch status record.
 
@@ -513,12 +514,12 @@ def get_available_profiles():
                 DNSLog.profile_id,
                 func.count(DNSLog.id).label(
                     "record_count"
-                ),  # pylint: disable=not-callable
+                ),  # noqa: E1102
                 func.max(DNSLog.timestamp).label("last_activity"),
             )
             .filter(DNSLog.profile_id.isnot(None))
             .group_by(DNSLog.profile_id)
-            .order_by(func.count(DNSLog.id).desc())  # pylint: disable=not-callable
+            .order_by(func.count(DNSLog.id).desc())  # noqa: E1102
             .all()
         )
 
