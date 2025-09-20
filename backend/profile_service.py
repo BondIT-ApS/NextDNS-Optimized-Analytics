@@ -10,7 +10,9 @@ logger = get_logger(__name__)
 API_KEY = os.getenv("API_KEY")
 
 
-def get_profile_info(profile_id: str) -> Optional[Dict]:
+def get_profile_info(
+    profile_id: str,
+) -> Optional[Dict]:  # pylint: disable=too-many-return-statements
     """Get profile information from NextDNS API.
 
     Args:
@@ -58,7 +60,8 @@ def get_profile_info(profile_id: str) -> Optional[Dict]:
                 "name": f"Profile {profile_id} (Access Denied)",
                 "error": "Access denied",
             }
-        else:
+
+            # Handle all other status codes
             logger.error(
                 f"❌ Profile {profile_id}: API returned {response.status_code}: {response.text}"
             )
