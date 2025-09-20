@@ -222,6 +222,10 @@ config/.env.staging
 # .env.template should be tracked
 !config/.env.template
 
+# Keep template files but ignore actual Portainer stack file
+portainer-stack.yml
+!portainer-stack.yml.template
+
 # Logs
 logs/
 *.log
