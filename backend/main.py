@@ -1,13 +1,15 @@
 # file: backend/main.py
+import os
+import platform
+import secrets
+from datetime import datetime, timezone
+from typing import List, Optional, Dict, Any
+
+import psutil
 from fastapi import FastAPI, Depends, HTTPException, Query, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Optional
-import os
-import secrets
-import psutil
-import platform
-from datetime import datetime, timezone
+from pydantic import BaseModel
 
 # Set up logging first
 from logging_config import setup_logging, get_logger
@@ -28,7 +30,7 @@ from profile_service import (
 )
 
 try:
-    from scheduler import scheduler
+    from scheduler import scheduler  # pylint: disable=unused-import
 
     logger.info("🔄 NextDNS log scheduler started successfully")
 except ImportError as e:
@@ -120,8 +122,6 @@ def verify_api_key_flexible(
 
 
 # Pydantic models for request/response
-from pydantic import BaseModel
-from typing import Dict, Any
 
 
 class DNSLogResponse(BaseModel):
@@ -268,7 +268,7 @@ async def health_check():
         return HealthResponse(
             status="healthy" if db_healthy else "unhealthy", healthy=db_healthy
         )
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"❌ Health check failed: {e}")
         return HealthResponse(status="unhealthy", healthy=False)
 
@@ -289,7 +289,7 @@ async def detailed_health_check():
         uptime_seconds = (current_time - app_start_time).total_seconds()
 
         # Get environment variables
-        fetch_interval = int(os.getenv("FETCH_INTERVAL", 60))
+        fetch_interval = int(os.getenv("FETCH_INTERVAL", "60"))
         log_level = os.getenv("LOG_LEVEL", "INFO")
 
         system_resources = SystemResources(
@@ -325,7 +325,8 @@ async def detailed_health_check():
         overall_healthy = db_healthy and api_healthy
 
         logger.debug(
-            f"🏥 Detailed health check completed - Overall: {overall_healthy}, DB: {db_healthy}, API: {api_healthy}"
+            f"🏥 Detailed health check completed - "
+            f"Overall: {overall_healthy}, DB: {db_healthy}, API: {api_healthy}"
         )
 
         return DetailedHealthResponse(
@@ -340,7 +341,7 @@ async def detailed_health_check():
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"❌ Detailed health check failed: {e}")
         # Return minimal error response
         return DetailedHealthResponse(
@@ -420,7 +421,8 @@ async def get_dns_logs(
     - **offset**: Number of records to skip for pagination
     """
     logger.debug(
-        f"📊 API request: exclude={exclude}, search='{search}', status={status}, profile='{profile}', limit={limit}, offset={offset}"
+        f"📊 API request: exclude={exclude}, search='{search}', "
+        f"status={status}, profile='{profile}', limit={limit}, offset={offset}"
     )
 
     logs = get_logs(
