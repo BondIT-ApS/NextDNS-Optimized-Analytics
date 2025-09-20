@@ -27,6 +27,7 @@ logger = get_logger(__name__)
 # Custom Text type that forces TEXT without JSON casting
 class ForceText(TypeDecorator):
     """Custom SQLAlchemy type that forces values to be stored as text."""
+
     impl = Text
 
     def process_bind_param(self, value, dialect):
@@ -54,6 +55,7 @@ Session = sessionmaker(bind=engine)
 # Database model for DNS logs
 class DNSLog(Base):
     """Model representing a DNS log entry from NextDNS."""
+
     __tablename__ = "dns_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -93,6 +95,7 @@ class DNSLog(Base):
 # Database model for tracking fetch progress
 class FetchStatus(Base):
     """Model for tracking DNS log fetch progress and status."""
+
     __tablename__ = "fetch_status"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -268,7 +271,7 @@ def get_last_fetch_timestamp(profile_id):
                 f"📅 Last fetch for profile {profile_id}: {fetch_status.last_fetch_timestamp}"
             )
             return fetch_status.last_fetch_timestamp
-        
+
         logger.debug(f"📅 No previous fetch found for profile {profile_id}")
         return None
     except SQLAlchemyError as e:
@@ -493,12 +496,15 @@ def get_available_profiles():
     try:
         # Import func at module level to avoid import issues
         from sqlalchemy import func
+
         # Query for distinct profile IDs and their counts
 
         results = (
             session.query(
                 DNSLog.profile_id,
-                func.count(DNSLog.id).label("record_count"),  # pylint: disable=not-callable
+                func.count(DNSLog.id).label(
+                    "record_count"
+                ),  # pylint: disable=not-callable
                 func.max(DNSLog.timestamp).label("last_activity"),
             )
             .filter(DNSLog.profile_id.isnot(None))
