@@ -100,13 +100,13 @@ docker-compose logs -f
 4. **Verify Deployment**
 ```bash
 # Check health
-curl http://localhost:5001/health
+curl http://localhost:5002/health
 
 # Check frontend
-curl http://localhost:3000
+curl http://localhost:5003
 
 # View API docs
-open http://localhost:5001/docs
+open http://localhost:5002/docs
 ```
 
 ## 🖥️ Portainer Stack Deployment
@@ -197,7 +197,7 @@ docker run -d \
 echo "🔍 Checking NextDNS Analytics Deployment..."
 
 # Check backend health
-BACKEND_STATUS=$(curl -s http://localhost:5001/health | jq -r '.status')
+BACKEND_STATUS=$(curl -s http://localhost:5002/health | jq -r '.status')
 if [ "$BACKEND_STATUS" = "healthy" ]; then
     echo "✅ Backend is healthy"
 else
@@ -206,7 +206,7 @@ else
 fi
 
 # Check frontend
-FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000)
+FRONTEND_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5003)
 if [ "$FRONTEND_STATUS" = "200" ]; then
     echo "✅ Frontend is accessible"
 else
@@ -215,7 +215,7 @@ else
 fi
 
 # Check database records
-RECORDS=$(curl -u admin:$LOCAL_API_KEY -s http://localhost:5001/stats | jq -r '.total_records')
+RECORDS=$(curl -u admin:$LOCAL_API_KEY -s http://localhost:5002/stats | jq -r '.total_records')
 echo "📊 Database contains $RECORDS DNS records"
 
 echo "✅ Deployment verification completed successfully!"
@@ -294,7 +294,7 @@ echo "Backup completed: $BACKUP_DIR.tar.gz"
    ```
 4. **Verify health**:
    ```bash
-   curl http://localhost:5001/health
+   curl http://localhost:5002/health
    ```
 
 ### Monitoring Setup

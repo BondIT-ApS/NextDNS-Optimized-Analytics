@@ -50,10 +50,10 @@ All protected endpoints require HTTP Basic Authentication:
 
 ```bash
 # Using curl with authentication
-curl -u admin:your_api_key http://localhost:5001/stats
+curl -u admin:your_api_key http://localhost:5002/stats
 
 # Using Authorization header
-curl -H "Authorization: Bearer your_api_key" http://localhost:5001/logs
+curl -H "Authorization: Bearer your_api_key" http://localhost:5002/logs
 ```
 
 ## 🌐 Public Endpoints
@@ -205,7 +205,7 @@ Returns basic API information and system status.
 
 **Example:**
 ```bash
-curl -u admin:your_api_key http://localhost:5001/stats
+curl -u admin:your_api_key http://localhost:5002/stats
 ```
 
 **Response:**
@@ -238,19 +238,19 @@ curl -u admin:your_api_key http://localhost:5001/stats
 **Example Requests:**
 ```bash
 # Basic query with limit
-curl -u admin:your_api_key "http://localhost:5001/logs?limit=10"
+curl -u admin:your_api_key "http://localhost:5002/logs?limit=10"
 
 # Advanced filtering
 curl -u admin:your_api_key \
-  "http://localhost:5001/logs?limit=50&exclude=google.com&exclude=apple.com&action=blocked"
+  "http://localhost:5002/logs?limit=50&exclude=google.com&exclude=apple.com&action=blocked"
 
 # Date range query
 curl -u admin:your_api_key \
-  "http://localhost:5001/logs?start_date=2025-09-19T00:00:00Z&end_date=2025-09-20T00:00:00Z"
+  "http://localhost:5002/logs?start_date=2025-09-19T00:00:00Z&end_date=2025-09-20T00:00:00Z"
 
 # Domain-specific query
 curl -u admin:your_api_key \
-  "http://localhost:5001/logs?domain=facebook.com&query_type=A"
+  "http://localhost:5002/logs?domain=facebook.com&query_type=A"
 ```
 
 **Response Model:**
@@ -305,7 +305,7 @@ Same filtering parameters as `/logs` endpoint.
 **Example:**
 ```bash
 curl -u admin:your_api_key \
-  "http://localhost:5001/logs/stats?start_date=2025-09-19T00:00:00Z"
+  "http://localhost:5002/logs/stats?start_date=2025-09-19T00:00:00Z"
 ```
 
 **Response:**
@@ -358,7 +358,7 @@ curl -u admin:your_api_key \
 #!/bin/bash
 # Simple health check script
 
-HEALTH=$(curl -s http://localhost:5001/health)
+HEALTH=$(curl -s http://localhost:5002/health)
 STATUS=$(echo $HEALTH | jq -r '.status')
 
 if [ "$STATUS" = "healthy" ]; then
@@ -380,7 +380,7 @@ API_KEY="your_api_key_here"
 START_DATE=$(date -u -d "24 hours ago" +"%Y-%m-%dT%H:%M:%SZ")
 
 curl -u admin:$API_KEY \
-  "http://localhost:5001/logs?action=blocked&start_date=$START_DATE&limit=100" \
+  "http://localhost:5002/logs?action=blocked&start_date=$START_DATE&limit=100" \
   | jq '.data[] | .domain' \
   | sort | uniq -c | sort -nr
 ```
@@ -392,7 +392,7 @@ import requests
 from datetime import datetime, timedelta
 import csv
 
-API_BASE = "http://localhost:5001"
+API_BASE = "http://localhost:5002"
 API_KEY = "your_api_key_here"
 
 # Get logs from last week

@@ -37,7 +37,7 @@ POSTGRES_PORT=5432
 LOCAL_API_KEY=your_secure_api_key_here
 
 # Application Security
-CORS_ORIGINS=http://localhost:3000,https://your-domain.com
+CORS_ORIGINS=http://localhost:5003,https://your-domain.com
 ```
 
 ## 📈 Performance Settings
