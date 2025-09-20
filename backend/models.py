@@ -511,12 +511,14 @@ def get_available_profiles():
         results = (
             session.query(
                 DNSLog.profile_id,
-                func.count(DNSLog.id).label("record_count"),  # noqa: E1102
+                func.count(DNSLog.id).label(
+                    "record_count"
+                ),  # pylint: disable=not-callable
                 func.max(DNSLog.timestamp).label("last_activity"),
             )
             .filter(DNSLog.profile_id.isnot(None))
             .group_by(DNSLog.profile_id)
-            .order_by(func.count(DNSLog.id).desc())  # noqa: E1102
+            .order_by(func.count(DNSLog.id).desc())  # pylint: disable=not-callable
             .all()
         )
 
