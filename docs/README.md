@@ -68,13 +68,13 @@ Before diving into documentation, verify your system is running:
 
 ```bash
 # Check backend health
-curl http://localhost:5001/health
+curl http://localhost:5002/health
 
 # Check frontend accessibility  
-curl http://localhost:3000
+curl http://localhost:5003
 
 # View API documentation
-open http://localhost:5001/docs
+open http://localhost:5002/docs
 ```
 
 ---

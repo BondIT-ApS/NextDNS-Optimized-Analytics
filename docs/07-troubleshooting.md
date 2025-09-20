@@ -13,8 +13,8 @@ Comprehensive troubleshooting guide for NextDNS Optimized Analytics.
 **Solution:**
 1. Check health endpoint manually:
 ```bash
-curl http://localhost:5001/health
-curl http://localhost:3000
+curl http://localhost:5002/health
+curl http://localhost:5003
 ```
 
 2. Verify healthcheck configuration in container:
@@ -39,7 +39,7 @@ docker logs container_name
 docker exec backend-container env | grep LOCAL_API_KEY
 
 # Test authentication
-curl -u admin:your_api_key http://localhost:5001/stats
+curl -u admin:your_api_key http://localhost:5002/stats
 ```
 
 ### Database Connection Failed
@@ -77,7 +77,7 @@ docker ps | grep frontend
 
 3. Test direct nginx access:
 ```bash
-curl -I http://localhost:3000
+curl -I http://localhost:5003
 ```
 
 ## 📊 Data Issues
@@ -92,7 +92,7 @@ curl -I http://localhost:3000
 curl -H "X-API-Key: your_api_key" https://api.nextdns.io/profiles
 
 # Verify fetch interval settings
-curl http://localhost:5001/health/detailed | jq .fetch_interval_minutes
+curl http://localhost:5002/health/detailed | jq .fetch_interval_minutes
 
 # Check backend logs for errors
 docker logs backend-container | grep -i error
@@ -115,7 +115,7 @@ FETCH_LIMIT=500   # Reduce batch size
 
 3. Monitor resource usage:
 ```bash
-curl http://localhost:5001/health/detailed | jq .system_resources
+curl http://localhost:5002/health/detailed | jq .system_resources
 ```
 
 ## 🐳 Docker Issues
@@ -179,11 +179,11 @@ echo "🔍 Comprehensive Health Check"
 
 # Backend API
 echo "Testing Backend API..."
-curl -f http://localhost:5001/health || echo "❌ Backend unhealthy"
+curl -f http://localhost:5002/health || echo "❌ Backend unhealthy"
 
 # Frontend
 echo "Testing Frontend..."
-curl -f http://localhost:3000 || echo "❌ Frontend unavailable"
+curl -f http://localhost:5003 || echo "❌ Frontend unavailable"
 
 # Database
 echo "Testing Database..."
@@ -191,7 +191,7 @@ docker exec db-container pg_isready -U nextdns_user -d nextdns || echo "❌ Data
 
 # API Authentication
 echo "Testing API Authentication..."
-curl -u admin:$LOCAL_API_KEY http://localhost:5001/stats || echo "❌ Authentication failed"
+curl -u admin:$LOCAL_API_KEY http://localhost:5002/stats || echo "❌ Authentication failed"
 
 echo "✅ Health check completed"
 ```
