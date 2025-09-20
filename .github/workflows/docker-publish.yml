@@ -1,9 +1,8 @@
-name: Build and Push Docker Images
+name: 🚀 LEGO Production Build & Deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -11,7 +10,9 @@ permissions:
   packages: write
 
 jobs:
-  build:
+  # 🏢 Production LEGO Assembly Line
+  production-build:
+    name: 🏢 Build Production LEGO Set (${{ matrix.service }})
     runs-on: ubuntu-latest
 
     strategy:
@@ -19,23 +20,23 @@ jobs:
         service: [backend, frontend]
 
     steps:
-      - name: Check out code
+      - name: 📎 Get LEGO Instructions (Checkout)
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
+      - name: 🌍 Set up Multi-Platform Builder (QEMU)
         uses: docker/setup-qemu-action@v2
 
-      - name: Set up Docker Buildx
+      - name: 🔧 Prepare Assembly Line (Docker Buildx)
         uses: docker/setup-buildx-action@v2
         id: buildx
 
-      - name: Log in to Docker Hub
+      - name: 🔑 Connect to LEGO Warehouse (Docker Hub)
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Set version-date tag
+      - name: 🏷️ Create LEGO Set Version Tag
         id: tag
         run: |
           VERSION="v1.0.0"
@@ -45,25 +46,15 @@ jobs:
           DATE_TAG=$(date +'%Y%m%d')
           VERSION_TAG="${VERSION}-${DATE_TAG}"
           echo "tag=${VERSION_TAG}" >> $GITHUB_ENV
+          echo "Building LEGO set version: ${VERSION_TAG}"
 
-      - name: Install dependencies (backend only)
+      - name: 🔧 Prepare LEGO Pieces (Backend Dependencies)
         if: matrix.service == 'backend'
         run: |
           pip install --upgrade pip
           pip install -r backend/requirements.txt
 
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile.${{ matrix.service }}
-          push: false
-          tags: |
-            maboni82/nextdns-optimized-analytics-${{ matrix.service }}:latest
-            maboni82/nextdns-optimized-analytics-${{ matrix.service }}:${{ env.tag }}
-          builder: ${{ steps.buildx.outputs.name }}
-
-      - name: Push Docker images to Docker Hub
+      - name: 🏢 Assemble Production LEGO Set
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -73,3 +64,5 @@ jobs:
             maboni82/nextdns-optimized-analytics-${{ matrix.service }}:latest
             maboni82/nextdns-optimized-analytics-${{ matrix.service }}:${{ env.tag }}
           builder: ${{ steps.buildx.outputs.name }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
