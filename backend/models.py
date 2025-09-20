@@ -512,9 +512,7 @@ def get_available_profiles():
         results = (
             session.query(
                 DNSLog.profile_id,
-                func.count(DNSLog.id).label(
-                    "record_count"
-                ),  # noqa: E1102
+                func.count(DNSLog.id).label("record_count"),  # noqa: E1102
                 func.max(DNSLog.timestamp).label("last_activity"),
             )
             .filter(DNSLog.profile_id.isnot(None))
