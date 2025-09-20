@@ -14,9 +14,9 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from datetime import datetime, timezone
-import os
 import json
+import os
+from datetime import datetime, timezone
 
 # Set up logging
 from logging_config import get_logger
@@ -26,6 +26,7 @@ logger = get_logger(__name__)
 
 # Custom Text type that forces TEXT without JSON casting
 class ForceText(TypeDecorator):
+    """Custom SQLAlchemy type that forces values to be stored as text."""
     impl = Text
 
     def process_bind_param(self, value, dialect):
@@ -52,6 +53,7 @@ Session = sessionmaker(bind=engine)
 
 # Database model for DNS logs
 class DNSLog(Base):
+    """Model representing a DNS log entry from NextDNS."""
     __tablename__ = "dns_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -90,6 +92,7 @@ class DNSLog(Base):
 
 # Database model for tracking fetch progress
 class FetchStatus(Base):
+    """Model for tracking DNS log fetch progress and status."""
     __tablename__ = "fetch_status"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -265,9 +268,9 @@ def get_last_fetch_timestamp(profile_id):
                 f"📅 Last fetch for profile {profile_id}: {fetch_status.last_fetch_timestamp}"
             )
             return fetch_status.last_fetch_timestamp
-        else:
-            logger.debug(f"📅 No previous fetch found for profile {profile_id}")
-            return None
+        
+        logger.debug(f"📅 No previous fetch found for profile {profile_id}")
+        return None
     except SQLAlchemyError as e:
         logger.error(f"❌ Error getting last fetch timestamp: {e}")
         return None
@@ -371,10 +374,10 @@ def get_logs(
 
         # Apply status filter
         if status_filter == "blocked":
-            query = query.filter(DNSLog.blocked == True)
+            query = query.filter(DNSLog.blocked is True)
             logger.debug("🚫 Filtering for blocked requests only")
         elif status_filter == "allowed":
-            query = query.filter(DNSLog.blocked == False)
+            query = query.filter(DNSLog.blocked is False)
             logger.debug("✅ Filtering for allowed requests only")
 
         # Apply profile filter
@@ -441,7 +444,7 @@ def get_logs_stats(profile_filter=None):
         total_count = query.count()
 
         # Get blocked count
-        blocked_count = query.filter(DNSLog.blocked == True).count()
+        blocked_count = query.filter(DNSLog.blocked is True).count()
 
         # Calculate allowed count
         allowed_count = total_count - blocked_count
@@ -488,18 +491,19 @@ def get_available_profiles():
     """
     session = Session()
     try:
-        # Query for distinct profile IDs and their counts
+        # Import func at module level to avoid import issues
         from sqlalchemy import func
+        # Query for distinct profile IDs and their counts
 
         results = (
             session.query(
                 DNSLog.profile_id,
-                func.count(DNSLog.id).label("record_count"),
+                func.count(DNSLog.id).label("record_count"),  # pylint: disable=not-callable
                 func.max(DNSLog.timestamp).label("last_activity"),
             )
             .filter(DNSLog.profile_id.isnot(None))
             .group_by(DNSLog.profile_id)
-            .order_by(func.count(DNSLog.id).desc())
+            .order_by(func.count(DNSLog.id).desc())  # pylint: disable=not-callable
             .all()
         )
 
