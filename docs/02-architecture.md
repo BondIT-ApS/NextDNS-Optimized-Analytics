@@ -10,14 +10,12 @@ NextDNS Optimized Analytics follows a microservices architecture pattern, where 
 graph TB
     NextDNS[NextDNS API<br/>🌐 DNS Logs] --> Backend[Backend API<br/>🐍 FastAPI]
     Backend --> Database[(PostgreSQL<br/>🗄️ Data Storage)]
-    Backend --> Frontend[Frontend<br/>⚛️ React/TypeScript]
-    Frontend --> Nginx[Nginx Proxy<br/>🔄 Load Balancer]
+    Frontend[Frontend<br/>⚛️ React + Nginx] --> Backend
     
     subgraph "Docker Network"
         Backend
         Database
         Frontend
-        Nginx
     end
     
     subgraph "External Services"
@@ -25,13 +23,12 @@ graph TB
         User[👤 User Browser]
     end
     
-    User --> Nginx
+    User --> Frontend
     
     style NextDNS fill:#e1f5fe
     style Backend fill:#f3e5f5
     style Database fill:#e8f5e8
     style Frontend fill:#fff3e0
-    style Nginx fill:#fce4ec
 ```
 
 ## 🐳 Container Architecture
@@ -40,12 +37,12 @@ graph TB
 graph LR
     subgraph "Docker Compose Stack"
         subgraph "Application Tier"
-            Frontend[nextdns-frontend<br/>📱 React App<br/>Port: 3000]
-            Backend[nextdns-backend<br/>🔌 FastAPI<br/>Port: 5001]
+            Frontend[nextdns-frontend<br/>📱 React + Nginx<br/>Host Port: 5002]
+            Backend[nextdns-backend<br/>🔌 FastAPI<br/>Host Port: 5001]
         end
         
         subgraph "Data Tier"
-            Database[(nextdns-db<br/>🗃️ PostgreSQL<br/>Port: 5432)]
+            Database[(nextdns-db<br/>🗃️ PostgreSQL<br/>Host Port: 5003)]
         end
         
         subgraph "Networking"
@@ -53,7 +50,7 @@ graph LR
         end
     end
     
-    Frontend -.->|HTTP Proxy| Backend
+    Frontend -.->|Nginx Proxy /api/*| Backend
     Backend -->|SQL| Database
     Frontend --- Network
     Backend --- Network
@@ -102,11 +99,12 @@ sequenceDiagram
 
 ```mermaid
 graph TB
-    subgraph "Backend API Components"
-        API[FastAPI Application<br/>🚀 ASGI Server]
-        Auth[Authentication<br/>🔐 API Key Auth]
-        Scheduler[Background Scheduler<br/>⏰ Data Fetcher]
-        Health[Health Monitoring<br/>🏥 System Metrics]
+    subgraph "Backend FastAPI Application"
+        API[FastAPI App<br/>🚀 Main Application]
+        Auth[API Key Authentication<br/>🔐 LOCAL_API_KEY]
+        Scheduler[Background Scheduler<br/>⏰ APScheduler]
+        Health[Health Endpoints<br/>🏥 /health /health/detailed]
+        Endpoints[REST API Endpoints<br/>🔌 /stats /logs etc]
     end
     
     subgraph "External Integrations"
@@ -116,9 +114,12 @@ graph TB
     
     API --> Auth
     API --> Health
+    API --> Endpoints
+    API --> Scheduler
     Scheduler --> NextDNS
-    API --> DB
+    Endpoints --> DB
     Scheduler --> DB
+    Health --> DB
     
     style API fill:#e8f5e8
     style Auth fill:#fff3e0
@@ -180,7 +181,7 @@ erDiagram
         timestamp timestamptz
         string domain
         string action
-        jsonb device
+        string device
         string client_ip
         string query_type
         boolean blocked
@@ -188,34 +189,16 @@ erDiagram
         jsonb data
         timestamptz created_at
     }
-    
-    PROFILES {
-        string profile_id PK
-        string name
-        timestamptz last_sync
-        integer record_count
-        jsonb configuration
-    }
-    
-    SYSTEM_METRICS {
-        bigint id PK
-        timestamptz timestamp
-        float cpu_percent
-        bigint memory_usage
-        float disk_usage
-        jsonb additional_metrics
-    }
-    
-    DNS_LOGS ||--o{ PROFILES : "belongs_to"
-    SYSTEM_METRICS ||--|| PROFILES : "monitors"
 ```
 
 **Key Responsibilities:**
-- 💾 **Data Persistence** - Long-term DNS log storage
-- 🔍 **Query Performance** - Optimized indexes for fast filtering
-- 🔄 **Data Integrity** - ACID compliance and consistency
-- 📊 **Analytics Support** - Efficient aggregation queries
-- 🏥 **Health Monitoring** - Connection and performance tracking
+- 💾 **Data Persistence** - Long-term DNS log storage with JSON metadata
+- 🔍 **Query Performance** - Optimized indexes on domain, timestamp, profile_id
+- 🔄 **Data Integrity** - ACID compliance and duplicate prevention
+- 📊 **Analytics Support** - Efficient aggregation queries for dashboard metrics
+- 🗂️ **Schema Management** - Alembic-based migrations for version control
+
+**Note:** System metrics (CPU, memory, disk) are collected in real-time via the `/health/detailed` endpoint using `psutil` - they are not persisted to the database.
 
 ## 🌐 Network Architecture
 
@@ -227,18 +210,16 @@ graph TB
     end
     
     subgraph "Host System"
-        Ports[Host Ports<br/>3000, 5001, 5432]
+        Ports[Host Ports<br/>5001, 5002, 5003]
     end
     
     subgraph "Docker Network: nextdns-network"
         subgraph "Frontend Container"
-            Nginx[Nginx<br/>:80]
-            React[React App<br/>Static Files]
+            Nginx[Nginx + React<br/>:80]
         end
         
         subgraph "Backend Container"
-            FastAPI[FastAPI<br/>:5000]
-            Uvicorn[Uvicorn Server<br/>ASGI]
+            FastAPI[FastAPI + Uvicorn<br/>:5000]
         end
         
         subgraph "Database Container"
@@ -248,8 +229,7 @@ graph TB
     
     Internet --> Ports
     Ports --> Nginx
-    Nginx --> React
-    Nginx -.->|/api/*| FastAPI
+    Nginx -.->|/api/* proxy| FastAPI
     FastAPI --> PostgreSQL
     FastAPI --> NextDNS
     
@@ -361,19 +341,19 @@ graph TB
     
     subgraph "Network Security"
         Network[Docker Network<br/>🔗 Isolated Communication]
-        Ports[Port Management<br/>🚪 Minimal Exposure]
-        Proxy[Nginx Proxy<br/>🔄 Request Filtering]
+        Ports[Port Management<br/>🚆 Only Required Ports]
+        Container[Container Isolation<br/>🐳 Process Separation]
     end
     
     subgraph "Data Security"
         Local[Local Storage<br/>🏠 No External Data]
-        Encryption[Data Protection<br/>🔐 Transit Security]
-        Backup[Backup Strategy<br/>💾 Data Recovery]
+        Encryption[Data Protection<br/>🔐 HTTPS/TLS]
+        Backup[Backup Strategy<br/>💾 Volume Persistence]
     end
     
     Auth --> Network
-    CORS --> Proxy
-    Headers --> Proxy
+    CORS --> Container
+    Headers --> Container
     Env --> Local
     Network --> Encryption
     
@@ -384,39 +364,12 @@ graph TB
 
 ## 🚀 Scalability Considerations
 
-### **Horizontal Scaling**
+The current architecture is designed for single-instance deployment with the following scaling options:
 
-```mermaid
-graph TB
-    subgraph "Load Balancer"
-        LB[Nginx/HAProxy<br/>⚖️ Traffic Distribution]
-    end
-    
-    subgraph "Application Tier"
-        API1[Backend Instance 1<br/>🔌 FastAPI]
-        API2[Backend Instance 2<br/>🔌 FastAPI]
-        API3[Backend Instance N<br/>🔌 FastAPI]
-    end
-    
-    subgraph "Database Tier"
-        Primary[(Primary DB<br/>🗄️ Write Operations)]
-        Replica1[(Read Replica 1<br/>📖 Read Operations)]
-        Replica2[(Read Replica N<br/>📖 Read Operations)]
-    end
-    
-    LB --> API1
-    LB --> API2
-    LB --> API3
-    API1 --> Primary
-    API2 --> Replica1
-    API3 --> Replica2
-    Primary -.-> Replica1
-    Primary -.-> Replica2
-    
-    style LB fill:#e1f5fe
-    style Primary fill:#e8f5e8
-    style Replica1 fill:#fff3e0
-```
+- **Vertical Scaling**: Increase CPU/memory resources for containers
+- **Database Optimization**: Tune PostgreSQL performance and add indexes  
+- **Caching**: Add Redis for frequently accessed data
+- **CDN**: Serve static frontend assets via CDN for global distribution
 
 ## 📏 Performance Characteristics
 
