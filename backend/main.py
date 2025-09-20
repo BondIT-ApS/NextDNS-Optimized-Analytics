@@ -17,10 +17,7 @@ from logging_config import setup_logging, get_logger
 setup_logging()
 logger = get_logger(__name__)
 
-# Track application start time for accurate uptime
-app_start_time = datetime.now(timezone.utc)
-
-# Import models and scheduler
+# Import models and services
 from models import init_db, get_logs, get_total_record_count, get_logs_stats
 from models import get_available_profiles as get_profiles_from_db
 from profile_service import (
@@ -28,6 +25,9 @@ from profile_service import (
     get_multiple_profiles_info,
     get_configured_profile_ids,
 )
+
+# Track application start time for accurate uptime
+app_start_time = datetime.now(timezone.utc)
 
 try:
     from scheduler import scheduler  # pylint: disable=unused-import
@@ -392,7 +392,7 @@ async def get_logs_statistics(
 
 
 @app.get("/logs", response_model=LogsResponse, tags=["Logs"])
-async def get_dns_logs(
+async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
     exclude: Optional[List[str]] = Query(
         default=None, description="Domains to exclude from results"
     ),

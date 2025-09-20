@@ -27,10 +27,11 @@ logger = get_logger(__name__)
 
 
 # Custom Text type that forces TEXT without JSON casting
-class ForceText(TypeDecorator):
+class ForceText(TypeDecorator):  # pylint: disable=too-many-ancestors
     """Custom SQLAlchemy type that forces values to be stored as text."""
 
     impl = Text
+    cache_ok = True  # SQLAlchemy 1.4+ requirement
 
     def process_bind_param(self, value, dialect):
         if value is not None:
@@ -39,6 +40,15 @@ class ForceText(TypeDecorator):
 
     def process_result_value(self, value, dialect):
         return value
+
+    def process_literal_param(self, value, dialect):
+        """Process literal parameter for SQL compilation."""
+        return str(value) if value is not None else value
+
+    @property
+    def python_type(self):
+        """Return the Python type object expected by this type."""
+        return str
 
 
 # Base declaration
@@ -333,7 +343,7 @@ def update_fetch_status(profile_id, last_timestamp, records_count):
 
 
 # Retrieve logs with optional exclusion of domains and advanced filtering
-def get_logs(
+def get_logs(  # pylint: disable=too-many-positional-arguments
     exclude_domains=None,
     search_query="",
     status_filter="all",
@@ -501,14 +511,12 @@ def get_available_profiles():
         results = (
             session.query(
                 DNSLog.profile_id,
-                func.count(DNSLog.id).label(
-                    "record_count"
-                ),  # pylint: disable=not-callable
+                func.count(DNSLog.id).label("record_count"),  # noqa: E1102
                 func.max(DNSLog.timestamp).label("last_activity"),
             )
             .filter(DNSLog.profile_id.isnot(None))
             .group_by(DNSLog.profile_id)
-            .order_by(func.count(DNSLog.id).desc())  # pylint: disable=not-callable
+            .order_by(func.count(DNSLog.id).desc())  # noqa: E1102
             .all()
         )
 
