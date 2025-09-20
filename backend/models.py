@@ -1,7 +1,7 @@
 # file: backend/models.py
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import (
     create_engine,
@@ -509,17 +509,19 @@ def get_available_profiles():
     try:
         # Query for distinct profile IDs and their counts
 
+        # pylint: disable=not-callable
         results = (
             session.query(
                 DNSLog.profile_id,
-                func.count(DNSLog.id).label("record_count"),  # noqa: E1102
+                func.count(DNSLog.id).label("record_count"),
                 func.max(DNSLog.timestamp).label("last_activity"),
             )
             .filter(DNSLog.profile_id.isnot(None))
             .group_by(DNSLog.profile_id)
-            .order_by(func.count(DNSLog.id).desc())  # noqa: E1102
+            .order_by(func.count(DNSLog.id).desc())
             .all()
         )
+        # pylint: enable=not-callable
 
         profiles = []
         for result in results:
@@ -540,5 +542,348 @@ def get_available_profiles():
     except SQLAlchemyError as e:
         logger.error(f"❌ Error getting available profiles: {e}")
         return []
+    finally:
+        session.close()
+
+
+# Get real stats overview data from database
+def get_stats_overview(profile_filter=None, time_range="24h"):
+    """Get overview statistics from the database.
+
+    Args:
+        profile_filter (str): Optional profile ID to filter by
+        time_range (str): Time range to filter by (1h, 24h, 7d, 30d, all)
+
+    Returns:
+        dict: Statistics overview
+    """
+    session = Session()
+    try:
+        # Build base query
+        query = session.query(DNSLog)
+
+        # Apply profile filter
+        if profile_filter and profile_filter.strip() and profile_filter != "all":
+            query = query.filter(DNSLog.profile_id == profile_filter)
+            logger.debug(f"🧱 Filtering stats for profile: '{profile_filter}'")
+
+        # Apply time range filter
+        if time_range != "all":
+
+            now = datetime.now(timezone.utc)
+
+            time_deltas = {
+                "1h": timedelta(hours=1),
+                "24h": timedelta(hours=24),
+                "7d": timedelta(days=7),
+                "30d": timedelta(days=30),
+            }
+
+            if time_range in time_deltas:
+                cutoff_time = now - time_deltas[time_range]
+                query = query.filter(DNSLog.timestamp >= cutoff_time)
+                logger.debug(f"📅 Filtering for time range: {time_range}")
+
+        # Get total queries
+        total_queries = query.count()
+
+        # Get blocked queries
+        blocked_queries = query.filter(DNSLog.blocked.is_(True)).count()
+
+        # Calculate allowed queries and percentage
+        allowed_queries = total_queries - blocked_queries
+        blocked_percentage = (
+            (blocked_queries / total_queries * 100) if total_queries > 0 else 0
+        )
+
+        # Calculate queries per hour (rough estimate)
+        hours_map = {"1h": 1, "24h": 24, "7d": 168, "30d": 720, "all": 1}
+        hours = hours_map.get(time_range, 24)
+        queries_per_hour = total_queries / hours if hours > 0 else 0
+
+        # Get most active device (simplified approach for now)
+        most_active_device = None
+        try:
+            # Try to get device name from the most recent record with a device
+            recent_device_log = query.filter(DNSLog.device.isnot(None)).first()
+            if recent_device_log and recent_device_log.device:
+                device_data = (
+                    json.loads(recent_device_log.device)
+                    if isinstance(recent_device_log.device, str)
+                    else recent_device_log.device
+                )
+                if device_data and "name" in device_data:
+                    most_active_device = device_data["name"]
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            logger.debug(f"Could not determine most active device: {e}")
+            most_active_device = None
+
+        # Get top blocked domain
+        top_blocked_domain = None
+        try:
+            # pylint: disable=not-callable
+            blocked_domain_result = (
+                session.query(DNSLog.domain, func.count(DNSLog.id).label("count"))
+                .filter(DNSLog.blocked.is_(True))
+                .group_by(DNSLog.domain)
+                .order_by(func.count(DNSLog.id).desc())
+                .first()
+            )
+            # pylint: enable=not-callable
+            if blocked_domain_result and blocked_domain_result[0]:
+                top_blocked_domain = blocked_domain_result[0]
+        except SQLAlchemyError as e:
+            logger.debug(f"Could not determine top blocked domain: {e}")
+            top_blocked_domain = None
+
+        stats = {
+            "total_queries": total_queries,
+            "blocked_queries": blocked_queries,
+            "allowed_queries": allowed_queries,
+            "blocked_percentage": round(blocked_percentage, 1),
+            "queries_per_hour": round(queries_per_hour, 1),
+            "most_active_device": most_active_device,
+            "top_blocked_domain": top_blocked_domain,
+        }
+
+        logger.debug(f"📊 Real stats overview: {stats}")
+        return stats
+
+    except SQLAlchemyError as e:
+        logger.error(f"❌ Error getting stats overview: {e}")
+        return {
+            "total_queries": 0,
+            "blocked_queries": 0,
+            "allowed_queries": 0,
+            "blocked_percentage": 0.0,
+            "queries_per_hour": 0.0,
+            "most_active_device": None,
+            "top_blocked_domain": None,
+        }
+    finally:
+        session.close()
+
+
+# Get time series data from database
+def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hour"):
+    """Get time series statistics from the database.
+
+    Args:
+        profile_filter (str): Optional profile ID to filter by
+        time_range (str): Time range to filter by
+        granularity (str): Time granularity (hour, day, etc.)
+
+    Returns:
+        list: List of time series data points
+    """
+    session = Session()
+    try:
+
+        now = datetime.now(timezone.utc)
+
+        # Determine time parameters based on time range
+        if time_range == "1h":
+            start_time = now - timedelta(hours=1)
+            interval_minutes = 5
+            num_intervals = 12  # 12 x 5min = 1 hour
+            granularity = "5min"
+        elif time_range == "24h":
+            start_time = now - timedelta(hours=24)
+            interval_hours = 1
+            num_intervals = 24  # 24 x 1hour = 24 hours
+            granularity = "hour"
+        elif time_range == "7d":
+            start_time = now - timedelta(days=7)
+            interval_hours = 24
+            num_intervals = 7  # 7 x 1day = 7 days
+            granularity = "day"
+        elif time_range == "30d":
+            start_time = now - timedelta(days=30)
+            interval_hours = 24
+            num_intervals = 30  # 30 x 1day = 30 days
+            granularity = "day"
+        else:  # 'all'
+            # For 'all', we'll use daily intervals for the last 30 days
+            start_time = now - timedelta(days=30)
+            interval_hours = 24
+            num_intervals = 30
+            granularity = "day"
+
+        # Build base query
+        base_query = session.query(DNSLog).filter(DNSLog.timestamp >= start_time)
+
+        # Apply profile filter
+        if profile_filter and profile_filter.strip() and profile_filter != "all":
+            base_query = base_query.filter(DNSLog.profile_id == profile_filter)
+
+        # Generate time buckets
+        data_points = []
+        for i in range(num_intervals):
+            if time_range == "1h":
+                interval_start = start_time + timedelta(minutes=i * interval_minutes)
+                interval_end = interval_start + timedelta(minutes=interval_minutes)
+                # Round to nearest 5 minutes for clean display
+                display_time = interval_start.replace(
+                    minute=(interval_start.minute // 5) * 5, second=0, microsecond=0
+                )
+            else:
+                interval_start = start_time + timedelta(hours=i * interval_hours)
+                interval_end = interval_start + timedelta(hours=interval_hours)
+                if granularity == "hour":
+                    # Round to exact hour for clean display
+                    display_time = interval_start.replace(
+                        minute=0, second=0, microsecond=0
+                    )
+                else:  # day
+                    # Round to start of day for clean display
+                    display_time = interval_start.replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    )
+
+            # Query for this interval
+            interval_query = base_query.filter(
+                DNSLog.timestamp >= interval_start, DNSLog.timestamp < interval_end
+            )
+
+            total_queries = interval_query.count()
+            blocked_queries = interval_query.filter(DNSLog.blocked.is_(True)).count()
+            allowed_queries = total_queries - blocked_queries
+
+            data_points.append(
+                {
+                    "timestamp": display_time.isoformat(),
+                    "total_queries": total_queries,
+                    "blocked_queries": blocked_queries,
+                    "allowed_queries": allowed_queries,
+                }
+            )
+
+        logger.debug(
+            f"📊 Generated {len(data_points)} {granularity} time series data points for {time_range}"
+        )
+        return data_points
+
+    except SQLAlchemyError as e:
+        logger.error(f"❌ Error getting time series data: {e}")
+        return []
+    finally:
+        session.close()
+
+
+# Get top domains from database
+def get_top_domains(profile_filter=None, time_range="24h", limit=10):
+    """Get top blocked and allowed domains from the database.
+
+    Args:
+        profile_filter (str): Optional profile ID to filter by
+        time_range (str): Time range to filter by
+        limit (int): Number of top domains to return
+
+    Returns:
+        dict: Contains blocked_domains and allowed_domains lists
+    """
+    session = Session()
+    try:
+        # Build base query
+        query = session.query(DNSLog)
+
+        # Apply profile filter
+        if profile_filter and profile_filter.strip() and profile_filter != "all":
+            query = query.filter(DNSLog.profile_id == profile_filter)
+
+        # Apply time range filter
+        if time_range != "all":
+
+            now = datetime.now(timezone.utc)
+
+            time_deltas = {
+                "1h": timedelta(hours=1),
+                "24h": timedelta(hours=24),
+                "7d": timedelta(days=7),
+                "30d": timedelta(days=30),
+            }
+
+            if time_range in time_deltas:
+                cutoff_time = now - time_deltas[time_range]
+                query = query.filter(DNSLog.timestamp >= cutoff_time)
+
+        # Get total queries for percentage calculation
+        total_queries = query.count()
+
+        # Get top blocked domains
+        blocked_domains = []
+        if total_queries > 0:
+            try:
+                # pylint: disable=not-callable
+                blocked_results = (
+                    session.query(DNSLog.domain, func.count(DNSLog.id).label("count"))
+                    .filter(DNSLog.blocked.is_(True))
+                    .group_by(DNSLog.domain)
+                    .order_by(func.count(DNSLog.id).desc())
+                    .limit(limit)
+                    .all()
+                )
+                # pylint: enable=not-callable
+
+                for domain_result in blocked_results:
+                    domain_name = domain_result[0]
+                    count = domain_result[1]
+                    percentage = (
+                        (count / total_queries * 100) if total_queries > 0 else 0
+                    )
+                    blocked_domains.append(
+                        {
+                            "domain": domain_name,
+                            "count": count,
+                            "percentage": round(percentage, 1),
+                        }
+                    )
+            except SQLAlchemyError as e:
+                logger.error(f"Error getting blocked domains: {e}")
+
+        # Get top allowed domains
+        allowed_domains = []
+        if total_queries > 0:
+            try:
+                # pylint: disable=not-callable
+                allowed_results = (
+                    session.query(DNSLog.domain, func.count(DNSLog.id).label("count"))
+                    .filter(DNSLog.blocked.is_(False))
+                    .group_by(DNSLog.domain)
+                    .order_by(func.count(DNSLog.id).desc())
+                    .limit(limit)
+                    .all()
+                )
+                # pylint: enable=not-callable
+
+                for domain_result in allowed_results:
+                    domain_name = domain_result[0]
+                    count = domain_result[1]
+                    percentage = (
+                        (count / total_queries * 100) if total_queries > 0 else 0
+                    )
+                    allowed_domains.append(
+                        {
+                            "domain": domain_name,
+                            "count": count,
+                            "percentage": round(percentage, 1),
+                        }
+                    )
+            except SQLAlchemyError as e:
+                logger.error(f"Error getting allowed domains: {e}")
+
+        result = {
+            "blocked_domains": blocked_domains,
+            "allowed_domains": allowed_domains,
+        }
+
+        logger.debug(
+            f"📊 Found {len(blocked_domains)} blocked and {len(allowed_domains)} allowed top domains"
+        )
+        return result
+
+    except SQLAlchemyError as e:
+        logger.error(f"❌ Error getting top domains: {e}")
+        return {"blocked_domains": [], "allowed_domains": []}
     finally:
         session.close()
