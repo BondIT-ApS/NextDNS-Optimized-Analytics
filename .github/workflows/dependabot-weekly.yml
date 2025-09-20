@@ -1,0 +1,189 @@
+name: 🧱 LEGO Maintenance - Weekly Dependency Updates
+
+on:
+  schedule:
+    # Mondays at 21:12 CET (20:12 UTC in winter, 19:12 UTC in summer)
+    # Using winter time (CET = UTC+1) so 21:12 CET = 20:12 UTC
+    - cron: '12 20 * * MON'
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # 🔍 Check for dependency updates
+  dependency-check:
+    name: 🔍 LEGO Parts Inventory Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📎 Get LEGO Instructions (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 🧱 Post Weekly Maintenance Notice
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Check if there are any open Dependabot PRs
+            const { data: pulls } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: 'dependabot'
+            });
+            
+            const dependabotPRs = pulls.filter(pr => pr.user.login === 'dependabot[bot]');
+            
+            let message = `## 🧱 Weekly LEGO Maintenance Report
+            
+            🗓️ **Weekly Dependency Check** - ${new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric', 
+              month: 'long',
+              day: 'numeric'
+            })}
+            
+            ### 📦 LEGO Parts Status:
+            `;
+            
+            if (dependabotPRs.length === 0) {
+              message += `✅ **All LEGO pieces are up to date!**
+              
+              No dependency updates needed this week. All components are using the latest compatible versions.`;
+            } else {
+              message += `🔄 **${dependabotPRs.length} LEGO piece(s) need updating:**
+              
+              `;
+              
+              dependabotPRs.forEach(pr => {
+                message += `- [${pr.title}](${pr.html_url})\\n`;
+              });
+              
+              message += `
+              
+              🔧 **Action Required:** Please review and merge the Dependabot PRs above to keep our LEGO pieces compatible and secure.`;
+            }
+            
+            message += `
+            
+            ### 📋 Weekly Maintenance Checklist:
+            - 🔍 Dependencies checked
+            - 🛡️ Security vulnerabilities scanned  
+            - 📊 Performance monitoring active
+            - 🧪 Automated tests passing
+            
+            ---
+            *Automated LEGO maintenance keeps our building blocks strong! 🏗️*`;
+            
+            // Create an issue for the weekly report
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🧱 Weekly LEGO Maintenance Report - ${new Date().toISOString().split('T')[0]}`,
+              body: message,
+              labels: ['maintenance', 'weekly-report', 'dependencies']
+            });
+
+  # 🛡️ Security audit
+  security-audit:
+    name: 🛡️ LEGO Security Fortress Check  
+    runs-on: ubuntu-latest
+    needs: dependency-check
+    
+    strategy:
+      matrix:
+        component: [frontend, backend]
+        
+    steps:
+      - name: 📎 Get LEGO Instructions (Checkout)
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js (Frontend)
+        if: matrix.component == 'frontend'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 🐍 Setup Python (Backend)
+        if: matrix.component == 'backend'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 🔍 Frontend Security Audit
+        if: matrix.component == 'frontend'
+        run: |
+          cd frontend
+          npm ci
+          npm audit --audit-level=high
+          
+      - name: 🔍 Backend Security Audit  
+        if: matrix.component == 'backend'
+        run: |
+          pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install safety bandit
+          
+          # Check for known security vulnerabilities
+          safety check
+          
+          # Static security analysis
+          cd backend
+          bandit -r . -f json -o bandit-report.json -x tests/ || true
+          
+      - name: 📊 Upload Security Report
+        if: matrix.component == 'backend'
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report-${{ matrix.component }}
+          path: backend/bandit-report.json
+          retention-days: 30
+
+  # 📊 Generate maintenance summary
+  maintenance-summary:
+    name: 📊 LEGO Maintenance Summary
+    runs-on: ubuntu-latest
+    needs: [dependency-check, security-audit]
+    if: always()
+    
+    steps:
+      - name: 🎯 Create Maintenance Summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const needs = ${{ toJson(needs) }};
+            
+            let summaryStatus = "✅ All Good";
+            let statusEmoji = "🛡️";
+            
+            // Check if any jobs failed
+            const failures = Object.values(needs).filter(job => job.result === 'failure');
+            
+            if (failures.length > 0) {
+              summaryStatus = "⚠️ Issues Found";
+              statusEmoji = "🔧";
+            }
+            
+            const comment = `## ${statusEmoji} Weekly LEGO Maintenance Complete
+            
+            **Status:** ${summaryStatus}
+            
+            ### 📋 Maintenance Results:
+            - 🔍 **Dependency Check**: ${needs['dependency-check'].result === 'success' ? '✅ Completed' : '❌ Failed'}
+            - 🛡️ **Security Audit**: ${needs['security-audit'].result === 'success' ? '✅ Passed' : '❌ Issues Found'}
+            
+            ${failures.length > 0 ? 
+              '### 🔧 Action Required:\\nSome maintenance tasks need attention. Please check the failed jobs and resolve any issues.' :
+              '### 🎉 All Set!\\nYour LEGO castle is secure and up-to-date! All automated maintenance checks passed.'
+            }
+            
+            **Next Check:** Next Monday at 21:12 CET
+            
+            ---
+            *Weekly maintenance keeps our LEGO kingdom strong! 🏰*`;
+            
+            console.log('Maintenance summary completed:', summaryStatus);

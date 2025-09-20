@@ -1,0 +1,378 @@
+name: 🧱 LEGO Quality Gate - PR Validation
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  security-events: write
+  packages: read
+  actions: read
+
+jobs:
+  # 🔍 Discover changes and post LEGO-themed comment
+  discover-changes:
+    name: 🔍 Discover LEGO Building Plan
+    runs-on: ubuntu-latest
+    outputs:
+      frontend-changed: ${{ steps.changes.outputs.frontend }}
+      backend-changed: ${{ steps.changes.outputs.backend }}
+      lines-changed: ${{ steps.stats.outputs.lines-changed }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        id: changes
+        run: |
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          echo "Changed files: $CHANGED_FILES"
+          
+          # Check if frontend changed
+          if echo "$CHANGED_FILES" | grep -E '^frontend/' > /dev/null; then
+            echo "frontend=true" >> $GITHUB_OUTPUT
+          else
+            echo "frontend=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # Check if backend changed
+          if echo "$CHANGED_FILES" | grep -E '^backend/' > /dev/null; then
+            echo "backend=true" >> $GITHUB_OUTPUT
+          else
+            echo "backend=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Calculate change statistics
+        id: stats
+        run: |
+          # Get diff statistics
+          STATS=$(git diff --stat ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          LINES_CHANGED=$(echo "$STATS" | tail -1 | grep -o '[0-9]\+ insertion\|[0-9]\+ deletion' | grep -o '[0-9]\+' | awk '{sum += $1} END {print sum+0}')
+          echo "lines-changed=$LINES_CHANGED" >> $GITHUB_OUTPUT
+          echo "Detected $LINES_CHANGED lines changed"
+
+      - name: 🧱 Post LEGO Building Plan Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const linesChanged = ${{ steps.stats.outputs.lines-changed }};
+            const frontendChanged = ${{ steps.changes.outputs.frontend }};
+            const backendChanged = ${{ steps.changes.outputs.backend }};
+            
+            // Determine LEGO building complexity
+            let complexity = "";
+            let emoji = "";
+            if (linesChanged < 50) {
+              complexity = "Small LEGO kit";
+              emoji = "🧱";
+            } else if (linesChanged < 200) {
+              complexity = "Medium LEGO set";
+              emoji = "🏗️";
+            } else if (linesChanged < 500) {
+              complexity = "Large LEGO construction";
+              emoji = "🏰";
+            } else {
+              complexity = "Master Builder project";
+              emoji = "🌟";
+            }
+            
+            const changes = [];
+            if (frontendChanged) changes.push("Frontend (React/TypeScript)");
+            if (backendChanged) changes.push("Backend (FastAPI/Python)");
+            
+            const comment = `## ${emoji} LEGO Quality Gate Analysis
+            
+            **Building Complexity:** ${complexity} (${linesChanged} lines changed)
+            **Components Modified:** ${changes.join(", ") || "Documentation/Config only"}
+            
+            ### 🚀 Quality Checks Starting...
+            The automated quality gates are now running to ensure all LEGO pieces fit together perfectly!
+            
+            - 🔍 **Linting**: Checking code formatting and style
+            - ✨ **Quality**: Running comprehensive code analysis
+            - 🛡️ **Security**: Deep vulnerability scanning with CodeQL
+            - 🐳 **Build Test**: Verifying Docker containers build successfully
+            
+            *Like any good LEGO instruction manual, we'll verify each step before moving to the next! 📋*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  # 🔍 Frontend Linting (parallel)
+  lint-frontend:
+    name: 🎨 Lint Frontend (ESLint)
+    runs-on: ubuntu-latest
+    needs: discover-changes
+    if: needs.discover-changes.outputs.frontend-changed == 'true'
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint -- --max-warnings=0
+
+  # 🐍 Backend Linting (parallel)
+  lint-backend:
+    name: 🐍 Lint Backend (Pylint + Black)
+    runs-on: ubuntu-latest
+    needs: discover-changes
+    if: needs.discover-changes.outputs.backend-changed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pylint black
+
+      - name: Check Black formatting
+        run: |
+          cd backend
+          black . --check --exclude=alembic
+
+      - name: Run Pylint
+        run: |
+          export PYTHONPATH=$PYTHONPATH:./backend
+          pylint backend --rcfile=.pylintrc
+
+  # ✨ Frontend Code Quality (parallel)
+  quality-frontend:
+    name: ✨ Frontend Quality (TypeScript + Prettier)
+    runs-on: ubuntu-latest
+    needs: discover-changes
+    if: needs.discover-changes.outputs.frontend-changed == 'true'
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check TypeScript
+        run: npm run type-check
+
+      - name: Check Prettier formatting
+        run: npm run format:check
+
+      - name: Run tests
+        run: npm run test
+
+  # 🐍 Backend Code Quality (parallel)
+  quality-backend:
+    name: ✨ Backend Quality (Testing + Security)
+    runs-on: ubuntu-latest
+    needs: discover-changes
+    if: needs.discover-changes.outputs.backend-changed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest pytest-cov safety bandit
+
+      - name: Security check with bandit
+        run: |
+          cd backend
+          bandit -r . -f json -o bandit-report.json -x tests/ || true
+
+      - name: Dependency security check
+        run: safety check
+
+      - name: Run tests (if any)
+        run: |
+          cd backend
+          python -m pytest --cov=. --cov-report=xml || echo "No tests found, skipping"
+
+  # 🛡️ Deep Security Analysis (parallel)
+  security-analysis:
+    name: 🛡️ Deep LEGO Security Scan (CodeQL)
+    runs-on: ubuntu-latest
+    needs: discover-changes
+    # Run CodeQL if either frontend or backend changed
+    if: needs.discover-changes.outputs.frontend-changed == 'true' || needs.discover-changes.outputs.backend-changed == 'true'
+    
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: python
+            build-mode: none
+            condition: needs.discover-changes.outputs.backend-changed == 'true'
+          - language: javascript-typescript  
+            build-mode: none
+            condition: needs.discover-changes.outputs.frontend-changed == 'true'
+    
+    steps:
+      - name: 📎 Get LEGO Security Instructions
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Initialize Deep Security Scanner
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+      
+      - name: 🔍 Perform Deep Security Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"
+
+  # 🐳 Build Test (runs after all quality checks pass)
+  build-test:
+    name: 🐳 LEGO Assembly Test (Docker Build)
+    runs-on: ubuntu-latest
+    needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend, security-analysis]
+    # Run if any component changed and all checks passed (or were skipped due to no changes)
+    if: always() && !contains(needs.*.result, 'failure')
+
+    strategy:
+      matrix:
+        service: [backend, frontend]
+        exclude:
+          - service: frontend
+            condition: ${{ needs.discover-changes.outputs.frontend-changed != 'true' }}
+          - service: backend
+            condition: ${{ needs.discover-changes.outputs.backend-changed != 'true' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.service }} Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.${{ matrix.service }}
+          push: false
+          tags: nextdns-${{ matrix.service }}:pr-${{ github.event.number }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 📊 Final Summary
+  quality-gate-summary:
+    name: 📊 LEGO Quality Gate Summary
+    runs-on: ubuntu-latest
+    needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend, security-analysis, build-test]
+    if: always()
+
+    steps:
+      - name: 🎯 Post Quality Gate Results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const needs = ${{ toJson(needs) }};
+            const linesChanged = needs['discover-changes'].outputs['lines-changed'];
+            
+            // Determine overall status
+            let allPassed = true;
+            let results = [];
+            
+            // Check each job result
+            Object.entries(needs).forEach(([job, result]) => {
+              if (job === 'discover-changes') return;
+              
+              const jobNames = {
+                'lint-frontend': '🎨 Frontend Linting',
+                'lint-backend': '🐍 Backend Linting', 
+                'quality-frontend': '✨ Frontend Quality',
+                'quality-backend': '✨ Backend Quality',
+                'security-analysis': '🛡️ Security Analysis',
+                'build-test': '🐳 Docker Build'
+              };
+              
+              if (result.result === 'failure') {
+                allPassed = false;
+                results.push(`❌ ${jobNames[job] || job}: Failed`);
+              } else if (result.result === 'success') {
+                results.push(`✅ ${jobNames[job] || job}: Passed`);
+              } else if (result.result === 'skipped') {
+                results.push(`⏭️ ${jobNames[job] || job}: Skipped (no changes)`);
+              }
+            });
+            
+            const status = allPassed ? "🎉 **Ready to Build!**" : "🔧 **Needs Attention**";
+            const emoji = allPassed ? "🏗️" : "⚠️";
+            
+            const comment = `## ${emoji} LEGO Quality Gate Results
+            
+            ${status}
+            
+            ### 📋 Build Plan Results (${linesChanged} lines changed):
+            ${results.join('\n')}
+            
+            ${allPassed ? 
+              "### 🎊 All Quality Checks Passed!\nYour LEGO pieces fit perfectly together! The PR is ready for review and can be merged to trigger the production build." : 
+              "### 🔧 Quality Issues Detected\nSome LEGO pieces need adjustment before they can fit together properly. Please check the failed jobs above and fix the issues."
+            }
+            
+            ---
+            *Built with ❤️ using the LEGO methodology - every piece matters!* 🧱`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

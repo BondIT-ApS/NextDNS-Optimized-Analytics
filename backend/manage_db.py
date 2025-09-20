@@ -24,15 +24,19 @@ from pathlib import Path
 
 # Set up logging
 from logging_config import setup_logging, get_logger
+
 setup_logging()
 logger = get_logger(__name__)
+
 
 def run_alembic_command(command_args):
     """Run an Alembic command with proper error handling."""
     try:
-        cmd = ['alembic'] + command_args
+        cmd = ["alembic"] + command_args
         logger.info(f"🧱 Running: {' '.join(cmd)}")
-        result = subprocess.run(cmd, cwd=Path(__file__).parent, check=True, capture_output=True, text=True)
+        result = subprocess.run(
+            cmd, cwd=Path(__file__).parent, check=True, capture_output=True, text=True
+        )
         logger.info(result.stdout)
         if result.stderr:
             logger.warning(f"⚠️ Warnings: {result.stderr}")
@@ -43,99 +47,110 @@ def run_alembic_command(command_args):
         logger.debug(f"stderr: {e.stderr}")
         return False
 
+
 def check_environment():
     """Check if required environment variables are set."""
     # Database connection variables (required for migrations)
-    db_vars = ['POSTGRES_USER', 'POSTGRES_PASSWORD', 'POSTGRES_DB', 'POSTGRES_HOST']
+    db_vars = ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", "POSTGRES_HOST"]
     # NextDNS API variables (optional for migrations, but needed for the app to work)
-    api_vars = ['API_KEY', 'PROFILE_ID', 'LOCAL_API_KEY']
-    
+    api_vars = ["API_KEY", "PROFILE_ID", "LOCAL_API_KEY"]
+
     missing_db_vars = []
     missing_api_vars = []
-    
+
     for var in db_vars:
         if not os.getenv(var):
             missing_db_vars.append(var)
-    
+
     for var in api_vars:
         if not os.getenv(var):
             missing_api_vars.append(var)
-    
+
     if missing_db_vars:
-        logger.error(f"❌ Missing required database variables: {', '.join(missing_db_vars)}")
+        logger.error(
+            f"❌ Missing required database variables: {', '.join(missing_db_vars)}"
+        )
         logger.info("💡 Make sure to set these variables or load your .env file")
         return False
-    
+
     if missing_api_vars:
-        logger.warning(f"⚠️  Missing NextDNS API variables: {', '.join(missing_api_vars)}")
+        logger.warning(
+            f"⚠️  Missing NextDNS API variables: {', '.join(missing_api_vars)}"
+        )
         logger.info("💡 These are needed for the application to fetch NextDNS logs")
         logger.info("🧱 Database migrations will work, but the app won't fetch logs")
-    
+
     logger.info("✅ Database environment variables are properly configured")
     if not missing_api_vars:
         logger.info("✅ NextDNS API environment variables are properly configured")
-    
+
     return True
+
 
 def init_database():
     """Initialize the database with the latest schema."""
     logger.info("🏧️ Initializing database schema...")
     if not check_environment():
         return False
-    
-    return run_alembic_command(['upgrade', 'head'])
+
+    return run_alembic_command(["upgrade", "head"])
+
 
 def upgrade_database():
     """Upgrade database to the latest schema."""
     logger.info("⬆️ Upgrading database schema...")
     if not check_environment():
         return False
-    
-    return run_alembic_command(['upgrade', 'head'])
+
+    return run_alembic_command(["upgrade", "head"])
+
 
 def show_status():
     """Show current migration status."""
     logger.info("📊 Checking migration status...")
     if not check_environment():
         return False
-    
-    return run_alembic_command(['current'])
+
+    return run_alembic_command(["current"])
+
 
 def show_history():
     """Show migration history."""
     logger.info("📜 Migration history:")
-    return run_alembic_command(['history'])
+    return run_alembic_command(["history"])
+
 
 def main():
     """Main CLI interface."""
     if len(sys.argv) != 2:
         print(__doc__)
         sys.exit(1)
-    
+
     command = sys.argv[1].lower()
-    
+
     commands = {
-        'init': init_database,
-        'upgrade': upgrade_database,
-        'status': show_status,
-        'history': show_history,
+        "init": init_database,
+        "upgrade": upgrade_database,
+        "status": show_status,
+        "history": show_history,
     }
-    
+
     if command not in commands:
         logger.error(f"❌ Unknown command: {command}")
         print(__doc__)
         sys.exit(1)
-    
+
     logger.info("🧱 NextDNS Optimized Analytics - Database Management")
     logger.info("=" * 50)
-    
+
     success = commands[command]()
-    
+
     if success:
         logger.info("✅ Command completed successfully!")
     else:
         logger.error("❌ Command failed!")
         sys.exit(1)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
