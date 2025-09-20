@@ -1,4 +1,8 @@
 # file: backend/models.py
+import json
+import os
+from datetime import datetime, timezone
+
 from sqlalchemy import (
     create_engine,
     Column,
@@ -10,13 +14,11 @@ from sqlalchemy import (
     Index,
     TypeDecorator,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-import json
-import os
-from datetime import datetime, timezone
 
 # Set up logging
 from logging_config import get_logger
@@ -494,9 +496,6 @@ def get_available_profiles():
     """
     session = Session()
     try:
-        # Import func at module level to avoid import issues
-        from sqlalchemy import func
-
         # Query for distinct profile IDs and their counts
 
         results = (

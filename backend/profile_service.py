@@ -50,7 +50,8 @@ def get_profile_info(profile_id: str) -> Optional[Dict]:
                 "name": f"Profile {profile_id} (Not Found)",
                 "error": "Profile not found",
             }
-        elif response.status_code == 403:
+
+        if response.status_code == 403:
             logger.warning(f"⚠️  Access denied to profile {profile_id} (403)")
             return {
                 "id": profile_id,
