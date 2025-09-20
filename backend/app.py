@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 
 # Import scheduler to start NextDNS log fetching
 try:
-    from scheduler import scheduler  # pylint: disable=unused-import
+    from scheduler import scheduler  # pylint: disable=unused-import,duplicate-code
 
     logger.info("🔄 NextDNS log scheduler started successfully")
 except ImportError as e:
