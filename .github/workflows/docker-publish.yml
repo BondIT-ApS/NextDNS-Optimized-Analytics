@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🌍 Set up Multi-Platform Builder (QEMU)
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: 🔧 Prepare Assembly Line (Docker Buildx)
         uses: docker/setup-buildx-action@v2
