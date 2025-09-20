@@ -44,7 +44,7 @@ CORS_ORIGINS=http://localhost:5003,https://your-domain.com
 
 ```env
 # Data Fetching
-FETCH_INTERVAL=60        # Minutes between API calls
+FETCH_INTERVAL=60       # Minutes between API calls
 FETCH_LIMIT=1000        # Max records per fetch
 
 # Logging
