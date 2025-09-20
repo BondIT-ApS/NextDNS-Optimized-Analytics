@@ -42,7 +42,7 @@ def get_profile_info(profile_id: str) -> Optional[Dict]:
                 "created": profile_data.get("created"),
                 "updated": profile_data.get("updated"),
             }
-        
+
         if response.status_code == 404:
             logger.warning(f"⚠️  Profile {profile_id} not found (404)")
             return {
