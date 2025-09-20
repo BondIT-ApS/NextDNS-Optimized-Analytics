@@ -191,6 +191,50 @@ class NextDNSProfileInfo(BaseModel):
     error: Optional[str] = None
 
 
+class TimeSeriesDataPoint(BaseModel):
+    """Time series data point for charts."""
+    
+    timestamp: str
+    total_queries: int
+    blocked_queries: int
+    allowed_queries: int
+
+
+class TimeSeriesResponse(BaseModel):
+    """Response model for time series data."""
+    
+    data: List[TimeSeriesDataPoint]
+    granularity: str
+    total_points: int
+
+
+class TopDomainsItem(BaseModel):
+    """Top domain item."""
+    
+    domain: str
+    count: int
+    percentage: float
+    
+    
+class TopDomainsResponse(BaseModel):
+    """Response model for top domains."""
+    
+    blocked_domains: List[TopDomainsItem]
+    allowed_domains: List[TopDomainsItem]
+    
+
+class StatsOverviewResponse(BaseModel):
+    """Response model for stats overview."""
+    
+    total_queries: int
+    blocked_queries: int
+    allowed_queries: int
+    blocked_percentage: float
+    queries_per_hour: float
+    most_active_device: Optional[str] = None
+    top_blocked_domain: Optional[str] = None
+
+
 class ProfileInfoResponse(BaseModel):
     """Response model for profile information."""
 
@@ -483,6 +527,114 @@ async def get_single_profile_info(profile_id: str):
 
     logger.info(f"🧱 Returning information for profile {profile_id}")
     return NextDNSProfileInfo(**profile_info)
+
+
+@app.get("/stats/overview", response_model=StatsOverviewResponse, tags=["Statistics"])
+async def get_stats_overview(
+    profile: Optional[str] = Query(
+        default=None, description="Filter by specific profile ID"
+    ),
+    time_range: str = Query(
+        default="24h", description="Time range: 1h, 24h, 7d, 30d, all"
+    ),
+):
+    """Get overview statistics for the dashboard."""
+    logger.debug(f"📊 Stats overview request: profile={profile}, time_range={time_range}")
+    
+    # This would be implemented in models.py
+    # For now, return mock data
+    return StatsOverviewResponse(
+        total_queries=15420,
+        blocked_queries=3240,
+        allowed_queries=12180,
+        blocked_percentage=21.0,
+        queries_per_hour=642.5,
+        most_active_device="MacBook M1 Pro",
+        top_blocked_domain="googleads.g.doubleclick.net"
+    )
+
+
+@app.get("/stats/timeseries", response_model=TimeSeriesResponse, tags=["Statistics"])
+async def get_stats_timeseries(
+    profile: Optional[str] = Query(
+        default=None, description="Filter by specific profile ID"
+    ),
+    time_range: str = Query(
+        default="24h", description="Time range: 1h, 24h, 7d, 30d, all"
+    ),
+    granularity: Optional[str] = Query(
+        default=None, description="Data granularity: 5min, hour, day, week (auto if not specified)"
+    ),
+):
+    """Get time series data for charts."""
+    logger.debug(f"📊 Time series request: profile={profile}, time_range={time_range}, granularity={granularity}")
+    
+    # Auto-determine granularity based on time range
+    if not granularity:
+        granularity_map = {
+            "1h": "5min",
+            "24h": "hour", 
+            "7d": "day",
+            "30d": "day",
+            "all": "week"
+        }
+        granularity = granularity_map.get(time_range, "hour")
+    
+    # This would be implemented in models.py with actual database queries
+    # For now, return mock data
+    mock_data = []
+    for i in range(24):  # Mock 24 hours of data
+        mock_data.append(TimeSeriesDataPoint(
+            timestamp=f"2025-09-20T{i:02d}:00:00Z",
+            total_queries=500 + (i * 10),
+            blocked_queries=100 + (i * 2),
+            allowed_queries=400 + (i * 8)
+        ))
+    
+    return TimeSeriesResponse(
+        data=mock_data,
+        granularity=granularity,
+        total_points=len(mock_data)
+    )
+
+
+@app.get("/stats/domains", response_model=TopDomainsResponse, tags=["Statistics"])
+async def get_top_domains(
+    profile: Optional[str] = Query(
+        default=None, description="Filter by specific profile ID"
+    ),
+    time_range: str = Query(
+        default="24h", description="Time range: 1h, 24h, 7d, 30d, all"
+    ),
+    limit: int = Query(
+        default=10, ge=5, le=50, description="Number of top domains to return"
+    ),
+):
+    """Get top blocked and allowed domains."""
+    logger.debug(f"📊 Top domains request: profile={profile}, time_range={time_range}, limit={limit}")
+    
+    # This would be implemented in models.py with actual database queries
+    # For now, return mock data
+    mock_blocked = [
+        TopDomainsItem(domain="googleads.g.doubleclick.net", count=1250, percentage=25.5),
+        TopDomainsItem(domain="facebook.com", count=890, percentage=18.2),
+        TopDomainsItem(domain="google-analytics.com", count=654, percentage=13.4),
+        TopDomainsItem(domain="amazon-adsystem.com", count=432, percentage=8.8),
+        TopDomainsItem(domain="googlesyndication.com", count=321, percentage=6.6),
+    ]
+    
+    mock_allowed = [
+        TopDomainsItem(domain="github.com", count=2340, percentage=19.2),
+        TopDomainsItem(domain="stackoverflow.com", count=1890, percentage=15.5), 
+        TopDomainsItem(domain="nextdns.io", count=1456, percentage=12.0),
+        TopDomainsItem(domain="apple.com", count=1234, percentage=10.1),
+        TopDomainsItem(domain="microsoft.com", count=987, percentage=8.1),
+    ]
+    
+    return TopDomainsResponse(
+        blocked_domains=mock_blocked[:limit],
+        allowed_domains=mock_allowed[:limit]
+    )
 
 
 if __name__ == "__main__":
