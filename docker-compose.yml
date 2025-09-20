@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile.backend
     env_file: ./config/.env
     restart: always
+    command: ["sh", "-c", "python manage_db.py init && uvicorn main:app --host 0.0.0.0 --port 5000"]
     ports:
       - "5001:5000"
     depends_on:
