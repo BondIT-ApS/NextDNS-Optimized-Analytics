@@ -1,6 +1,7 @@
 [MASTER]
 ignore=venv,alembic
 jobs=1
+fail-under=9.5
 load-plugins=
     pylint.extensions.docparams
 

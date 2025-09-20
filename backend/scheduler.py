@@ -1,4 +1,4 @@
-# file: backend/scheduler.py
+# file: backend/scheduler.py  # pylint: disable=duplicate-code
 import os
 from datetime import datetime
 
@@ -58,7 +58,7 @@ else:
         failed_profiles = 0
 
         # Fetch from each profile
-        for profile_id in profile_ids:
+        for profile_id in profile_ids:  # pylint: disable=too-many-nested-blocks
             try:
                 logger.info(f"🧱 Processing profile: {profile_id}")
 

@@ -61,15 +61,15 @@ def get_profile_info(
                 "error": "Access denied",
             }
 
-            # Handle all other status codes
-            logger.error(
-                f"❌ Profile {profile_id}: API returned {response.status_code}: {response.text}"
-            )
-            return {
-                "id": profile_id,
-                "name": f"Profile {profile_id} (Error)",
-                "error": f"HTTP {response.status_code}",
-            }
+        # Handle all other status codes
+        logger.error(
+            f"❌ Profile {profile_id}: API returned {response.status_code}: {response.text}"
+        )
+        return {
+            "id": profile_id,
+            "name": f"Profile {profile_id} (Error)",
+            "error": f"HTTP {response.status_code}",
+        }
 
     except requests.exceptions.RequestException as e:
         logger.error(f"❌ Profile {profile_id}: Request error: {e}")

@@ -13,11 +13,6 @@ from pydantic import BaseModel
 
 # Set up logging first
 from logging_config import setup_logging, get_logger
-
-setup_logging()
-logger = get_logger(__name__)
-
-# Import models and services
 from models import init_db, get_logs, get_total_record_count, get_logs_stats
 from models import get_available_profiles as get_profiles_from_db
 from profile_service import (
@@ -25,6 +20,9 @@ from profile_service import (
     get_multiple_profiles_info,
     get_configured_profile_ids,
 )
+
+setup_logging()
+logger = get_logger(__name__)
 
 # Track application start time for accurate uptime
 app_start_time = datetime.now(timezone.utc)
