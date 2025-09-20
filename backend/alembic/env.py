@@ -27,9 +27,11 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 target_metadata = Base.metadata
 
+
 # Get database URL from environment variables
 def get_url():
     return f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST', 'localhost')}:{os.getenv('POSTGRES_PORT', '5432')}/{os.getenv('POSTGRES_DB')}"
+
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -72,9 +74,7 @@ def run_migrations_online() -> None:
     connectable = create_engine(get_url(), poolclass=pool.NullPool)
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
