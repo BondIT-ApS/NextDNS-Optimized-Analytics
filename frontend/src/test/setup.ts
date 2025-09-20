@@ -8,7 +8,7 @@ import * as matchers from '@testing-library/jest-dom/matchers'
 // Extend Vitest's expect with jest-dom matchers
 expect.extend(matchers)
 
-// Clean up after each test - keep our LEGO workspace tidy! 
+// Clean up after each test - keep our LEGO workspace tidy!
 afterEach(() => {
   cleanup()
 })

@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
 // Removed auth dependencies - app is now open for everyone
 import {
   Menu,
@@ -10,37 +10,37 @@ import {
   Settings,
   Activity,
   Building2,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 export function Layout({ children }: LayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const location = useLocation()
 
   const navigation = [
     {
-      name: "Dashboard",
-      href: "/dashboard",
+      name: 'Dashboard',
+      href: '/dashboard',
       icon: BarChart3,
-      description: "System overview & analytics",
+      description: 'System overview & analytics',
     },
     {
-      name: "DNS Logs",
-      href: "/logs",
+      name: 'DNS Logs',
+      href: '/logs',
       icon: Database,
-      description: "View and analyze DNS queries",
+      description: 'View and analyze DNS queries',
     },
     {
-      name: "Settings",
-      href: "/settings",
+      name: 'Settings',
+      href: '/settings',
       icon: Settings,
-      description: "System configuration",
+      description: 'System configuration',
     },
-  ];
+  ]
 
   // No authentication - no logout needed
 
@@ -57,8 +57,8 @@ export function Layout({ children }: LayoutProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out md:translate-x-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full",
+          'fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 ease-in-out md:translate-x-0',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <div className="flex h-full flex-col">
@@ -100,41 +100,41 @@ export function Layout({ children }: LayoutProps) {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-4 space-y-2">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href;
+            {navigation.map(item => {
+              const isActive = location.pathname === item.href
               return (
                 <Link
                   key={item.name}
                   to={item.href}
                   className={cn(
-                    "group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200",
+                    'group flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-all duration-200',
                     isActive
-                      ? "bg-lego-blue text-white shadow-lg"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent",
+                      ? 'bg-lego-blue text-white shadow-lg'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                   )}
                   onClick={() => setSidebarOpen(false)}
                 >
                   <item.icon
                     className={cn(
-                      "mr-3 h-5 w-5 transition-colors",
+                      'mr-3 h-5 w-5 transition-colors',
                       isActive
-                        ? "text-white"
-                        : "text-muted-foreground group-hover:text-foreground",
+                        ? 'text-white'
+                        : 'text-muted-foreground group-hover:text-foreground'
                     )}
                   />
                   <div>
                     <div className="font-medium">{item.name}</div>
                     <div
                       className={cn(
-                        "text-xs",
-                        isActive ? "text-white/80" : "text-muted-foreground",
+                        'text-xs',
+                        isActive ? 'text-white/80' : 'text-muted-foreground'
                       )}
                     >
                       {item.description}
                     </div>
                   </div>
                 </Link>
-              );
+              )
             })}
           </nav>
 
@@ -142,7 +142,7 @@ export function Layout({ children }: LayoutProps) {
           <div className="px-4 py-4 border-t border-border">
             <div className="text-center">
               <p className="text-xs text-muted-foreground">
-                Built with 🧱 by{" "}
+                Built with 🧱 by{' '}
                 <a
                   href="https://bondit.dk"
                   target="_blank"
@@ -173,12 +173,12 @@ export function Layout({ children }: LayoutProps) {
           <div className="flex items-center space-x-4">
             <div className="hidden md:block">
               <h2 className="text-lg font-semibold text-foreground">
-                {navigation.find((item) => item.href === location.pathname)
-                  ?.name || "Dashboard"}
+                {navigation.find(item => item.href === location.pathname)
+                  ?.name || 'Dashboard'}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {navigation.find((item) => item.href === location.pathname)
-                  ?.description || "Welcome to NextDNS Analytics"}
+                {navigation.find(item => item.href === location.pathname)
+                  ?.description || 'Welcome to NextDNS Analytics'}
               </p>
             </div>
           </div>
@@ -188,5 +188,5 @@ export function Layout({ children }: LayoutProps) {
         <main className="p-6">{children}</main>
       </div>
     </div>
-  );
+  )
 }

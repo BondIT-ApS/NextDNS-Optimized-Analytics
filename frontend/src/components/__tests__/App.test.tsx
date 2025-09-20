@@ -1,38 +1,14 @@
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { BrowserRouter } from 'react-router-dom'
 import App from '../../App'
 
 // 🧱 LEGO Test Setup - Building blocks for reliable testing!
-const createTestQueryClient = () => {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        retry: false,
-        gcTime: Infinity,
-      },
-    },
-  })
-}
-
-const TestWrapper = ({ children }: { children: React.ReactNode }) => {
-  const queryClient = createTestQueryClient()
-  return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
-    </QueryClientProvider>
-  )
-}
+// App already includes QueryClient and Router, so we test it directly
 
 describe('🧱 NextDNS Analytics App', () => {
   it('should render the main application without crashing', () => {
-    // 🏗️ Assemble our LEGO app component
-    render(
-      <TestWrapper>
-        <App />
-      </TestWrapper>
-    )
+    // 🏢 Assemble our LEGO app component (includes all providers)
+    render(<App />)
 
     // 🔍 Verify our LEGO pieces are in place
     // The app should render successfully - this is our basic smoke test
@@ -41,11 +17,7 @@ describe('🧱 NextDNS Analytics App', () => {
 
   it('should have the correct document title structure', () => {
     // 🧱 Check if our LEGO branding is consistent
-    render(
-      <TestWrapper>
-        <App />
-      </TestWrapper>
-    )
+    render(<App />)
 
     // The document should be properly structured
     const htmlElement = document.querySelector('html')

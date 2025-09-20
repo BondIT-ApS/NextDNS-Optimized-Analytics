@@ -280,3 +280,6 @@ cache/
 # Network drives
 .apdisk
 frontend/tsconfig.tsbuildinfo
+
+# Bandit reports
+*bandit-report.json
