@@ -59,7 +59,7 @@ jobs:
           echo "Detected $LINES_CHANGED lines changed"
 
       - name: 🧱 Post LEGO Building Plan Comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const linesChanged = ${{ steps.stats.outputs.lines-changed }};
@@ -299,7 +299,7 @@ jobs:
 
     steps:
       - name: 🎯 Post Quality Gate Results
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const needs = ${{ toJson(needs) }};
