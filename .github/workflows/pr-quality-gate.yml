@@ -355,4 +355,4 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: comment
-            });
+            });# Force fresh commit without CodeQL expectations
