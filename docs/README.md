@@ -1,103 +1,83 @@
 # NextDNS Optimized Analytics Documentation
 
-Welcome to the NextDNS Optimized Analytics documentation! This directory contains all documentation related to the project.
+Welcome to the comprehensive documentation for NextDNS Optimized Analytics - a robust Docker-based solution that fetches, stores, and visualizes DNS logs from the NextDNS API with advanced filtering and analytics capabilities.
 
-## 📚 **Documentation Index**
+## 📚 Documentation Structure
 
-### **API Documentation**
-- [**API Migration Guide**](API_MIGRATION.md) - Complete migration from Flask to FastAPI v2.0
-- [**Health Endpoints**](health-endpoints.md) - Health check endpoints documentation
+| Document | Description |
+|----------|-------------|
+| [01 - Overview](./01-overview.md) | Solution overview, purpose, and key features |
+| [02 - Architecture](./02-architecture.md) | System architecture, components, and data flow |
+| [03 - API Reference](./03-api-reference.md) | Detailed API endpoints, authentication, and examples |
+| [04 - Deployment](./04-deployment.md) | Deployment procedures and infrastructure options |
+| [05 - Configuration](./05-configuration.md) | Environment variables, NextDNS setup, and security |
+| [06 - Development](./06-development.md) | Local development setup, testing, and debugging |
+| [07 - Troubleshooting](./07-troubleshooting.md) | Common issues, solutions, and diagnostic tools |
+| [08 - Security](./08-security.md) | Security considerations and best practices |
 
-### **Configuration**
-- [**Environment Variables**](environment-variables.md) - All configurable environment variables
-- [**Docker Setup**](docker-setup.md) - Docker configuration and deployment
+## 🚀 Quick Start
 
-### **Development**
-- [**Development Guide**](development-guide.md) - Setting up development environment
-- [**Logging**](logging.md) - Logging configuration and best practices
+1. **New to the solution?** → Start with [Overview](./01-overview.md)
+2. **Ready to deploy?** → Follow [Deployment Guide](./04-deployment.md)
+3. **Need to configure?** → Check [Configuration](./05-configuration.md)
+4. **Development setup?** → Review [Development Guide](./06-development.md)
+5. **API integration?** → Use [API Reference](./03-api-reference.md)
 
-## 🚀 **Quick Start**
+## 🔗 Key Resources
 
-1. **Check System Health**
-   ```bash
-   # Simple health check
-   curl http://localhost:5001/health
-   
-   # Detailed system information  
-   curl http://localhost:5001/health/detailed
-   ```
+- **Docker Images**: 
+  - [Backend](https://hub.docker.com/r/maboni82/nextdns-optimized-analytics-backend)
+  - [Frontend](https://hub.docker.com/r/maboni82/nextdns-optimized-analytics-frontend)
+- **GitHub Repository**: [NextDNS-Optimized-Analytics](https://github.com/BondIT-ApS/NextDNS-Optimized-Analytics)
+- **NextDNS API**: [NextDNS Documentation](https://nextdns.io/api)
 
-2. **View Interactive API Docs**
-   - Swagger UI: http://localhost:5001/docs
-   - ReDoc: http://localhost:5001/redoc
+## 💡 Documentation Conventions
 
-3. **Monitor Database**
-   ```bash
-   # Get database statistics (requires auth)
-   curl -u admin:your_api_key http://localhost:5001/stats
-   ```
+- **🔧** Configuration items and setup instructions
+- **⚠️** Important warnings and gotchas
+- **✅** Supported features and confirmed working setups
+- **❌** Unsupported or deprecated features
+- **📝** Code examples and configuration snippets
+- **🐳** Docker-specific instructions
+- **🔐** Security-related information
+- **📊** Analytics and monitoring content
 
-## 🎯 **Key Features**
+## 🎯 Key Features Covered
 
-- **FastAPI v2.0** with automatic OpenAPI documentation
-- **Enhanced logging** with configurable levels and database statistics
-- **Configurable data fetching** intervals
-- **Comprehensive health monitoring** with system resource tracking
-- **Real-time DNS log analytics** from NextDNS
+- **Real-time DNS Log Collection** from NextDNS API
+- **Advanced Filtering** beyond standard NextDNS capabilities
+- **Docker-based Deployment** with health monitoring
+- **Interactive Web Dashboard** with real-time analytics
+- **RESTful API** with FastAPI and automatic documentation
+- **Multi-profile Support** for managing multiple NextDNS configurations
+- **Comprehensive Logging** with configurable levels and monitoring
 
-## 🔧 **Configuration Overview**
+## 🤝 Contributing to Documentation
 
-```env
-# Core Configuration
-LOG_LEVEL=DEBUG              # Logging level
-FETCH_INTERVAL=60           # Data fetch interval (minutes)
-LOCAL_API_KEY=your_key      # API authentication
+When updating documentation:
+1. Follow the existing structure and numbering conventions
+2. Update this index if adding new documents
+3. Include practical examples and real-world scenarios
+4. Test all code snippets and configurations
+5. Use consistent emoji indicators for different content types
+6. Keep security considerations prominent
 
-# NextDNS Integration
-API_KEY=nextdns_api_key
-PROFILE_ID=nextdns_profile
+## 🛠️ Quick Health Check
 
-# Database
-POSTGRES_USER=nextdns_user
-POSTGRES_PASSWORD=password
-POSTGRES_DB=nextdns
-POSTGRES_HOST=db
+Before diving into documentation, verify your system is running:
+
+```bash
+# Check backend health
+curl http://localhost:5001/health
+
+# Check frontend accessibility  
+curl http://localhost:3000
+
+# View API documentation
+open http://localhost:5001/docs
 ```
-
-## 📊 **Health Monitoring**
-
-The system provides comprehensive health monitoring:
-
-### **Simple Health Check** (`/health`)
-- Quick database connectivity check
-- Boolean healthy status
-- Minimal response for monitoring systems
-
-### **Detailed Health Check** (`/health/detailed`)
-- API status (`status_api`)
-- Database status (`status_db`) 
-- Total DNS records count
-- System resource utilization (CPU, memory, disk)
-- Server information (platform, architecture, uptime)
-- Configuration details (fetch interval, log level)
-- Timestamp for monitoring
-
-## 🐳 **Docker Deployment**
-
-The application runs on modern ASGI server (uvicorn) for optimal performance:
-
-```dockerfile
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000", "--log-level", "info"]
-```
-
-## 🔍 **Monitoring & Observability**
-
-- **Enhanced logging** with emoji indicators for quick visual scanning
-- **Database record tracking** with before/after statistics
-- **System resource monitoring** via psutil integration
-- **Real-time health checks** with comprehensive system information
-- **Structured logging** for easy parsing and analysis
 
 ---
-
-For detailed information about each topic, see the individual documentation files in this directory.
+*Last updated: 2025-09-20*  
+*Documentation version: v2.0*  
+*Compatible with: NextDNS Analytics v2.0+*
