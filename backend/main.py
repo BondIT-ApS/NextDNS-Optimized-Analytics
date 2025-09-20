@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 
 # Set up logging first
 from logging_config import setup_logging, get_logger
+
 setup_logging()
 logger = get_logger(__name__)
 
@@ -20,9 +21,15 @@ app_start_time = datetime.now(timezone.utc)
 # Import models and scheduler
 from models import init_db, get_logs, get_total_record_count, get_logs_stats
 from models import get_available_profiles as get_profiles_from_db
-from profile_service import get_profile_info, get_multiple_profiles_info, get_configured_profile_ids
+from profile_service import (
+    get_profile_info,
+    get_multiple_profiles_info,
+    get_configured_profile_ids,
+)
+
 try:
     from scheduler import scheduler
+
     logger.info("🔄 NextDNS log scheduler started successfully")
 except ImportError as e:
     logger.warning(f"⚠️  Could not start scheduler: {e}")
@@ -44,7 +51,7 @@ app = FastAPI(
     """,
     version="2.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
 # Add CORS middleware
@@ -60,6 +67,7 @@ app.add_middleware(
 security = HTTPBearer()
 LOCAL_API_KEY = os.getenv("LOCAL_API_KEY")
 
+
 def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Authenticate user with API key."""
     if not credentials or not credentials.credentials:
@@ -68,53 +76,57 @@ def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)
             detail="API key required",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not secrets.compare_digest(credentials.credentials, LOCAL_API_KEY or ""):
         raise HTTPException(
             status_code=401,
             detail="Invalid API key",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     return "authenticated"
+
 
 # Flexible authentication supporting both Bearer and X-API-Key
 def verify_api_key_flexible(
     x_api_key: str = Header(None),
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ):
     """Authenticate user with API key via Bearer token or X-API-Key header."""
     api_key = None
-    
+
     # Try Bearer token first
     if credentials and credentials.credentials:
         api_key = credentials.credentials
     # Fall back to X-API-Key header
     elif x_api_key:
         api_key = x_api_key
-    
+
     if not api_key:
         raise HTTPException(
             status_code=401,
             detail="API key required via Authorization header (Bearer token) or X-API-Key header",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     if not secrets.compare_digest(api_key, LOCAL_API_KEY or ""):
         raise HTTPException(
             status_code=401,
             detail="Invalid API key",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     return "authenticated"
+
 
 # Pydantic models for request/response
 from pydantic import BaseModel
 from typing import Dict, Any
 
+
 class DNSLogResponse(BaseModel):
     """DNS log response model."""
+
     id: int
     timestamp: str
     domain: str
@@ -127,20 +139,26 @@ class DNSLogResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
     created_at: str
 
+
 class LogsResponse(BaseModel):
     """Response model for logs endpoint."""
+
     data: List[DNSLogResponse]
     total_records: int
     returned_records: int
     excluded_domains: Optional[List[str]] = None
 
+
 class StatsResponse(BaseModel):
     """Response model for statistics."""
+
     total_records: int
     message: str
 
+
 class LogsStatsResponse(BaseModel):
     """Response model for logs statistics."""
+
     total: int
     blocked: int
     allowed: int
@@ -148,19 +166,25 @@ class LogsStatsResponse(BaseModel):
     allowed_percentage: float
     profile_id: Optional[str] = None
 
+
 class ProfileInfo(BaseModel):
     """Profile information model."""
+
     profile_id: str
     record_count: int
     last_activity: Optional[str] = None
 
+
 class ProfileListResponse(BaseModel):
     """Response model for profile list."""
+
     profiles: List[ProfileInfo]
     total_profiles: int
 
+
 class NextDNSProfileInfo(BaseModel):
     """NextDNS profile detailed information."""
+
     id: str
     name: str
     fingerprint: Optional[str] = None
@@ -168,18 +192,24 @@ class NextDNSProfileInfo(BaseModel):
     updated: Optional[str] = None
     error: Optional[str] = None
 
+
 class ProfileInfoResponse(BaseModel):
     """Response model for profile information."""
+
     profiles: Dict[str, NextDNSProfileInfo]
     total_profiles: int
 
+
 class HealthResponse(BaseModel):
     """Simple health response model."""
+
     status: str
     healthy: bool
 
+
 class SystemResources(BaseModel):
     """System resource information."""
+
     cpu_percent: float
     memory_total: int
     memory_available: int
@@ -189,8 +219,10 @@ class SystemResources(BaseModel):
     disk_percent: float
     uptime_seconds: float
 
+
 class DetailedHealthResponse(BaseModel):
     """Detailed health response model."""
+
     status_api: str
     status_db: str
     healthy: bool
@@ -201,7 +233,9 @@ class DetailedHealthResponse(BaseModel):
     server_info: Dict[str, Any]
     timestamp: str
 
+
 # API Endpoints
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -209,6 +243,7 @@ async def startup_event():
     logger.info("🚀 Starting NextDNS Optimized Analytics FastAPI Backend")
     init_db()  # Ensure the database is initialized
     logger.info("✅ FastAPI application startup completed")
+
 
 @app.get("/", tags=["Health"])
 async def root():
@@ -218,8 +253,9 @@ async def root():
         "message": "NextDNS Optimized Analytics API",
         "version": "2.0.0",
         "status": "running",
-        "total_dns_records": total_records
+        "total_dns_records": total_records,
     }
+
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 async def health_check():
@@ -228,17 +264,14 @@ async def health_check():
         # Quick database check
         total_records = get_total_record_count()
         db_healthy = total_records >= 0
-        
+
         return HealthResponse(
-            status="healthy" if db_healthy else "unhealthy",
-            healthy=db_healthy
+            status="healthy" if db_healthy else "unhealthy", healthy=db_healthy
         )
     except Exception as e:
         logger.error(f"❌ Health check failed: {e}")
-        return HealthResponse(
-            status="unhealthy",
-            healthy=False
-        )
+        return HealthResponse(status="unhealthy", healthy=False)
+
 
 @app.get("/health/detailed", response_model=DetailedHealthResponse, tags=["Health"])
 async def detailed_health_check():
@@ -247,18 +280,18 @@ async def detailed_health_check():
         # Database check
         total_records = get_total_record_count()
         db_healthy = total_records >= 0
-        
+
         # System resource monitoring
         cpu_percent = psutil.cpu_percent(interval=1)
         memory = psutil.virtual_memory()
-        disk = psutil.disk_usage('/')
+        disk = psutil.disk_usage("/")
         current_time = datetime.now(timezone.utc)
         uptime_seconds = (current_time - app_start_time).total_seconds()
-        
+
         # Get environment variables
         fetch_interval = int(os.getenv("FETCH_INTERVAL", 60))
         log_level = os.getenv("LOG_LEVEL", "INFO")
-        
+
         system_resources = SystemResources(
             cpu_percent=cpu_percent,
             memory_total=memory.total,
@@ -267,9 +300,9 @@ async def detailed_health_check():
             disk_total=disk.total,
             disk_used=disk.used,
             disk_percent=(disk.used / disk.total) * 100,
-            uptime_seconds=uptime_seconds
+            uptime_seconds=uptime_seconds,
         )
-        
+
         server_info = {
             "platform": platform.system(),
             "platform_release": platform.release(),
@@ -284,15 +317,17 @@ async def detailed_health_check():
                 "language": "TypeScript 5.5.3",
                 "styling": "Tailwind CSS 3.4.0",
                 "ui_library": "shadcn/ui + Radix UI",
-                "state_management": "TanStack Query 5.56.2"
-            }
+                "state_management": "TanStack Query 5.56.2",
+            },
         }
-        
+
         api_healthy = True  # API is responding if we get here
         overall_healthy = db_healthy and api_healthy
-        
-        logger.debug(f"🏥 Detailed health check completed - Overall: {overall_healthy}, DB: {db_healthy}, API: {api_healthy}")
-        
+
+        logger.debug(
+            f"🏥 Detailed health check completed - Overall: {overall_healthy}, DB: {db_healthy}, API: {api_healthy}"
+        )
+
         return DetailedHealthResponse(
             status_api="healthy" if api_healthy else "unhealthy",
             status_db="healthy" if db_healthy else "unhealthy",
@@ -302,9 +337,9 @@ async def detailed_health_check():
             log_level=log_level,
             system_resources=system_resources,
             server_info=server_info,
-            timestamp=datetime.now(timezone.utc).isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat(),
         )
-        
+
     except Exception as e:
         logger.error(f"❌ Detailed health check failed: {e}")
         # Return minimal error response
@@ -323,26 +358,30 @@ async def detailed_health_check():
                 disk_total=0,
                 disk_used=0,
                 disk_percent=0.0,
-                uptime_seconds=0.0
+                uptime_seconds=0.0,
             ),
             server_info={"error": str(e)},
-            timestamp=datetime.now(timezone.utc).isoformat()
+            timestamp=datetime.now(timezone.utc).isoformat(),
         )
+
 
 @app.get("/stats", response_model=StatsResponse, tags=["Statistics"])
 async def get_stats():
     """Get database statistics."""
     total_records = get_total_record_count()
     logger.info(f"📊 Stats requested: {total_records:,} total records")
-    
+
     return StatsResponse(
         total_records=total_records,
-        message=f"Database contains {total_records:,} DNS log records"
+        message=f"Database contains {total_records:,} DNS log records",
     )
+
 
 @app.get("/logs/stats", response_model=LogsStatsResponse, tags=["Logs"])
 async def get_logs_statistics(
-    profile: Optional[str] = Query(default=None, description="Filter statistics by specific profile ID")
+    profile: Optional[str] = Query(
+        default=None, description="Filter statistics by specific profile ID"
+    )
 ):
     """Get statistics for DNS logs in the database, optionally filtered by profile."""
     logger.debug(f"📊 API request for logs statistics (profile: '{profile}')")
@@ -350,18 +389,29 @@ async def get_logs_statistics(
     logger.info(f"📊 Returning stats: {stats}")
     return LogsStatsResponse(**stats)
 
+
 @app.get("/logs", response_model=LogsResponse, tags=["Logs"])
 async def get_dns_logs(
-    exclude: Optional[List[str]] = Query(default=None, description="Domains to exclude from results"),
-    search: Optional[str] = Query(default="", description="Search query for domain names"),
-    status: Optional[str] = Query(default="all", description="Filter by status: all, blocked, allowed"),
-    profile: Optional[str] = Query(default=None, description="Filter by specific profile ID"),
-    limit: int = Query(default=100, ge=1, le=10000, description="Maximum number of records to return"),
-    offset: int = Query(default=0, ge=0, description="Number of records to skip")
+    exclude: Optional[List[str]] = Query(
+        default=None, description="Domains to exclude from results"
+    ),
+    search: Optional[str] = Query(
+        default="", description="Search query for domain names"
+    ),
+    status: Optional[str] = Query(
+        default="all", description="Filter by status: all, blocked, allowed"
+    ),
+    profile: Optional[str] = Query(
+        default=None, description="Filter by specific profile ID"
+    ),
+    limit: int = Query(
+        default=100, ge=1, le=10000, description="Maximum number of records to return"
+    ),
+    offset: int = Query(default=0, ge=0, description="Number of records to skip"),
 ):
     """
     Get DNS logs with optional filtering and pagination.
-    
+
     - **exclude**: List of domains to exclude from results
     - **search**: Search query for domain names
     - **status**: Filter by status (all, blocked, allowed)
@@ -369,26 +419,29 @@ async def get_dns_logs(
     - **limit**: Maximum number of records to return (1-10000)
     - **offset**: Number of records to skip for pagination
     """
-    logger.debug(f"📊 API request: exclude={exclude}, search='{search}', status={status}, profile='{profile}', limit={limit}, offset={offset}")
-    
+    logger.debug(
+        f"📊 API request: exclude={exclude}, search='{search}', status={status}, profile='{profile}', limit={limit}, offset={offset}"
+    )
+
     logs = get_logs(
-        exclude_domains=exclude, 
+        exclude_domains=exclude,
         search_query=search,
         status_filter=status,
         profile_filter=profile,
-        limit=limit, 
-        offset=offset
+        limit=limit,
+        offset=offset,
     )
     total_records = get_total_record_count()
-    
+
     logger.info(f"📊 Returning {len(logs)} DNS logs")
-    
+
     return LogsResponse(
         data=logs,
         total_records=total_records,
         returned_records=len(logs),
-        excluded_domains=exclude
+        excluded_domains=exclude,
     )
+
 
 @app.get("/profiles", response_model=ProfileListResponse, tags=["Profiles"])
 async def list_available_profiles():
@@ -396,47 +449,44 @@ async def list_available_profiles():
     logger.debug("🧱 API request for available profiles")
     profiles = get_profiles_from_db()
     logger.info(f"🧱 Returning {len(profiles)} profiles")
-    return ProfileListResponse(
-        profiles=profiles,
-        total_profiles=len(profiles)
-    )
+    return ProfileListResponse(profiles=profiles, total_profiles=len(profiles))
+
 
 @app.get("/profiles/info", response_model=ProfileInfoResponse, tags=["Profiles"])
 async def get_profile_information():
     """Get detailed information for all configured profiles from NextDNS API."""
     logger.debug("🧱 API request for profile information")
-    
+
     configured_profiles = get_configured_profile_ids()
     if not configured_profiles:
-        return ProfileInfoResponse(
-            profiles={},
-            total_profiles=0
-        )
-    
+        return ProfileInfoResponse(profiles={}, total_profiles=0)
+
     profile_info = get_multiple_profiles_info(configured_profiles)
     logger.info(f"🧱 Returning information for {len(profile_info)} profiles")
-    
-    return ProfileInfoResponse(
-        profiles=profile_info,
-        total_profiles=len(profile_info)
-    )
 
-@app.get("/profiles/{profile_id}/info", response_model=NextDNSProfileInfo, tags=["Profiles"])
+    return ProfileInfoResponse(profiles=profile_info, total_profiles=len(profile_info))
+
+
+@app.get(
+    "/profiles/{profile_id}/info", response_model=NextDNSProfileInfo, tags=["Profiles"]
+)
 async def get_single_profile_info(profile_id: str):
     """Get detailed information for a specific profile from NextDNS API."""
     logger.debug(f"🧱 API request for profile {profile_id} information")
-    
+
     profile_info = get_profile_info(profile_id)
     if not profile_info:
         raise HTTPException(
             status_code=404,
-            detail=f"Profile {profile_id} not found or could not be fetched"
+            detail=f"Profile {profile_id} not found or could not be fetched",
         )
-    
+
     logger.info(f"🧱 Returning information for profile {profile_id}")
     return NextDNSProfileInfo(**profile_info)
 
+
 if __name__ == "__main__":
     import uvicorn
+
     logger.info("🖥️  Starting FastAPI server with uvicorn on 0.0.0.0:5000")
     uvicorn.run(app, host="0.0.0.0", port=5000, log_level="info")
