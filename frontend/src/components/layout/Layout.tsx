@@ -10,6 +10,7 @@ import {
   Settings,
   Activity,
   Building2,
+  TrendingUp,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -27,6 +28,12 @@ export function Layout({ children }: LayoutProps) {
       href: '/dashboard',
       icon: BarChart3,
       description: 'System overview & analytics',
+    },
+    {
+      name: 'Stats',
+      href: '/stats',
+      icon: TrendingUp,
+      description: 'Detailed analytics & insights',
     },
     {
       name: 'DNS Logs',

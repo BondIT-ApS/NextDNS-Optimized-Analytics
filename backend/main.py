@@ -15,6 +15,11 @@ from pydantic import BaseModel
 from logging_config import setup_logging, get_logger
 from models import init_db, get_logs, get_total_record_count, get_logs_stats
 from models import get_available_profiles as get_profiles_from_db
+from models import (
+    get_stats_overview as get_db_stats_overview,
+    get_stats_timeseries as get_db_stats_timeseries,
+    get_top_domains as get_db_top_domains,
+)
 from profile_service import (
     get_profile_info,
     get_multiple_profiles_info,
@@ -193,7 +198,7 @@ class NextDNSProfileInfo(BaseModel):
 
 class TimeSeriesDataPoint(BaseModel):
     """Time series data point for charts."""
-    
+
     timestamp: str
     total_queries: int
     blocked_queries: int
@@ -202,7 +207,7 @@ class TimeSeriesDataPoint(BaseModel):
 
 class TimeSeriesResponse(BaseModel):
     """Response model for time series data."""
-    
+
     data: List[TimeSeriesDataPoint]
     granularity: str
     total_points: int
@@ -210,22 +215,22 @@ class TimeSeriesResponse(BaseModel):
 
 class TopDomainsItem(BaseModel):
     """Top domain item."""
-    
+
     domain: str
     count: int
     percentage: float
-    
-    
+
+
 class TopDomainsResponse(BaseModel):
     """Response model for top domains."""
-    
+
     blocked_domains: List[TopDomainsItem]
     allowed_domains: List[TopDomainsItem]
-    
+
 
 class StatsOverviewResponse(BaseModel):
     """Response model for stats overview."""
-    
+
     total_queries: int
     blocked_queries: int
     allowed_queries: int
@@ -539,19 +544,13 @@ async def get_stats_overview(
     ),
 ):
     """Get overview statistics for the dashboard."""
-    logger.debug(f"📊 Stats overview request: profile={profile}, time_range={time_range}")
-    
-    # This would be implemented in models.py
-    # For now, return mock data
-    return StatsOverviewResponse(
-        total_queries=15420,
-        blocked_queries=3240,
-        allowed_queries=12180,
-        blocked_percentage=21.0,
-        queries_per_hour=642.5,
-        most_active_device="MacBook M1 Pro",
-        top_blocked_domain="googleads.g.doubleclick.net"
+    logger.debug(
+        f"📊 Stats overview request: profile={profile}, time_range={time_range}"
     )
+
+    # Get real data from database
+    stats = get_db_stats_overview(profile_filter=profile, time_range=time_range)
+    return StatsOverviewResponse(**stats)
 
 
 @app.get("/stats/timeseries", response_model=TimeSeriesResponse, tags=["Statistics"])
@@ -563,38 +562,38 @@ async def get_stats_timeseries(
         default="24h", description="Time range: 1h, 24h, 7d, 30d, all"
     ),
     granularity: Optional[str] = Query(
-        default=None, description="Data granularity: 5min, hour, day, week (auto if not specified)"
+        default=None,
+        description="Data granularity: 5min, hour, day, week (auto if not specified)",
     ),
 ):
     """Get time series data for charts."""
-    logger.debug(f"📊 Time series request: profile={profile}, time_range={time_range}, granularity={granularity}")
-    
+    logger.debug(
+        f"📊 Time series request: profile={profile}, time_range={time_range}, granularity={granularity}"
+    )
+
     # Auto-determine granularity based on time range
     if not granularity:
         granularity_map = {
             "1h": "5min",
-            "24h": "hour", 
+            "24h": "hour",
             "7d": "day",
             "30d": "day",
-            "all": "week"
+            "all": "week",
         }
         granularity = granularity_map.get(time_range, "hour")
-    
-    # This would be implemented in models.py with actual database queries
-    # For now, return mock data
-    mock_data = []
-    for i in range(24):  # Mock 24 hours of data
-        mock_data.append(TimeSeriesDataPoint(
-            timestamp=f"2025-09-20T{i:02d}:00:00Z",
-            total_queries=500 + (i * 10),
-            blocked_queries=100 + (i * 2),
-            allowed_queries=400 + (i * 8)
-        ))
-    
+
+    # Get real time series data from database
+    data_points = get_db_stats_timeseries(
+        profile_filter=profile, time_range=time_range, granularity=granularity
+    )
+
+    # Convert to TimeSeriesDataPoint objects
+    time_series_data = [TimeSeriesDataPoint(**point) for point in data_points]
+
     return TimeSeriesResponse(
-        data=mock_data,
+        data=time_series_data,
         granularity=granularity,
-        total_points=len(mock_data)
+        total_points=len(time_series_data),
     )
 
 
@@ -611,29 +610,25 @@ async def get_top_domains(
     ),
 ):
     """Get top blocked and allowed domains."""
-    logger.debug(f"📊 Top domains request: profile={profile}, time_range={time_range}, limit={limit}")
-    
-    # This would be implemented in models.py with actual database queries
-    # For now, return mock data
-    mock_blocked = [
-        TopDomainsItem(domain="googleads.g.doubleclick.net", count=1250, percentage=25.5),
-        TopDomainsItem(domain="facebook.com", count=890, percentage=18.2),
-        TopDomainsItem(domain="google-analytics.com", count=654, percentage=13.4),
-        TopDomainsItem(domain="amazon-adsystem.com", count=432, percentage=8.8),
-        TopDomainsItem(domain="googlesyndication.com", count=321, percentage=6.6),
+    logger.debug(
+        f"📊 Top domains request: profile={profile}, time_range={time_range}, limit={limit}"
+    )
+
+    # Get real domains data from database
+    domains_data = get_db_top_domains(
+        profile_filter=profile, time_range=time_range, limit=limit
+    )
+
+    # Convert to TopDomainsItem objects
+    blocked_domains = [
+        TopDomainsItem(**item) for item in domains_data["blocked_domains"]
     ]
-    
-    mock_allowed = [
-        TopDomainsItem(domain="github.com", count=2340, percentage=19.2),
-        TopDomainsItem(domain="stackoverflow.com", count=1890, percentage=15.5), 
-        TopDomainsItem(domain="nextdns.io", count=1456, percentage=12.0),
-        TopDomainsItem(domain="apple.com", count=1234, percentage=10.1),
-        TopDomainsItem(domain="microsoft.com", count=987, percentage=8.1),
+    allowed_domains = [
+        TopDomainsItem(**item) for item in domains_data["allowed_domains"]
     ]
-    
+
     return TopDomainsResponse(
-        blocked_domains=mock_blocked[:limit],
-        allowed_domains=mock_allowed[:limit]
+        blocked_domains=blocked_domains, allowed_domains=allowed_domains
     )
 
 
