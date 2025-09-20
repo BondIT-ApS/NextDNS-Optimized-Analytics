@@ -15,7 +15,10 @@ interface ErrorBoundaryProps {
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void
 }
 
-export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props)
     this.state = { hasError: false }
@@ -27,7 +30,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Error boundary caught an error:', error, errorInfo)
-    
+
     this.setState({
       error,
       errorInfo,
@@ -48,11 +51,21 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       // Use custom fallback component if provided
       if (this.props.fallback) {
         const FallbackComponent = this.props.fallback
-        return <FallbackComponent error={this.state.error} resetError={this.resetError} />
+        return (
+          <FallbackComponent
+            error={this.state.error}
+            resetError={this.resetError}
+          />
+        )
       }
 
       // Default error UI
-      return <DefaultErrorFallback error={this.state.error} resetError={this.resetError} />
+      return (
+        <DefaultErrorFallback
+          error={this.state.error}
+          resetError={this.resetError}
+        />
+      )
     }
 
     return this.props.children
@@ -64,7 +77,10 @@ interface DefaultErrorFallbackProps {
   resetError: () => void
 }
 
-function DefaultErrorFallback({ error, resetError }: DefaultErrorFallbackProps) {
+function DefaultErrorFallback({
+  error,
+  resetError,
+}: DefaultErrorFallbackProps) {
   return (
     <Card className="border-lego-red">
       <CardHeader>
@@ -75,9 +91,10 @@ function DefaultErrorFallback({ error, resetError }: DefaultErrorFallbackProps) 
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-muted-foreground">
-          We encountered an unexpected error. This might be due to a temporary network issue or server problem.
+          We encountered an unexpected error. This might be due to a temporary
+          network issue or server problem.
         </p>
-        
+
         {error && (
           <details className="text-sm">
             <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
@@ -94,9 +111,9 @@ function DefaultErrorFallback({ error, resetError }: DefaultErrorFallbackProps) 
             <RefreshCw className="mr-2 h-4 w-4" />
             Try Again
           </Button>
-          <Button 
-            onClick={() => window.location.reload()} 
-            variant="outline" 
+          <Button
+            onClick={() => window.location.reload()}
+            variant="outline"
             size="sm"
           >
             Refresh Page
@@ -104,7 +121,8 @@ function DefaultErrorFallback({ error, resetError }: DefaultErrorFallbackProps) 
         </div>
 
         <p className="text-xs text-muted-foreground">
-          💡 If this problem persists, try refreshing the page or check your network connection.
+          💡 If this problem persists, try refreshing the page or check your
+          network connection.
         </p>
       </CardContent>
     </Card>
@@ -117,14 +135,17 @@ interface ApiErrorBoundaryProps {
   componentName?: string
 }
 
-export function ApiErrorBoundary({ children, componentName = "component" }: ApiErrorBoundaryProps) {
+export function ApiErrorBoundary({
+  children,
+  componentName = 'component',
+}: ApiErrorBoundaryProps) {
   const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
     // Log API-specific errors
     console.error(`API Error in ${componentName}:`, error, errorInfo)
   }
 
   return (
-    <ErrorBoundary 
+    <ErrorBoundary
       onError={handleError}
       fallback={({ resetError }) => (
         <Card className="border-lego-orange">
@@ -136,9 +157,10 @@ export function ApiErrorBoundary({ children, componentName = "component" }: ApiE
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
-              Unable to load {componentName.toLowerCase()} data. This might be due to backend connectivity issues.
+              Unable to load {componentName.toLowerCase()} data. This might be
+              due to backend connectivity issues.
             </p>
-            
+
             <Button onClick={resetError} variant="outline" size="sm">
               <RefreshCw className="mr-2 h-4 w-4" />
               Retry

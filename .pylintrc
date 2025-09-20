@@ -1,30 +1,34 @@
 [MASTER]
-ignore=venv
+ignore=venv,alembic
 jobs=1
+fail-under=9.5
 load-plugins=
     pylint.extensions.docparams
 
 [MESSAGES CONTROL]
 disable=
-    C0413,  # import-outside-toplevel
-    C0114,  # missing-module-docstring
-    C0115,  # missing-class-docstring
-    C0116,  # missing-function-docstring
-    R0903,  # too-few-public-methods
-    R0913,  # too-many-arguments
-    R0914,  # too-many-locals
-    R0915,  # too-many-statements
-    R0912,  # too-many-branches
-    R0917,  # too-many-positional-arguments
-    W0718,  # catching-too-general-exception
-    W1203,  # logging-fstring-interpolation
+    C0114,  # missing-module-docstring (too noisy for small modules)
+    C0116,  # missing-function-docstring (we have good function names)
+    R0903,  # too-few-public-methods (Pydantic models, data classes)
+    R0913,  # too-many-arguments (API endpoints, database functions)
+    W1203,  # logging-fstring-interpolation (we prefer f-strings in logs)
+    # Keep these enabled for better code quality:
+    # C0413 import-outside-toplevel - should be avoided
+    # C0115 missing-class-docstring - classes should have docstrings
+    # R0914 too-many-locals - indicates function complexity
+    # R0915 too-many-statements - indicates function complexity 
+    # R0912 too-many-branches - indicates function complexity
+    # R0917 too-many-positional-arguments - encourages better API design
+    # W0718 catching-too-general-exception - should be specific
 
 [FORMAT]
-max-line-length=120
+max-line-length=110  # Practical balance for logging statements with emojis
 
 [DESIGN]
-max-args=6
-max-locals=20
+max-args=7        # Allow a few more args for FastAPI endpoints
+max-locals=15     # Reduce from 20 to encourage better function design
+max-statements=50 # Explicit limit for function length
+max-branches=12   # Explicit limit for complexity
 
 [TYPECHECK]
 ignored-modules=requests

@@ -13,19 +13,27 @@ export function useLogs(params: LogsParams = {}) {
     limit: params.limit || 100,
     search: params.search?.trim() || undefined,
     status: params.status === 'all' ? undefined : params.status,
-    profile: params.profile || undefined
+    profile: params.profile || undefined,
   }
-  
+
   // Remove undefined values to create cleaner query key
-  const queryKey = ['logs', Object.fromEntries(
-    Object.entries(normalizedParams).filter(([_, value]) => value !== undefined)
-  )]
-  
+  const queryKey = [
+    'logs',
+    Object.fromEntries(
+      Object.entries(normalizedParams).filter(
+        ([_, value]) => value !== undefined
+      )
+    ),
+  ]
+
   return useQuery({
     queryKey,
     queryFn: () => apiClient.getLogs(params),
     staleTime: 30000, // 30 seconds
-    refetchInterval: params.search || params.status !== 'all' || params.profile ? false : 60000, // Only auto-refresh when no filters
+    refetchInterval:
+      params.search || params.status !== 'all' || params.profile
+        ? false
+        : 60000, // Only auto-refresh when no filters
     // Enable query deduplication and background updates
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,

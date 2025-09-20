@@ -1,14 +1,14 @@
 import axios, { AxiosError, AxiosResponse } from 'axios'
-import type { 
-  LogsResponse, 
+import type {
+  LogsResponse,
   LogsStatsResponse,
-  StatsResponse, 
-  HealthResponse, 
+  StatsResponse,
+  HealthResponse,
   DetailedHealthResponse,
   ProfileListResponse,
   ProfileInfoResponse,
   NextDNSProfileInfo,
-  LogFilters
+  LogFilters,
 } from '@/types/api'
 
 // Create axios instance
@@ -55,16 +55,19 @@ export const apiClient = {
   },
 
   // Logs endpoints
-  async getLogs(filters: LogFilters & { status?: string } = {}): Promise<LogsResponse> {
+  async getLogs(
+    filters: LogFilters & { status?: string } = {}
+  ): Promise<LogsResponse> {
     const params = new URLSearchParams()
-    
+
     if (filters.exclude && filters.exclude.length > 0) {
       filters.exclude.forEach(domain => params.append('exclude', domain))
     }
     if (filters.limit) params.append('limit', filters.limit.toString())
     if (filters.offset) params.append('offset', filters.offset.toString())
     if (filters.search) params.append('search', filters.search)
-    if (filters.status && filters.status !== 'all') params.append('status', filters.status)
+    if (filters.status && filters.status !== 'all')
+      params.append('status', filters.status)
     if (filters.profile) params.append('profile', filters.profile)
 
     const response = await api.get(`/logs?${params.toString()}`)
@@ -74,7 +77,7 @@ export const apiClient = {
   async getLogsStats(profile?: string): Promise<LogsStatsResponse> {
     const params = new URLSearchParams()
     if (profile) params.append('profile', profile)
-    
+
     const response = await api.get(`/logs/stats?${params.toString()}`)
     return response.data
   },

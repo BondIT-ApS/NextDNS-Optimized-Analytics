@@ -4,7 +4,10 @@ import type { LogFilters } from '@/types/api'
 import { ApiCache } from '@/lib/cache'
 
 // Enhanced retry configuration with exponential backoff and caching
-const createRetryConfig = (maxRetries: number = 3, queryKey?: readonly string[]) => {
+const createRetryConfig = (
+  maxRetries: number = 3,
+  queryKey?: readonly string[]
+) => {
   return {
     retry: (failureCount: number, error: any) => {
       // Don't retry on auth errors (401) or client errors (400-499)
@@ -13,7 +16,7 @@ const createRetryConfig = (maxRetries: number = 3, queryKey?: readonly string[])
     },
     retryDelay: (attemptIndex: number) => {
       // Exponential backoff: 1s, 2s, 4s, 8s...
-      return Math.min(1000 * (2 ** attemptIndex), 30000)
+      return Math.min(1000 * 2 ** attemptIndex, 30000)
     },
     // Handle failed queries by falling back to cache
     onError: (error: any) => {
@@ -23,46 +26,55 @@ const createRetryConfig = (maxRetries: number = 3, queryKey?: readonly string[])
 }
 
 // Enhanced connection status helper with offline detection
-const getConnectionStatus = (error: any, isLoading: boolean, data: any, isFromCache: boolean = false) => {
+const getConnectionStatus = (
+  error: any,
+  isLoading: boolean,
+  data: any,
+  isFromCache: boolean = false
+) => {
   if (isLoading && !isFromCache) return { isConnected: false, isLoading: true }
   if (error && !isFromCache) return { isConnected: false, isLoading: false }
-  return { 
-    isConnected: Boolean(data) && !isFromCache, 
+  return {
+    isConnected: Boolean(data) && !isFromCache,
     isLoading: false,
-    isOffline: isFromCache
+    isOffline: isFromCache,
   }
 }
 
 // Cache-aware query function wrapper
-const createCacheAwareQuery = <T>(queryFn: () => Promise<T>, queryKey: readonly string[], ttl?: number) => {
+const createCacheAwareQuery = <T>(
+  queryFn: () => Promise<T>,
+  queryKey: readonly string[],
+  ttl?: number
+) => {
   return async (): Promise<T & { _cacheMetadata?: any }> => {
     const cacheKey = queryKey.join('-')
-    
+
     try {
       // Try to fetch fresh data
       const data = await queryFn()
-      
+
       // Cache successful response
       ApiCache.set(cacheKey, data, ttl)
-      
+
       return data as T & { _cacheMetadata?: any }
     } catch (error) {
       // On error, try to get cached data (even if expired)
       const cached = ApiCache.getOffline<T>(cacheKey)
-      
+
       if (cached) {
         console.info(`Using offline cache for ${cacheKey}:`, {
           age: ApiCache.formatAge(cached.metadata.lastUpdated),
-          isOffline: cached.metadata.isOffline
+          isOffline: cached.metadata.isOffline,
         })
-        
+
         // Return cached data with metadata
         return {
           ...cached.data,
-          _cacheMetadata: cached.metadata
+          _cacheMetadata: cached.metadata,
         } as T & { _cacheMetadata?: any }
       }
-      
+
       // If no cache available, re-throw the error
       throw error
     }
@@ -93,10 +105,15 @@ export const useHealth = () => {
   })
 
   const isFromCache = Boolean(query.data?._cacheMetadata?.isOffline)
-  
+
   return {
     ...query,
-    connectionStatus: getConnectionStatus(query.error, query.isLoading, query.data, isFromCache),
+    connectionStatus: getConnectionStatus(
+      query.error,
+      query.isLoading,
+      query.data,
+      isFromCache
+    ),
     isFromCache,
     cacheMetadata: query.data?._cacheMetadata,
   }
@@ -117,10 +134,15 @@ export const useDetailedHealth = () => {
   })
 
   const isFromCache = Boolean(query.data?._cacheMetadata?.isOffline)
-  
+
   return {
     ...query,
-    connectionStatus: getConnectionStatus(query.error, query.isLoading, query.data, isFromCache),
+    connectionStatus: getConnectionStatus(
+      query.error,
+      query.isLoading,
+      query.data,
+      isFromCache
+    ),
     isFromCache,
     cacheMetadata: query.data?._cacheMetadata,
   }
@@ -141,10 +163,15 @@ export const useStats = () => {
   })
 
   const isFromCache = Boolean(query.data?._cacheMetadata?.isOffline)
-  
+
   return {
     ...query,
-    connectionStatus: getConnectionStatus(query.error, query.isLoading, query.data, isFromCache),
+    connectionStatus: getConnectionStatus(
+      query.error,
+      query.isLoading,
+      query.data,
+      isFromCache
+    ),
     isFromCache,
     cacheMetadata: query.data?._cacheMetadata,
   }
@@ -157,13 +184,17 @@ export const useLogs = (filters: LogFilters = {}) => {
     queryFn: () => apiClient.getLogs(filters),
     refetchInterval: 60000, // Refetch every minute for real-time updates
     staleTime: 30000,
-    placeholderData: (prev) => prev, // Keep previous data while fetching new
+    placeholderData: prev => prev, // Keep previous data while fetching new
     ...createRetryConfig(3),
   })
 
   return {
     ...query,
-    connectionStatus: getConnectionStatus(query.error, query.isLoading, query.data),
+    connectionStatus: getConnectionStatus(
+      query.error,
+      query.isLoading,
+      query.data
+    ),
   }
 }
 
@@ -178,7 +209,11 @@ export const useRoot = () => {
 
   return {
     ...query,
-    connectionStatus: getConnectionStatus(query.error, query.isLoading, query.data),
+    connectionStatus: getConnectionStatus(
+      query.error,
+      query.isLoading,
+      query.data
+    ),
   }
 }
 
@@ -194,7 +229,11 @@ export const useRealtimeLogs = (filters: LogFilters = {}, enabled = true) => {
 
   return {
     ...query,
-    connectionStatus: getConnectionStatus(query.error, query.isLoading, query.data),
+    connectionStatus: getConnectionStatus(
+      query.error,
+      query.isLoading,
+      query.data
+    ),
   }
 }
 
@@ -205,15 +244,16 @@ export const useGlobalConnectionStatus = () => {
 
   // Determine overall connection status
   const isConnected = Boolean(
-    (health.data || detailedHealth.data) && 
-    !health.error && 
-    !detailedHealth.error
+    (health.data || detailedHealth.data) &&
+      !health.error &&
+      !detailedHealth.error
   )
 
   const isLoading = health.isLoading || detailedHealth.isLoading
 
   // Count retry attempts across all queries
-  const totalRetries = (health.failureCount || 0) + (detailedHealth.failureCount || 0)
+  const totalRetries =
+    (health.failureCount || 0) + (detailedHealth.failureCount || 0)
 
   return {
     isConnected,

@@ -1,8 +1,0 @@
-CREATE TABLE IF NOT EXISTS dns_logs (
-    id SERIAL PRIMARY KEY,
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    domain TEXT NOT NULL,
-    action TEXT NOT NULL,
-    device TEXT NOT NULL,
-    data JSONB NOT NULL
-);
