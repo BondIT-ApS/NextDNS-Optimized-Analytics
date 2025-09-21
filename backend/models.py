@@ -741,13 +741,11 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
                         minute=0, second=0, microsecond=0
                     )
                 else:  # day
-                    # For daily granularity, use the end of the interval minus 1 day
-                    # This ensures the display date matches the actual data period
-                    # e.g., if interval_end is 2025-09-21, display as 2025-09-21 (not 2025-09-20)
-                    display_date = (interval_end - timedelta(days=1)).date()
-                    display_time = datetime.combine(
-                        display_date, datetime.min.time()
-                    ).replace(tzinfo=timezone.utc)
+                    # For daily granularity, use the start of the interval
+                    # Since we've aligned intervals to start of day, this gives correct dates
+                    display_time = interval_start.replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    )
 
             # Query for this interval
             interval_query = base_query.filter(
