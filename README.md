@@ -23,6 +23,7 @@ Just like building a LEGO masterpiece, we've crafted a solution that assembles N
 - **🔄 Local NextDNS Log Synchronization** – Securely fetch logs and store them locally, like collecting all the right LEGO pieces before starting your build
 - **📊 Interactive Web Dashboard** – Modern React-based interface that transforms raw data into visual insights, like seeing your LEGO creation from every angle
 - **🔍 Advanced Data Filtering** – Powerful filtering capabilities that go beyond NextDNS's standard UI, like sorting LEGO bricks by color, shape and size
+- **⏰ Flexible Time Range Analysis** – From 30-minute real-time monitoring to 6-month trend analysis with adaptive granularity
 - **🏷️ TLD Aggregation Analytics** – Group subdomains under parent domains (gateway.icloud.com → icloud.com) for higher-level insights
 - **📱 Device Usage Analytics** – Track DNS activity by device with exclusion support for better network monitoring
 - **📈 Time Series Data** – Comprehensive time-based analytics for trend analysis and pattern recognition

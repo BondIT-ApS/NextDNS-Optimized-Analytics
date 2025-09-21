@@ -384,6 +384,7 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
     search_query="",
     status_filter="all",
     profile_filter=None,
+    time_range="all",
     limit=100,
     offset=0,
 ):
@@ -394,6 +395,10 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
         search_query (str): Domain name search query
         status_filter (str): Filter by status - 'all', 'blocked', 'allowed'
         profile_filter (str): Filter by specific profile ID
+        time_range (str): Time range to filter by (30m, 1h, 6h, 24h, 7d, 30d, 3m, all)
+                         - 30m: Last 30 minutes (1-minute granularity)
+                         - 6h: Last 6 hours (15-minute granularity)
+                         - 3m: Last 3 months (weekly granularity)
         limit (int): Maximum number of records to return
         offset (int): Number of records to skip for pagination
 
@@ -404,7 +409,7 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
     logger.debug(
         f"📊 Retrieving logs with limit={limit}, offset={offset}, "
         f"exclude_domains={exclude_domains}, search='{search_query}', "
-        f"status='{status_filter}', profile='{profile_filter}'"
+        f"status='{status_filter}', profile='{profile_filter}', time_range='{time_range}'"
     )
     logger.info(
         f"📊 Database query: requesting {limit} records from {total_records:,} total records"
@@ -435,6 +440,25 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
         if profile_filter and profile_filter.strip():
             query = query.filter(DNSLog.profile_id == profile_filter)
             logger.debug(f"🧱 Filtering for profile: '{profile_filter}'")
+
+        # Apply time range filter
+        if time_range != "all":
+            now = datetime.now(timezone.utc)
+
+            time_deltas = {
+                "30m": timedelta(minutes=30),
+                "1h": timedelta(hours=1),
+                "6h": timedelta(hours=6),
+                "24h": timedelta(hours=24),
+                "7d": timedelta(days=7),
+                "30d": timedelta(days=30),
+                "3m": timedelta(days=90),
+            }
+
+            if time_range in time_deltas:
+                cutoff_time = now - time_deltas[time_range]
+                query = query.filter(DNSLog.timestamp >= cutoff_time)
+                logger.debug(f"📅 Filtering for time range: {time_range}")
 
         # Apply pagination
         query = query.offset(offset).limit(limit)
@@ -473,11 +497,15 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
 
 
 # Get total statistics for all logs in the database
-def get_logs_stats(profile_filter=None):
-    """Get statistics for DNS logs in the database, optionally filtered by profile.
+def get_logs_stats(profile_filter=None, time_range="all"):
+    """Get statistics for DNS logs in the database, optionally filtered by profile and time range.
 
     Args:
         profile_filter (str): Optional profile ID to filter statistics
+        time_range (str): Time range to filter by (30m, 1h, 6h, 24h, 7d, 30d, 3m, all)
+                         - 30m: Last 30 minutes (1-minute granularity)
+                         - 6h: Last 6 hours (15-minute granularity)
+                         - 3m: Last 3 months (weekly granularity)
 
     Returns:
         dict: Dictionary containing total, blocked, and allowed counts and percentages
@@ -490,6 +518,25 @@ def get_logs_stats(profile_filter=None):
         if profile_filter and profile_filter.strip():
             query = query.filter(DNSLog.profile_id == profile_filter)
             logger.debug(f"🧱 Getting stats for profile: '{profile_filter}'")
+
+        # Apply time range filter
+        if time_range != "all":
+            now = datetime.now(timezone.utc)
+
+            time_deltas = {
+                "30m": timedelta(minutes=30),
+                "1h": timedelta(hours=1),
+                "6h": timedelta(hours=6),
+                "24h": timedelta(hours=24),
+                "7d": timedelta(days=7),
+                "30d": timedelta(days=30),
+                "3m": timedelta(days=90),
+            }
+
+            if time_range in time_deltas:
+                cutoff_time = now - time_deltas[time_range]
+                query = query.filter(DNSLog.timestamp >= cutoff_time)
+                logger.debug(f"📅 Getting stats for time range: {time_range}")
 
         # Get total count
         total_count = query.count()
@@ -587,7 +634,10 @@ def get_stats_overview(profile_filter=None, time_range="24h"):
 
     Args:
         profile_filter (str): Optional profile ID to filter by
-        time_range (str): Time range to filter by (1h, 24h, 7d, 30d, all)
+        time_range (str): Time range to filter by (30m, 1h, 6h, 24h, 7d, 30d, 3m, all)
+                         - 30m: Last 30 minutes (1-minute granularity)
+                         - 6h: Last 6 hours (15-minute granularity)
+                         - 3m: Last 3 months (weekly granularity)
 
     Returns:
         dict: Statistics overview
@@ -608,10 +658,13 @@ def get_stats_overview(profile_filter=None, time_range="24h"):
             now = datetime.now(timezone.utc)
 
             time_deltas = {
+                "30m": timedelta(minutes=30),
                 "1h": timedelta(hours=1),
+                "6h": timedelta(hours=6),
                 "24h": timedelta(hours=24),
                 "7d": timedelta(days=7),
                 "30d": timedelta(days=30),
+                "3m": timedelta(days=90),  # 3 months = ~90 days
             }
 
             if time_range in time_deltas:
@@ -632,7 +685,16 @@ def get_stats_overview(profile_filter=None, time_range="24h"):
         )
 
         # Calculate queries per hour (rough estimate)
-        hours_map = {"1h": 1, "24h": 24, "7d": 168, "30d": 720, "all": 1}
+        hours_map = {
+            "30m": 0.5,
+            "1h": 1,
+            "6h": 6,
+            "24h": 24,
+            "7d": 168,
+            "30d": 720,
+            "3m": 2160,  # 90 days * 24 hours
+            "all": 1,
+        }
         hours = hours_map.get(time_range, 24)
         queries_per_hour = total_queries / hours if hours > 0 else 0
 
@@ -728,7 +790,10 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
 
     Args:
         profile_filter (str): Optional profile ID to filter by
-        time_range (str): Time range to filter by
+        time_range (str): Time range to filter by (30m, 1h, 6h, 24h, 7d, 30d, 3m, all)
+                         - 30m: Last 30 minutes (1-minute granularity)
+                         - 6h: Last 6 hours (15-minute granularity)
+                         - 3m: Last 3 months (weekly granularity)
         granularity (str): Time granularity (hour, day, etc.)
 
     Returns:
@@ -740,11 +805,21 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
         now = datetime.now(timezone.utc)
 
         # Determine time parameters based on time range
-        if time_range == "1h":
+        if time_range == "30m":
+            start_time = now - timedelta(minutes=30)
+            interval_minutes = 1
+            num_intervals = 30  # 30 x 1min = 30 minutes
+            granularity = "1min"
+        elif time_range == "1h":
             start_time = now - timedelta(hours=1)
             interval_minutes = 5
             num_intervals = 12  # 12 x 5min = 1 hour
             granularity = "5min"
+        elif time_range == "6h":
+            start_time = now - timedelta(hours=6)
+            interval_minutes = 15
+            num_intervals = 24  # 24 x 15min = 6 hours
+            granularity = "15min"
         elif time_range == "24h":
             start_time = now - timedelta(hours=24)
             interval_hours = 1
@@ -766,6 +841,18 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
             interval_hours = 24
             num_intervals = 30  # 30 x 1day = 30 days
             granularity = "day"
+        elif time_range == "3m":
+            # For 3 months, use weekly intervals
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Go back to the start of the week (Monday)
+            days_since_monday = today_start.weekday()
+            week_start = today_start - timedelta(days=days_since_monday)
+            start_time = week_start - timedelta(
+                weeks=12
+            )  # 12 weeks back + current week = ~3 months
+            interval_hours = 24 * 7  # 1 week = 168 hours
+            num_intervals = 13  # 13 x 1week = ~3 months
+            granularity = "week"
         else:  # 'all'
             # For 'all', we'll use daily intervals for the last 30 days
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -786,13 +873,25 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
         # Generate time buckets
         data_points = []
         for i in range(num_intervals):
-            if time_range == "1h":
+            if time_range in ["30m", "1h", "6h"]:
                 interval_start = start_time + timedelta(minutes=i * interval_minutes)
                 interval_end = interval_start + timedelta(minutes=interval_minutes)
-                # Round to nearest 5 minutes for clean display
-                display_time = interval_start.replace(
-                    minute=(interval_start.minute // 5) * 5, second=0, microsecond=0
-                )
+                # Round to appropriate intervals for clean display
+                if time_range == "30m":
+                    # Round to exact minute
+                    display_time = interval_start.replace(second=0, microsecond=0)
+                elif time_range == "1h":
+                    # Round to nearest 5 minutes
+                    display_time = interval_start.replace(
+                        minute=(interval_start.minute // 5) * 5, second=0, microsecond=0
+                    )
+                elif time_range == "6h":
+                    # Round to nearest 15 minutes
+                    display_time = interval_start.replace(
+                        minute=(interval_start.minute // 15) * 15,
+                        second=0,
+                        microsecond=0,
+                    )
             else:
                 interval_start = start_time + timedelta(hours=i * interval_hours)
                 interval_end = interval_start + timedelta(hours=interval_hours)
@@ -801,6 +900,11 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
                     # Round to exact hour for clean display
                     display_time = interval_start.replace(
                         minute=0, second=0, microsecond=0
+                    )
+                elif granularity == "week":
+                    # For weekly granularity, use the start of the week (Monday)
+                    display_time = interval_start.replace(
+                        hour=0, minute=0, second=0, microsecond=0
                     )
                 else:  # day
                     # For daily granularity, use the start of the interval
@@ -856,7 +960,10 @@ def get_top_domains(profile_filter=None, time_range="24h", limit=10):
 
     Args:
         profile_filter (str): Optional profile ID to filter by
-        time_range (str): Time range to filter by
+        time_range (str): Time range to filter by (30m, 1h, 6h, 24h, 7d, 30d, 3m, all)
+                         - 30m: Last 30 minutes (1-minute granularity)
+                         - 6h: Last 6 hours (15-minute granularity)
+                         - 3m: Last 3 months (weekly granularity)
         limit (int): Number of top domains to return
 
     Returns:
@@ -877,10 +984,13 @@ def get_top_domains(profile_filter=None, time_range="24h", limit=10):
             now = datetime.now(timezone.utc)
 
             time_deltas = {
+                "30m": timedelta(minutes=30),
                 "1h": timedelta(hours=1),
+                "6h": timedelta(hours=6),
                 "24h": timedelta(hours=24),
                 "7d": timedelta(days=7),
                 "30d": timedelta(days=30),
+                "3m": timedelta(days=90),  # 3 months = ~90 days
             }
 
             if time_range in time_deltas:
@@ -978,7 +1088,10 @@ def get_stats_tlds(profile_filter=None, time_range="24h", limit=10):
 
     Args:
         profile_filter (str): Optional profile ID to filter by
-        time_range (str): Time range to filter by
+        time_range (str): Time range to filter by (30m, 1h, 6h, 24h, 7d, 30d, 3m, all)
+                         - 30m: Last 30 minutes (1-minute granularity)
+                         - 6h: Last 6 hours (15-minute granularity)
+                         - 3m: Last 3 months (weekly granularity)
         limit (int): Number of top TLDs to return
 
     Returns:
@@ -998,10 +1111,13 @@ def get_stats_tlds(profile_filter=None, time_range="24h", limit=10):
             now = datetime.now(timezone.utc)
 
             time_deltas = {
+                "30m": timedelta(minutes=30),
                 "1h": timedelta(hours=1),
+                "6h": timedelta(hours=6),
                 "24h": timedelta(hours=24),
                 "7d": timedelta(days=7),
                 "30d": timedelta(days=30),
+                "3m": timedelta(days=90),
             }
 
             if time_range in time_deltas:
@@ -1090,7 +1206,10 @@ def get_stats_devices(
 
     Args:
         profile_filter (str): Optional profile ID to filter by
-        time_range (str): Time range to filter by
+        time_range (str): Time range to filter by (30m, 1h, 6h, 24h, 7d, 30d, 3m, all)
+                         - 30m: Last 30 minutes (1-minute granularity)
+                         - 6h: Last 6 hours (15-minute granularity)
+                         - 3m: Last 3 months (weekly granularity)
         limit (int): Number of top devices to return
         exclude_devices (list): List of device names to exclude from results
 
@@ -1111,10 +1230,13 @@ def get_stats_devices(
             now = datetime.now(timezone.utc)
 
             time_deltas = {
+                "30m": timedelta(minutes=30),
                 "1h": timedelta(hours=1),
+                "6h": timedelta(hours=6),
                 "24h": timedelta(hours=24),
                 "7d": timedelta(days=7),
                 "30d": timedelta(days=30),
+                "3m": timedelta(days=90),
             }
 
             if time_range in time_deltas:
