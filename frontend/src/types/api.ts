@@ -127,8 +127,10 @@ export interface LogFilters {
   startDate?: string
   endDate?: string
   blocked?: boolean
-  deviceFilter?: string
+  devices?: string[]
   profile?: string
+  time_range?: string
+  status?: string
 }
 
 // Chart data types
@@ -143,6 +145,20 @@ export interface DomainStats {
   count: number
   blocked: number
   percentage: number
+}
+
+export interface DeviceUsageItem {
+  device_name: string
+  total_queries: number
+  blocked_queries: number
+  allowed_queries: number
+  blocked_percentage: number
+  allowed_percentage: number
+  last_activity: string
+}
+
+export interface DeviceStatsResponse {
+  devices: DeviceUsageItem[]
 }
 
 export interface DeviceStats {
