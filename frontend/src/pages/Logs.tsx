@@ -7,6 +7,7 @@ import { StatsCards } from '@/components/StatsCards'
 import { FilterPanel } from '@/components/FilterPanel'
 import { LogsTable } from '@/components/LogsTable'
 import { ProfileSelector } from '@/components/ProfileSelector'
+import { DeviceFilter } from '@/components/DeviceFilter'
 import { useState, useMemo, useEffect, useCallback, useTransition } from 'react'
 
 export function Logs() {
@@ -18,6 +19,7 @@ export function Logs() {
   const [selectedProfile, setSelectedProfile] = useState<string | undefined>(
     undefined
   )
+  const [selectedDevices, setSelectedDevices] = useState<string[]>([])
   const [, startTransition] = useTransition()
 
   // Debounce search query with transition for non-blocking updates
@@ -38,8 +40,9 @@ export function Logs() {
       search: debouncedSearchQuery,
       status: statusFilter,
       profile: selectedProfile,
+      devices: selectedDevices.length > 0 ? selectedDevices : undefined,
     }),
-    [debouncedSearchQuery, statusFilter, selectedProfile]
+    [debouncedSearchQuery, statusFilter, selectedProfile, selectedDevices]
   )
 
   const { data: logsResponse, isLoading, error, refetch } = useLogs(queryParams)
@@ -101,6 +104,14 @@ export function Logs() {
   const handleProfileChange = useCallback((profileId: string | undefined) => {
     startTransition(() => {
       setSelectedProfile(profileId)
+      // Reset device selection when profile changes
+      setSelectedDevices([])
+    })
+  }, [])
+
+  const handleDeviceSelectionChange = useCallback((devices: string[]) => {
+    startTransition(() => {
+      setSelectedDevices(devices)
     })
   }, [])
 
@@ -180,27 +191,38 @@ export function Logs() {
           statusFilter={statusFilter}
         />
 
-        {/* Profile Selector and Search Filter - Side by Side */}
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="flex-1">
-            <ProfileSelector
-              selectedProfile={selectedProfile}
-              onProfileChange={handleProfileChange}
-              showStats={true}
-            />
-          </div>
+        {/* Profile Selector and Filters */}
+        <div className="space-y-6">
+          {/* Profile Selector */}
+          <ProfileSelector
+            selectedProfile={selectedProfile}
+            onProfileChange={handleProfileChange}
+            showStats={true}
+          />
 
-          <div className="flex-1">
-            <FilterPanel
-              searchQuery={searchQuery}
-              onSearchChange={handleSearchChange}
-              statusFilter={statusFilter}
-              onStatusFilterChange={handleStatusFilterChange}
-              debouncedSearchQuery={debouncedSearchQuery}
-              filteredLogsCount={filteredLogs.length}
-              totalLogsCount={stats.totalInDatabase}
-              selectedProfile={selectedProfile}
-            />
+          {/* Device Filter and Search Filter - Side by Side */}
+          <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex-1">
+              <DeviceFilter
+                selectedProfile={selectedProfile}
+                selectedDevices={selectedDevices}
+                onDeviceSelectionChange={handleDeviceSelectionChange}
+                timeRange="24h"
+              />
+            </div>
+
+            <div className="flex-1">
+              <FilterPanel
+                searchQuery={searchQuery}
+                onSearchChange={handleSearchChange}
+                statusFilter={statusFilter}
+                onStatusFilterChange={handleStatusFilterChange}
+                debouncedSearchQuery={debouncedSearchQuery}
+                filteredLogsCount={filteredLogs.length}
+                totalLogsCount={stats.totalInDatabase}
+                selectedProfile={selectedProfile}
+              />
+            </div>
           </div>
         </div>
 

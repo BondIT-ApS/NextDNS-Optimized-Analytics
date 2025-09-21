@@ -384,6 +384,7 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
     search_query="",
     status_filter="all",
     profile_filter=None,
+    device_filter=None,
     time_range="all",
     limit=100,
     offset=0,
@@ -395,6 +396,7 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
         search_query (str): Domain name search query
         status_filter (str): Filter by status - 'all', 'blocked', 'allowed'
         profile_filter (str): Filter by specific profile ID
+        device_filter (list): List of device names to filter by
         time_range (str): Time range to filter by (30m, 1h, 6h, 24h, 7d, 30d, 3m, all)
                          - 30m: Last 30 minutes (1-minute granularity)
                          - 6h: Last 6 hours (15-minute granularity)
@@ -409,7 +411,7 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
     logger.debug(
         f"📊 Retrieving logs with limit={limit}, offset={offset}, "
         f"exclude_domains={exclude_domains}, search='{search_query}', "
-        f"status='{status_filter}', profile='{profile_filter}', time_range='{time_range}'"
+        f"status='{status_filter}', profile='{profile_filter}', devices={device_filter}, time_range='{time_range}'"
     )
     logger.info(
         f"📊 Database query: requesting {limit} records from {total_records:,} total records"
@@ -440,6 +442,22 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
         if profile_filter and profile_filter.strip():
             query = query.filter(DNSLog.profile_id == profile_filter)
             logger.debug(f"🧱 Filtering for profile: '{profile_filter}'")
+
+        # Apply device filter
+        if device_filter and len(device_filter) > 0:
+            # Filter logs based on device names
+            device_conditions = []
+            for device_name in device_filter:
+                if device_name.strip():
+                    # Check for devices where the JSON device field contains the name
+                    device_conditions.append(
+                        DNSLog.device.ilike(f'%"name": "{device_name}"%')
+                    )
+            if device_conditions:
+                from sqlalchemy import or_
+
+                query = query.filter(or_(*device_conditions))
+                logger.debug(f"📱 Filtering for devices: {device_filter}")
 
         # Apply time range filter
         if time_range != "all":
