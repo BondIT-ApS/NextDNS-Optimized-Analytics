@@ -388,11 +388,11 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
             query = query.filter(DNSLog.domain.ilike(f"%{search_query}%"))
             logger.debug(f"🔍 Filtering by domain search: '{search_query}'")
 
-        # Apply status filter
-        if status_filter == "blocked":
+        # Apply status filter (case-insensitive)
+        if status_filter and status_filter.lower() == "blocked":
             query = query.filter(DNSLog.blocked is True)
             logger.debug("🚫 Filtering for blocked requests only")
-        elif status_filter == "allowed":
+        elif status_filter and status_filter.lower() == "allowed":
             query = query.filter(DNSLog.blocked is False)
             logger.debug("✅ Filtering for allowed requests only")
 
@@ -618,23 +618,46 @@ def get_stats_overview(profile_filter=None, time_range="24h"):
             logger.debug(f"Could not determine most active device: {e}")
             most_active_device = None
 
-        # Get top blocked domain
+        # Get top blocked domain (only if there are blocked queries and use same filters)
         top_blocked_domain = None
-        try:
-            # pylint: disable=not-callable
-            blocked_domain_result = (
-                session.query(DNSLog.domain, func.count(DNSLog.id).label("count"))
-                .filter(DNSLog.blocked.is_(True))
-                .group_by(DNSLog.domain)
-                .order_by(func.count(DNSLog.id).desc())
-                .first()
-            )
-            # pylint: enable=not-callable
-            if blocked_domain_result and blocked_domain_result[0]:
-                top_blocked_domain = blocked_domain_result[0]
-        except SQLAlchemyError as e:
-            logger.debug(f"Could not determine top blocked domain: {e}")
-            top_blocked_domain = None
+        if blocked_queries > 0:
+            try:
+                # Use the same filtered query with profile and time range filters applied
+                # We need to build a new query with the same filters for aggregation
+                blocked_domain_query = session.query(
+                    DNSLog.domain, func.count(DNSLog.id).label("count")
+                )
+
+                # Apply the same profile filter
+                if (
+                    profile_filter
+                    and profile_filter.strip()
+                    and profile_filter != "all"
+                ):
+                    blocked_domain_query = blocked_domain_query.filter(
+                        DNSLog.profile_id == profile_filter
+                    )
+
+                # Apply the same time range filter
+                if time_range != "all":
+                    if time_range in time_deltas:
+                        blocked_domain_query = blocked_domain_query.filter(
+                            DNSLog.timestamp >= cutoff_time
+                        )
+
+                # pylint: disable=not-callable
+                blocked_domain_result = (
+                    blocked_domain_query.filter(DNSLog.blocked.is_(True))
+                    .group_by(DNSLog.domain)
+                    .order_by(func.count(DNSLog.id).desc())
+                    .first()
+                )
+                # pylint: enable=not-callable
+                if blocked_domain_result and blocked_domain_result[0]:
+                    top_blocked_domain = blocked_domain_result[0]
+            except SQLAlchemyError as e:
+                logger.debug(f"Could not determine top blocked domain: {e}")
+                top_blocked_domain = None
 
         stats = {
             "total_queries": total_queries,
