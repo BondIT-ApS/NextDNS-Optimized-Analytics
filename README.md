@@ -23,6 +23,9 @@ Just like building a LEGO masterpiece, we've crafted a solution that assembles N
 - **🔄 Local NextDNS Log Synchronization** – Securely fetch logs and store them locally, like collecting all the right LEGO pieces before starting your build
 - **📊 Interactive Web Dashboard** – Modern React-based interface that transforms raw data into visual insights, like seeing your LEGO creation from every angle
 - **🔍 Advanced Data Filtering** – Powerful filtering capabilities that go beyond NextDNS's standard UI, like sorting LEGO bricks by color, shape and size
+- **🏷️ TLD Aggregation Analytics** – Group subdomains under parent domains (gateway.icloud.com → icloud.com) for higher-level insights
+- **📱 Device Usage Analytics** – Track DNS activity by device with exclusion support for better network monitoring
+- **📈 Time Series Data** – Comprehensive time-based analytics for trend analysis and pattern recognition
 - **🐳 Dockerized Deployment** – Quick, containerized setup for both backend and frontend, as easy as following a LEGO instruction manual
 - **🔐 API Authentication** – Secure access to your data with API key authentication, because even the best LEGO collections need protection
 
@@ -61,10 +64,10 @@ Just like building a LEGO masterpiece, we've crafted a solution that assembles N
     Just like that final satisfying "click" when LEGO pieces connect, your containers are now running!
 
 4. **🎯 Access Your Analytics**:
-    - **Web Dashboard**: http://localhost:5003
-    - **API Documentation**: http://localhost:5002/docs
-    - **Health Check**: http://localhost:5002/health
-    - **Database Access**: localhost:5001 (PostgreSQL)
+    - **Web Dashboard**: http://localhost:5002
+    - **API Documentation**: http://localhost:5001/docs
+    - **Health Check**: http://localhost:5001/health
+    - **Database Access**: localhost:5433 (PostgreSQL)
 
 ### 🐳 Docker Hub Building Sets
 
@@ -81,7 +84,7 @@ Use the API to query your data, filter domains, and generate insights that the s
 
 ## 📊 Analytics - Admiring Your Build
 
-Once everything is running, access the web dashboard at `http://localhost:5003` to visualize your DNS activity. The React-based interface transforms raw data into intuitive charts and interactive displays, giving you insights into your network traffic patterns, blocked domains, query types, and more.
+Once everything is running, access the web dashboard at `http://localhost:5002` to visualize your DNS activity. The React-based interface transforms raw data into intuitive charts and interactive displays, giving you insights into your network traffic patterns, blocked domains, query types, and more.
 
 It's like stepping back to admire your completed LEGO masterpiece, seeing how all the individual bricks come together to form something spectacular!
 
