@@ -256,22 +256,12 @@ jobs:
         run: echo "🧱 Safety Action security scan completed successfully!"
 
 
-  # 🐳 Build Test (runs after all quality checks pass)
-  build-test:
-    name: 🐳 LEGO Assembly Test (Docker Build)
+  # 🐳 Backend Build Test
+  build-test-backend:
+    name: 🐳 LEGO Backend Assembly Test (Docker Build)
     runs-on: ubuntu-latest
     needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend, safety-security-check]
-    # Run if any component changed and all checks passed (or were skipped due to no changes)
-    if: always() && !contains(needs.*.result, 'failure')
-
-    strategy:
-      matrix:
-        service: [backend, frontend]
-        exclude:
-          - service: frontend
-            condition: ${{ needs.discover-changes.outputs.frontend-changed != 'true' }}
-          - service: backend
-            condition: ${{ needs.discover-changes.outputs.backend-changed != 'true' }}
+    if: always() && !contains(needs.*.result, 'failure') && needs.discover-changes.outputs.backend-changed == 'true'
 
     steps:
       - name: Checkout code
@@ -280,13 +270,37 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build ${{ matrix.service }} Docker image
+      - name: Build backend Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile.${{ matrix.service }}
+          file: ./Dockerfile.backend
           push: false
-          tags: nextdns-${{ matrix.service }}:pr-${{ github.event.number }}
+          tags: nextdns-backend:pr-${{ github.event.number }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 🐳 Frontend Build Test
+  build-test-frontend:
+    name: 🐳 LEGO Frontend Assembly Test (Docker Build)
+    runs-on: ubuntu-latest
+    needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend, safety-security-check]
+    if: always() && !contains(needs.*.result, 'failure') && needs.discover-changes.outputs.frontend-changed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build frontend Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.frontend
+          push: false
+          tags: nextdns-frontend:pr-${{ github.event.number }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -294,7 +308,7 @@ jobs:
   quality-gate-summary:
     name: 📊 LEGO Quality Gate Summary
     runs-on: ubuntu-latest
-    needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend, safety-security-check, build-test]
+    needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend, safety-security-check, build-test-backend, build-test-frontend]
     if: always()
 
     steps:
@@ -319,7 +333,8 @@ jobs:
                 'quality-frontend': '✨ Frontend Quality',
                 'quality-backend': '✨ Backend Quality',
                 'safety-security-check': '🛡️ Safety Security Scan',
-                'build-test': '🐳 Docker Build'
+                'build-test-backend': '🐳 Backend Docker Build',
+                'build-test-frontend': '🐳 Frontend Docker Build'
               };
               
               if (result.result === 'failure') {
