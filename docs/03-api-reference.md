@@ -25,6 +25,12 @@ graph TB
         Stats[GET /stats<br/>📊 Database Stats]
         Logs[GET /logs<br/>📝 DNS Log Data]
         LogsStats[GET /logs/stats<br/>📈 Log Statistics]
+        Profiles[GET /profiles<br/>🧱 Profile Management]
+        StatsOverview[GET /stats/overview<br/>📊 Overview Stats]
+        StatsTimeseries[GET /stats/timeseries<br/>📈 Time Series]
+        StatsDomains[GET /stats/domains<br/>🌐 Top Domains]
+        StatsTlds[GET /stats/tlds<br/>🏷️ TLD Aggregation]
+        StatsDevices[GET /stats/devices<br/>📱 Device Analytics]
     end
     
     Public --> Root
@@ -36,6 +42,12 @@ graph TB
     Protected --> Stats
     Protected --> Logs
     Protected --> LogsStats
+    Protected --> Profiles
+    Protected --> StatsOverview
+    Protected --> StatsTimeseries
+    Protected --> StatsDomains
+    Protected --> StatsTlds
+    Protected --> StatsDevices
     
     style Public fill:#e8f5e8
     style Protected fill:#ffebee
@@ -43,17 +55,19 @@ graph TB
 
 ## 🔐 Authentication
 
-All protected endpoints require HTTP Basic Authentication:
+All protected endpoints require API key authentication via one of these methods:
 
-- **Username**: `admin`
-- **Password**: `LOCAL_API_KEY` environment variable
+1. **Bearer Token**: `Authorization: Bearer YOUR_API_KEY`
+2. **X-API-Key Header**: `X-API-Key: YOUR_API_KEY`
+
+The API key is configured via the `LOCAL_API_KEY` environment variable.
 
 ```bash
-# Using curl with authentication
-curl -u admin:your_api_key http://localhost:5002/stats
+# Using Bearer token
+curl -H "Authorization: Bearer your_api_key" http://localhost:5001/stats
 
-# Using Authorization header
-curl -H "Authorization: Bearer your_api_key" http://localhost:5002/logs
+# Using X-API-Key header
+curl -H "X-API-Key: your_api_key" http://localhost:5001/logs
 ```
 
 ## 🌐 Public Endpoints
@@ -205,7 +219,7 @@ Returns basic API information and system status.
 
 **Example:**
 ```bash
-curl -u admin:your_api_key http://localhost:5002/stats
+curl -u admin:your_api_key http://localhost:5001/stats
 ```
 
 **Response:**
@@ -238,19 +252,19 @@ curl -u admin:your_api_key http://localhost:5002/stats
 **Example Requests:**
 ```bash
 # Basic query with limit
-curl -u admin:your_api_key "http://localhost:5002/logs?limit=10"
+curl -u admin:your_api_key "http://localhost:5001/logs?limit=10"
 
 # Advanced filtering
 curl -u admin:your_api_key \
-  "http://localhost:5002/logs?limit=50&exclude=google.com&exclude=apple.com&action=blocked"
+  "http://localhost:5001/logs?limit=50&exclude=google.com&exclude=apple.com&action=blocked"
 
 # Date range query
 curl -u admin:your_api_key \
-  "http://localhost:5002/logs?start_date=2025-09-19T00:00:00Z&end_date=2025-09-20T00:00:00Z"
+  "http://localhost:5001/logs?start_date=2025-09-19T00:00:00Z&end_date=2025-09-20T00:00:00Z"
 
 # Domain-specific query
 curl -u admin:your_api_key \
-  "http://localhost:5002/logs?domain=facebook.com&query_type=A"
+  "http://localhost:5001/logs?domain=facebook.com&query_type=A"
 ```
 
 **Response Model:**
@@ -305,7 +319,7 @@ Same filtering parameters as `/logs` endpoint.
 **Example:**
 ```bash
 curl -u admin:your_api_key \
-  "http://localhost:5002/logs/stats?start_date=2025-09-19T00:00:00Z"
+  "http://localhost:5001/logs/stats?start_date=2025-09-19T00:00:00Z"
 ```
 
 **Response:**
@@ -319,6 +333,279 @@ curl -u admin:your_api_key \
   "profile_id": "68416b"
 }
 ```
+
+### **Profile Management**
+`GET /profiles`
+
+**Authentication:** Required  
+**Description:** Get list of available profiles with record counts and activity.
+
+**Response Model:**
+```json
+{
+  "profiles": [
+    {
+      "profile_id": string,
+      "record_count": integer,
+      "last_activity": "ISO 8601 timestamp"
+    }
+  ],
+  "total_profiles": integer
+}
+```
+
+### **Profile Information**
+`GET /profiles/info`
+
+**Authentication:** Required  
+**Description:** Get detailed information for all configured profiles from NextDNS API.
+
+**Response Model:**
+```json
+{
+  "profiles": {
+    "profile_id": {
+      "id": string,
+      "name": string,
+      "fingerprint": string,
+      "created": "ISO 8601 timestamp",
+      "updated": "ISO 8601 timestamp"
+    }
+  },
+  "total_profiles": integer
+}
+```
+
+## 📈 Statistics Endpoints
+
+### **Stats Overview**
+`GET /stats/overview`
+
+**Authentication:** Required  
+**Description:** Get dashboard overview statistics.
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `profile` | string | - | Filter by specific profile ID |
+| `time_range` | string | 24h | Time range: 1h, 24h, 7d, 30d, all |
+
+**Response Model:**
+```json
+{
+  "total_queries": integer,
+  "blocked_queries": integer,
+  "allowed_queries": integer,
+  "blocked_percentage": float,
+  "queries_per_hour": float,
+  "most_active_device": string,
+  "top_blocked_domain": string
+}
+```
+
+**Example:**
+```bash
+curl -H "Authorization: Bearer your_api_key" \
+  "http://localhost:5001/stats/overview?profile=68416b&time_range=24h"
+```
+
+### **Time Series Data**
+`GET /stats/timeseries`
+
+**Authentication:** Required  
+**Description:** Get time series data for charts and analytics.
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `profile` | string | - | Filter by specific profile ID |
+| `time_range` | string | 24h | Time range: 1h, 24h, 7d, 30d, all |
+| `granularity` | string | auto | Data granularity: 5min, hour, day, week |
+
+**Response Model:**
+```json
+{
+  "data": [
+    {
+      "timestamp": "ISO 8601 timestamp",
+      "total_queries": integer,
+      "blocked_queries": integer,
+      "allowed_queries": integer
+    }
+  ],
+  "granularity": string,
+  "total_points": integer
+}
+```
+
+### **Top Domains**
+`GET /stats/domains`
+
+**Authentication:** Required  
+**Description:** Get top blocked and allowed domains.
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `profile` | string | - | Filter by specific profile ID |
+| `time_range` | string | 24h | Time range: 1h, 24h, 7d, 30d, all |
+| `limit` | integer | 10 | Number of top domains to return (5-50) |
+
+**Response Model:**
+```json
+{
+  "blocked_domains": [
+    {
+      "domain": string,
+      "count": integer,
+      "percentage": float
+    }
+  ],
+  "allowed_domains": [
+    {
+      "domain": string,
+      "count": integer,
+      "percentage": float
+    }
+  ]
+}
+```
+
+### **🏷️ TLD Aggregation (NEW)**
+`GET /stats/tlds`
+
+**Authentication:** Required  
+**Description:** Get top-level domain statistics with subdomain aggregation.
+
+**Features:**
+- Groups subdomains under parent domains
+- `gateway.icloud.com` → `icloud.com`
+- `bag.itunes.apple.com` → `apple.com`
+- Provides higher-level traffic insights
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `profile` | string | - | Filter by specific profile ID |
+| `time_range` | string | 24h | Time range: 1h, 24h, 7d, 30d, all |
+| `limit` | integer | 10 | Number of top TLDs to return (5-50) |
+
+**Response Model:**
+```json
+{
+  "blocked_tlds": [
+    {
+      "domain": string,
+      "count": integer,
+      "percentage": float
+    }
+  ],
+  "allowed_tlds": [
+    {
+      "domain": string,
+      "count": integer,
+      "percentage": float
+    }
+  ]
+}
+```
+
+**Example:**
+```bash
+curl -H "Authorization: Bearer your_api_key" \
+  "http://localhost:5001/stats/tlds?time_range=24h&limit=10"
+```
+
+**Example Response:**
+```json
+{
+  "blocked_tlds": [
+    {"domain": "facebook.com", "count": 45, "percentage": 12.3}
+  ],
+  "allowed_tlds": [
+    {"domain": "apple.com", "count": 428, "percentage": 17.9},
+    {"domain": "icloud.com", "count": 147, "percentage": 6.1},
+    {"domain": "microsoft.com", "count": 118, "percentage": 4.9}
+  ]
+}
+```
+
+### **📱 Device Analytics (NEW)**
+`GET /stats/devices`
+
+**Authentication:** Required  
+**Description:** Get device usage statistics showing DNS query activity by device.
+
+**Features:**
+- Shows which devices generate most DNS traffic
+- Breakdown of blocked vs allowed queries per device
+- Device exclusion support (useful for "Unidentified Device")
+- Last activity tracking
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `profile` | string | - | Filter by specific profile ID |
+| `time_range` | string | 24h | Time range: 1h, 24h, 7d, 30d, all |
+| `limit` | integer | 10 | Number of top devices to return (5-50) |
+| `exclude` | string[] | - | Device names to exclude (can be repeated) |
+
+**Response Model:**
+```json
+{
+  "devices": [
+    {
+      "device_name": string,
+      "total_queries": integer,
+      "blocked_queries": integer,
+      "allowed_queries": integer,
+      "blocked_percentage": float,
+      "allowed_percentage": float,
+      "last_activity": "ISO 8601 timestamp"
+    }
+  ]
+}
+```
+
+**Example:**
+```bash
+# Get top 5 devices, excluding unidentified ones
+curl -H "Authorization: Bearer your_api_key" \
+  "http://localhost:5001/stats/devices?time_range=24h&limit=5&exclude=Unidentified%20Device"
+```
+
+**Example Response:**
+```json
+{
+  "devices": [
+    {
+      "device_name": "Martins iPhone 16 PRO",
+      "total_queries": 583,
+      "blocked_queries": 12,
+      "allowed_queries": 571,
+      "blocked_percentage": 2.1,
+      "allowed_percentage": 97.9,
+      "last_activity": "2025-09-21T19:28:41.812000+00:00"
+    },
+    {
+      "device_name": "MacBook M1 Pro",
+      "total_queries": 489,
+      "blocked_queries": 0,
+      "allowed_queries": 489,
+      "blocked_percentage": 0.0,
+      "allowed_percentage": 100.0,
+      "last_activity": "2025-09-21T19:28:52.093000+00:00"
+    }
+  ]
+}
+```
+
+**Use Cases:**
+- Network monitoring and device activity tracking
+- Identify devices with unusual DNS patterns
+- Troubleshoot connectivity issues
+- Monitor IoT device behavior
+- Family usage tracking
 
 ## 📊 Response Field Explanations
 
@@ -358,7 +645,7 @@ curl -u admin:your_api_key \
 #!/bin/bash
 # Simple health check script
 
-HEALTH=$(curl -s http://localhost:5002/health)
+HEALTH=$(curl -s http://localhost:5001/health)
 STATUS=$(echo $HEALTH | jq -r '.status')
 
 if [ "$STATUS" = "healthy" ]; then
@@ -379,8 +666,8 @@ fi
 API_KEY="your_api_key_here"
 START_DATE=$(date -u -d "24 hours ago" +"%Y-%m-%dT%H:%M:%SZ")
 
-curl -u admin:$API_KEY \
-  "http://localhost:5002/logs?action=blocked&start_date=$START_DATE&limit=100" \
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/logs?action=blocked&start_date=$START_DATE&limit=100" \
   | jq '.data[] | .domain' \
   | sort | uniq -c | sort -nr
 ```
@@ -392,7 +679,7 @@ import requests
 from datetime import datetime, timedelta
 import csv
 
-API_BASE = "http://localhost:5002"
+API_BASE = "http://localhost:5001"
 API_KEY = "your_api_key_here"
 
 # Get logs from last week
@@ -408,7 +695,7 @@ params = {
 response = requests.get(
     f"{API_BASE}/logs",
     params=params,
-    auth=("admin", API_KEY)
+    headers={"Authorization": f"Bearer {API_KEY}"}
 )
 
 # Export to CSV
