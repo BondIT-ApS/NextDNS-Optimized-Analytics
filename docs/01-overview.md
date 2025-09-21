@@ -25,6 +25,7 @@ The NextDNS web dashboard provides basic analytics, but lacks advanced filtering
 
 ### **📈 Advanced Analytics**
 - **Domain exclusion filtering** (filter out noise like CDNs)
+- **Device-based filtering** (filter logs by specific devices)
 - **Flexible time-range analysis** with 8 ranges from 30m to 3m
 - **Adaptive granularity** (1min → 15min → hourly → weekly)
 - **Query type analysis** (A, AAAA, CNAME, MX, etc.)
@@ -130,7 +131,7 @@ If you're used to the NextDNS web interface, here's what's different:
 | ✅ Basic query logs | ✅ **Enhanced query logs with filtering** |
 | ✅ Simple blocking stats | ✅ **Detailed analytics and trends** |
 | ❌ Limited data retention | ✅ **Unlimited local storage** |
-| ❌ No domain exclusion | ✅ **Advanced domain filtering** |
+|| ❌ No domain exclusion | ✅ **Advanced domain & device filtering** |
 | ❌ No API access | ✅ **Full REST API with docs** |
 | ❌ Basic export | ✅ **Flexible data export options** |
 
