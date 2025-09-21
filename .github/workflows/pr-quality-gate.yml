@@ -32,30 +32,30 @@ jobs:
         id: changes
         run: |
           # Get changed files
-          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          CHANGED_FILES=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}")
           echo "Changed files: $CHANGED_FILES"
           
           # Check if frontend changed
           if echo "$CHANGED_FILES" | grep -E '^frontend/' > /dev/null; then
-            echo "frontend=true" >> $GITHUB_OUTPUT
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
           else
-            echo "frontend=false" >> $GITHUB_OUTPUT
+            echo "frontend=false" >> "$GITHUB_OUTPUT"
           fi
           
           # Check if backend changed
           if echo "$CHANGED_FILES" | grep -E '^backend/' > /dev/null; then
-            echo "backend=true" >> $GITHUB_OUTPUT
+            echo "backend=true" >> "$GITHUB_OUTPUT"
           else
-            echo "backend=false" >> $GITHUB_OUTPUT
+            echo "backend=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Calculate change statistics
         id: stats
         run: |
           # Get diff statistics
-          STATS=$(git diff --stat ${{ github.event.pull_request.base.sha }} ${{ github.sha }})
+          STATS=$(git diff --stat "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}")
           LINES_CHANGED=$(echo "$STATS" | tail -1 | grep -o '[0-9]\+ insertion\|[0-9]\+ deletion' | grep -o '[0-9]\+' | awk '{sum += $1} END {print sum+0}')
-          echo "lines-changed=$LINES_CHANGED" >> $GITHUB_OUTPUT
+          echo "lines-changed=$LINES_CHANGED" >> "$GITHUB_OUTPUT"
           echo "Detected $LINES_CHANGED lines changed"
 
       - name: 🧱 Post LEGO Building Plan Comment
