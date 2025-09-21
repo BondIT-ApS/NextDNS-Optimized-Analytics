@@ -245,6 +245,7 @@ curl -u admin:your_api_key http://localhost:5001/stats
 || `search` | string | - | Search query for domain names |
 || `status` | string | all | Filter by status: all, blocked, allowed |
 || `profile` | string | - | Filter by specific profile ID |
+|| `devices` | string[] | - | Filter by device names (can be repeated) |
 || `exclude` | string[] | - | Domains to exclude (can be repeated) |
 
 **Example Requests:**
@@ -264,6 +265,14 @@ curl -H "Authorization: Bearer $API_KEY" \
 # Search-based query
 curl -H "Authorization: Bearer $API_KEY" \
   "http://localhost:5001/logs?search=facebook&time_range=24h"
+
+# Device-specific filtering
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/logs?devices=iPhone&devices=MacBook&profile=68416b&time_range=6h"
+
+# Combined advanced filtering
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/logs?profile=68416b&devices=iPhone&status=blocked&exclude=apple.com&time_range=24h"
 ```
 
 **Response Model:**
@@ -661,6 +670,54 @@ curl -H "Authorization: Bearer your_api_key" \
 - Troubleshoot connectivity issues
 - Monitor IoT device behavior
 - Family usage tracking
+
+### **📱 Device Listing (NEW)**
+`GET /devices`
+
+**Authentication:** Required  
+**Description:** Get list of devices for filtering purposes, returns simplified device statistics optimized for UI dropdowns and filtering components.
+
+**Features:**
+- Optimized for device filter UI components
+- Returns device names with basic statistics
+- Profile-aware filtering
+- Time range support for active devices
+
+**Query Parameters:**
+|| Parameter | Type | Default | Description |
+||-----------|------|---------|-------------|
+|| `profile` | string | - | Filter devices by specific profile ID |
+|| `time_range` | string | 24h | Time range: **30m**, **1h**, **6h**, **24h**, **7d**, **30d**, **3m**, **all** |
+
+**Response Model:**
+```json
+{
+  "devices": [
+    {
+      "device_name": string,
+      "total_queries": integer,
+      "blocked_queries": integer,
+      "allowed_queries": integer,
+      "blocked_percentage": float,
+      "allowed_percentage": float,
+      "last_activity": "ISO 8601 timestamp"
+    }
+  ]
+}
+```
+
+**Example:**
+```bash
+# Get devices for profile filtering
+curl -H "Authorization: Bearer your_api_key" \
+  "http://localhost:5001/devices?profile=68416b&time_range=24h"
+```
+
+**Use Cases:**
+- Populate device filter dropdowns in web UI
+- Get device lists for log filtering
+- Device selection components
+- Real-time device activity monitoring
 
 ## 📊 Response Field Explanations
 

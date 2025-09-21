@@ -484,6 +484,9 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
     profile: Optional[str] = Query(
         default=None, description="Filter by specific profile ID"
     ),
+    devices: Optional[List[str]] = Query(
+        default=None, description="Filter by specific device names"
+    ),
     time_range: str = Query(
         default="all", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
@@ -499,13 +502,14 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
     - **search**: Search query for domain names
     - **status**: Filter by status (all, blocked, allowed)
     - **profile**: Filter by specific profile ID
+    - **devices**: Filter by specific device names
     - **time_range**: Time range filter (30m, 1h, 6h, 24h, 7d, 30d, 3m, all)
     - **limit**: Maximum number of records to return (1-10000)
     - **offset**: Number of records to skip for pagination
     """
     logger.debug(
         f"📊 API request: exclude={exclude}, search='{search}', "
-        f"status={status}, profile='{profile}', time_range='{time_range}', limit={limit}, offset={offset}"
+        f"status={status}, profile='{profile}', devices={devices}, time_range='{time_range}', limit={limit}, offset={offset}"
     )
 
     logs = get_logs(
@@ -513,6 +517,7 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
         search_query=search,
         status_filter=status,
         profile_filter=profile,
+        device_filter=devices,
         time_range=time_range,
         limit=limit,
         offset=offset,
@@ -705,6 +710,36 @@ async def get_top_tlds(
     allowed_tlds = [TopDomainsItem(**item) for item in tlds_data["allowed_tlds"]]
 
     return TopTLDsResponse(blocked_tlds=blocked_tlds, allowed_tlds=allowed_tlds)
+
+
+@app.get("/devices", response_model=DeviceStatsResponse, tags=["Devices"])
+async def get_devices(
+    profile: Optional[str] = Query(
+        default=None, description="Filter by specific profile ID"
+    ),
+    time_range: str = Query(
+        default="24h", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
+    ),
+):
+    """Get available devices for device filtering.
+
+    Returns device names and basic statistics for the specified profile and time range.
+    This endpoint is optimized for populating device filter dropdowns.
+    """
+    logger.debug(f"📱 Devices request: profile={profile}, time_range={time_range}")
+
+    # Get device statistics (reuse existing function but with higher limit)
+    device_results = get_stats_devices(
+        profile_filter=profile,
+        time_range=time_range,
+        limit=50,  # Get more devices for filtering
+        exclude_devices=None,
+    )
+
+    # Convert to DeviceUsageItem objects
+    devices = [DeviceUsageItem(**device) for device in device_results]
+
+    return DeviceStatsResponse(devices=devices)
 
 
 @app.get("/stats/devices", response_model=DeviceStatsResponse, tags=["Statistics"])
