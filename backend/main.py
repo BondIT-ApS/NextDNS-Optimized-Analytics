@@ -19,6 +19,8 @@ from models import (
     get_stats_overview as get_db_stats_overview,
     get_stats_timeseries as get_db_stats_timeseries,
     get_top_domains as get_db_top_domains,
+    get_stats_tlds,
+    get_stats_devices,
 )
 from profile_service import (
     get_profile_info,
@@ -226,6 +228,31 @@ class TopDomainsResponse(BaseModel):
 
     blocked_domains: List[TopDomainsItem]
     allowed_domains: List[TopDomainsItem]
+
+
+class TopTLDsResponse(BaseModel):
+    """Response model for top-level domain statistics."""
+
+    blocked_tlds: List[TopDomainsItem]
+    allowed_tlds: List[TopDomainsItem]
+
+
+class DeviceUsageItem(BaseModel):
+    """Device usage statistics item."""
+
+    device_name: str
+    total_queries: int
+    blocked_queries: int
+    allowed_queries: int
+    blocked_percentage: float
+    allowed_percentage: float
+    last_activity: str
+
+
+class DeviceStatsResponse(BaseModel):
+    """Response model for device usage statistics."""
+
+    devices: List[DeviceUsageItem]
 
 
 class StatsOverviewResponse(BaseModel):
@@ -630,6 +657,85 @@ async def get_top_domains(
     return TopDomainsResponse(
         blocked_domains=blocked_domains, allowed_domains=allowed_domains
     )
+
+
+@app.get("/stats/tlds", response_model=TopTLDsResponse, tags=["Statistics"])
+async def get_top_tlds(
+    profile: Optional[str] = Query(
+        default=None, description="Filter by specific profile ID"
+    ),
+    time_range: str = Query(
+        default="24h", description="Time range: 1h, 24h, 7d, 30d, all"
+    ),
+    limit: int = Query(
+        default=10, ge=5, le=50, description="Number of top TLDs to return"
+    ),
+):
+    """Get top-level domain statistics (TLD aggregation).
+    
+    Groups all subdomains under their parent domains:
+    - gateway.icloud.com → icloud.com
+    - bag.itunes.apple.com → apple.com
+    - www.google.com → google.com
+    """
+    logger.debug(
+        f"📊 Top TLDs request: profile={profile}, time_range={time_range}, limit={limit}"
+    )
+
+    # Get TLD aggregation data from database
+    tlds_data = get_stats_tlds(
+        profile_filter=profile, time_range=time_range, limit=limit
+    )
+
+    # Convert to TopDomainsItem objects (reusing same structure)
+    blocked_tlds = [
+        TopDomainsItem(**item) for item in tlds_data["blocked_tlds"]
+    ]
+    allowed_tlds = [
+        TopDomainsItem(**item) for item in tlds_data["allowed_tlds"]
+    ]
+
+    return TopTLDsResponse(
+        blocked_tlds=blocked_tlds, allowed_tlds=allowed_tlds
+    )
+
+
+@app.get("/stats/devices", response_model=DeviceStatsResponse, tags=["Statistics"])
+async def get_device_stats(
+    profile: Optional[str] = Query(
+        default=None, description="Filter by specific profile ID"
+    ),
+    time_range: str = Query(
+        default="24h", description="Time range: 1h, 24h, 7d, 30d, all"
+    ),
+    limit: int = Query(
+        default=10, ge=5, le=50, description="Number of top devices to return"
+    ),
+    exclude: Optional[List[str]] = Query(
+        default=None, description="Device names to exclude from results (e.g. 'Unidentified Device')"
+    ),
+):
+    """Get device usage statistics showing DNS query activity by device.
+    
+    Shows which devices generate the most DNS traffic, with breakdown of blocked vs allowed queries.
+    Useful for network monitoring, troubleshooting, and identifying device behavior patterns.
+    """
+    logger.debug(
+        f"📱 Device stats request: profile={profile}, time_range={time_range}, limit={limit}, exclude={exclude}"
+    )
+
+    # Get device statistics from database
+    device_results = get_stats_devices(
+        profile_filter=profile, 
+        time_range=time_range, 
+        limit=limit,
+        exclude_devices=exclude
+    )
+
+    # Convert to DeviceUsageItem objects
+    devices = [DeviceUsageItem(**device) for device in device_results]
+
+    return DeviceStatsResponse(devices=devices)
 
 
 if __name__ == "__main__":
