@@ -702,14 +702,18 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
         elif time_range == "30d":
             # For daily data, align to start of today and work backwards
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            start_time = today_start - timedelta(days=29)  # 29 days back + today = 30 days
+            start_time = today_start - timedelta(
+                days=29
+            )  # 29 days back + today = 30 days
             interval_hours = 24
             num_intervals = 30  # 30 x 1day = 30 days
             granularity = "day"
         else:  # 'all'
             # For 'all', we'll use daily intervals for the last 30 days
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            start_time = today_start - timedelta(days=29)  # 29 days back + today = 30 days
+            start_time = today_start - timedelta(
+                days=29
+            )  # 29 days back + today = 30 days
             interval_hours = 24
             num_intervals = 30
             granularity = "day"
@@ -734,7 +738,7 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
             else:
                 interval_start = start_time + timedelta(hours=i * interval_hours)
                 interval_end = interval_start + timedelta(hours=interval_hours)
-                
+
                 if granularity == "hour":
                     # Round to exact hour for clean display
                     display_time = interval_start.replace(
@@ -768,7 +772,7 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
         logger.debug(
             f"📊 Generated {len(data_points)} {granularity} time series data points for {time_range}"
         )
-        
+
         # Debug: Log first and last data points to verify timestamp alignment
         if data_points and granularity == "day":
             first_point = data_points[0]
