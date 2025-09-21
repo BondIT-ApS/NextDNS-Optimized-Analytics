@@ -27,7 +27,7 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: 🔧 Prepare Assembly Line (Docker Buildx)
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         id: buildx
 
       - name: 🔑 Connect to LEGO Warehouse (Docker Hub)
@@ -44,15 +44,15 @@ jobs:
           
           # Use GitHub run number as patch version for simplicity
           # This ensures each build gets an incrementing patch number
-          PATCH_VERSION=${{ github.run_number }}
+          PATCH_VERSION="${{ github.run_number }}"
           
           # Create semantic version: YY.M.PATCH
           VERSION="${YEAR_MONTH}.${PATCH_VERSION}"
           YEAR_MONTH_TAG="${YEAR_MONTH}"
           
           # Set environment variables for use in subsequent steps
-          echo "version=${VERSION}" >> $GITHUB_ENV
-          echo "year_month=${YEAR_MONTH_TAG}" >> $GITHUB_ENV
+          echo "version=${VERSION}" >> "$GITHUB_ENV"
+          echo "year_month=${YEAR_MONTH_TAG}" >> "$GITHUB_ENV"
           
           echo "🏷️ Building semantic version: ${VERSION}"
           echo "📅 Year/Month tag: ${YEAR_MONTH_TAG}"
