@@ -21,6 +21,7 @@ jobs:
     outputs:
       frontend-changed: ${{ steps.changes.outputs.frontend }}
       backend-changed: ${{ steps.changes.outputs.backend }}
+      workflows-changed: ${{ steps.changes.outputs.workflows }}
       lines-changed: ${{ steps.stats.outputs.lines-changed }}
     steps:
       - name: Checkout code
@@ -48,6 +49,13 @@ jobs:
           else
             echo "backend=false" >> "$GITHUB_OUTPUT"
           fi
+          
+          # Check if workflows changed
+          if echo "$CHANGED_FILES" | grep -E '^\.github/workflows/' > /dev/null; then
+            echo "workflows=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "workflows=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Calculate change statistics
         id: stats
@@ -65,6 +73,7 @@ jobs:
             const linesChanged = ${{ steps.stats.outputs.lines-changed }};
             const frontendChanged = ${{ steps.changes.outputs.frontend }};
             const backendChanged = ${{ steps.changes.outputs.backend }};
+            const workflowsChanged = ${{ steps.changes.outputs.workflows }};
             
             // Determine LEGO building complexity
             let complexity = "";
@@ -74,7 +83,7 @@ jobs:
               emoji = "🧱";
             } else if (linesChanged < 200) {
               complexity = "Medium LEGO set";
-              emoji = "🏗️";
+              emoji = "🏢";
             } else if (linesChanged < 500) {
               complexity = "Large LEGO construction";
               emoji = "🏰";
@@ -86,6 +95,7 @@ jobs:
             const changes = [];
             if (frontendChanged) changes.push("Frontend (React/TypeScript)");
             if (backendChanged) changes.push("Backend (FastAPI/Python)");
+            if (workflowsChanged) changes.push("GitHub Actions Workflows");
             
             const comment = `## ${emoji} LEGO Quality Gate Analysis
             
@@ -167,6 +177,63 @@ jobs:
         run: |
           export PYTHONPATH=$PYTHONPATH:./backend
           pylint backend --rcfile=.pylintrc
+
+  # 🔧 GitHub Actions Workflow Linting (parallel)
+  lint-workflows:
+    name: 🔧 Lint GitHub Actions Workflows (actionlint)
+    runs-on: ubuntu-latest
+    needs: discover-changes
+    if: needs.discover-changes.outputs.workflows-changed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install actionlint
+        run: |
+          # Download and install actionlint
+          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv ./actionlint /usr/local/bin/actionlint
+          actionlint --version
+
+      - name: Lint GitHub Actions workflows
+        run: |
+          echo "🔧 Linting GitHub Actions workflows with actionlint..."
+          actionlint -verbose .github/workflows/*
+          echo "✅ All workflows passed linting!"
+
+      - name: Post workflow linting results
+        if: failure()
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const comment = `## ❌ GitHub Actions Workflow Linting Failed
+            
+            The GitHub Actions workflows have linting issues that need to be fixed.
+            
+            **What this means:**
+            - Workflow syntax errors or best practice violations detected
+            - This could cause CI/CD failures in the future
+            - All workflows should pass \`actionlint\` validation
+            
+            **How to fix:**
+            1. Run \`actionlint -verbose .github/workflows/*\` locally
+            2. Fix any reported issues (syntax errors, shellcheck warnings, etc.)
+            3. Commit and push the fixes
+            
+            **Why we check this:**
+            - Prevents workflow failures that break CI/CD
+            - Ensures GitHub Actions follow best practices
+            - Catches configuration errors before they impact PRs
+            
+            🧱 *Like LEGO instructions, our workflows need to be perfectly clear and error-free!*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
 
   # ✨ Frontend Code Quality (parallel)
   quality-frontend:
@@ -260,7 +327,7 @@ jobs:
   build-test-backend:
     name: 🐳 LEGO Backend Assembly Test (Docker Build)
     runs-on: ubuntu-latest
-    needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend, safety-security-check]
+    needs: [discover-changes, lint-frontend, lint-backend, lint-workflows, quality-frontend, quality-backend, safety-security-check]
     if: always() && !contains(needs.*.result, 'failure') && needs.discover-changes.outputs.backend-changed == 'true'
 
     steps:
@@ -284,7 +351,7 @@ jobs:
   build-test-frontend:
     name: 🐳 LEGO Frontend Assembly Test (Docker Build)
     runs-on: ubuntu-latest
-    needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend, safety-security-check]
+    needs: [discover-changes, lint-frontend, lint-backend, lint-workflows, quality-frontend, quality-backend, safety-security-check]
     if: always() && !contains(needs.*.result, 'failure') && needs.discover-changes.outputs.frontend-changed == 'true'
 
     steps:
@@ -308,7 +375,7 @@ jobs:
   quality-gate-summary:
     name: 📊 LEGO Quality Gate Summary
     runs-on: ubuntu-latest
-    needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend, safety-security-check, build-test-backend, build-test-frontend]
+    needs: [discover-changes, lint-frontend, lint-backend, lint-workflows, quality-frontend, quality-backend, safety-security-check, build-test-backend, build-test-frontend]
     if: always()
 
     steps:
@@ -329,7 +396,8 @@ jobs:
               
               const jobNames = {
                 'lint-frontend': '🎨 Frontend Linting',
-                'lint-backend': '🐍 Backend Linting', 
+                'lint-backend': '🐍 Backend Linting',
+                'lint-workflows': '🔧 Workflow Linting',
                 'quality-frontend': '✨ Frontend Quality',
                 'quality-backend': '✨ Backend Quality',
                 'safety-security-check': '🛡️ Safety Security Scan',
