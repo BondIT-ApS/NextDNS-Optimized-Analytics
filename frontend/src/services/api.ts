@@ -8,6 +8,7 @@ import type {
   ProfileListResponse,
   ProfileInfoResponse,
   NextDNSProfileInfo,
+  DeviceStatsResponse,
   LogFilters,
 } from '@/types/api'
 
@@ -69,6 +70,10 @@ export const apiClient = {
     if (filters.status && filters.status !== 'all')
       params.append('status', filters.status)
     if (filters.profile) params.append('profile', filters.profile)
+    if (filters.devices && filters.devices.length > 0) {
+      filters.devices.forEach(device => params.append('devices', device))
+    }
+    if (filters.time_range) params.append('time_range', filters.time_range)
 
     const response = await api.get(`/logs?${params.toString()}`)
     return response.data
@@ -95,6 +100,19 @@ export const apiClient = {
 
   async getProfileInfo(profileId: string): Promise<NextDNSProfileInfo> {
     const response = await api.get(`/profiles/${profileId}/info`)
+    return response.data
+  },
+
+  // Device endpoints
+  async getDevices(
+    profile?: string,
+    timeRange: string = '24h'
+  ): Promise<DeviceStatsResponse> {
+    const params = new URLSearchParams()
+    if (profile) params.append('profile', profile)
+    params.append('time_range', timeRange)
+
+    const response = await api.get(`/devices?${params.toString()}`)
     return response.data
   },
 

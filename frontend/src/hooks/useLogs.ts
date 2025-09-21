@@ -14,6 +14,8 @@ export function useLogs(params: LogsParams = {}) {
     search: params.search?.trim() || undefined,
     status: params.status === 'all' ? undefined : params.status,
     profile: params.profile || undefined,
+    devices:
+      params.devices && params.devices.length > 0 ? params.devices : undefined,
   }
 
   // Remove undefined values to create cleaner query key
@@ -31,7 +33,10 @@ export function useLogs(params: LogsParams = {}) {
     queryFn: () => apiClient.getLogs(params),
     staleTime: 30000, // 30 seconds
     refetchInterval:
-      params.search || params.status !== 'all' || params.profile
+      params.search ||
+      params.status !== 'all' ||
+      params.profile ||
+      params.devices
         ? false
         : 60000, // Only auto-refresh when no filters
     // Enable query deduplication and background updates
