@@ -672,7 +672,7 @@ async def get_top_tlds(
     ),
 ):
     """Get top-level domain statistics (TLD aggregation).
-    
+
     Groups all subdomains under their parent domains:
     - gateway.icloud.com → icloud.com
     - bag.itunes.apple.com → apple.com
@@ -688,16 +688,10 @@ async def get_top_tlds(
     )
 
     # Convert to TopDomainsItem objects (reusing same structure)
-    blocked_tlds = [
-        TopDomainsItem(**item) for item in tlds_data["blocked_tlds"]
-    ]
-    allowed_tlds = [
-        TopDomainsItem(**item) for item in tlds_data["allowed_tlds"]
-    ]
+    blocked_tlds = [TopDomainsItem(**item) for item in tlds_data["blocked_tlds"]]
+    allowed_tlds = [TopDomainsItem(**item) for item in tlds_data["allowed_tlds"]]
 
-    return TopTLDsResponse(
-        blocked_tlds=blocked_tlds, allowed_tlds=allowed_tlds
-    )
+    return TopTLDsResponse(blocked_tlds=blocked_tlds, allowed_tlds=allowed_tlds)
 
 
 @app.get("/stats/devices", response_model=DeviceStatsResponse, tags=["Statistics"])
@@ -712,11 +706,12 @@ async def get_device_stats(
         default=10, ge=5, le=50, description="Number of top devices to return"
     ),
     exclude: Optional[List[str]] = Query(
-        default=None, description="Device names to exclude from results (e.g. 'Unidentified Device')"
+        default=None,
+        description="Device names to exclude from results (e.g. 'Unidentified Device')",
     ),
 ):
     """Get device usage statistics showing DNS query activity by device.
-    
+
     Shows which devices generate the most DNS traffic, with breakdown of blocked vs allowed queries.
     Useful for network monitoring, troubleshooting, and identifying device behavior patterns.
     """
@@ -726,10 +721,10 @@ async def get_device_stats(
 
     # Get device statistics from database
     device_results = get_stats_devices(
-        profile_filter=profile, 
-        time_range=time_range, 
+        profile_filter=profile,
+        time_range=time_range,
         limit=limit,
-        exclude_devices=exclude
+        exclude_devices=exclude,
     )
 
     # Convert to DeviceUsageItem objects
