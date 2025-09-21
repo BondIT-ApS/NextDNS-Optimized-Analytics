@@ -237,34 +237,33 @@ curl -u admin:your_api_key http://localhost:5001/stats
 **Description:** Retrieve DNS logs with advanced filtering capabilities.
 
 **Query Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `limit` | integer | 100 | Maximum number of records to return |
-| `offset` | integer | 0 | Number of records to skip (pagination) |
-| `start_date` | string | - | Start date (ISO format) |
-| `end_date` | string | - | End date (ISO format) |
-| `exclude` | string[] | - | Domains to exclude (can be repeated) |
-| `domain` | string | - | Filter by specific domain |
-| `action` | string | - | Filter by action (blocked/allowed) |
-| `query_type` | string | - | Filter by DNS query type (A, AAAA, etc.) |
-| `profile_id` | string | - | Filter by NextDNS profile ID |
+|| Parameter | Type | Default | Description |
+||-----------|------|---------|-------------|
+|| `limit` | integer | 100 | Maximum number of records to return |
+|| `offset` | integer | 0 | Number of records to skip (pagination) |
+|| `time_range` | string | all | Time range: **30m**, **1h**, **6h**, **24h**, **7d**, **30d**, **3m**, **all** |
+|| `search` | string | - | Search query for domain names |
+|| `status` | string | all | Filter by status: all, blocked, allowed |
+|| `profile` | string | - | Filter by specific profile ID |
+|| `exclude` | string[] | - | Domains to exclude (can be repeated) |
 
 **Example Requests:**
 ```bash
-# Basic query with limit
-curl -u admin:your_api_key "http://localhost:5001/logs?limit=10"
+# Basic query with time range
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/logs?limit=10&time_range=1h"
 
-# Advanced filtering
-curl -u admin:your_api_key \
-  "http://localhost:5001/logs?limit=50&exclude=google.com&exclude=apple.com&action=blocked"
+# Advanced filtering with exclusions
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/logs?limit=50&exclude=google.com&exclude=apple.com&status=blocked&time_range=6h"
 
-# Date range query
-curl -u admin:your_api_key \
-  "http://localhost:5001/logs?start_date=2025-09-19T00:00:00Z&end_date=2025-09-20T00:00:00Z"
+# Real-time monitoring (last 30 minutes)
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/logs?time_range=30m&limit=100"
 
-# Domain-specific query
-curl -u admin:your_api_key \
-  "http://localhost:5001/logs?domain=facebook.com&query_type=A"
+# Search-based query
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/logs?search=facebook&time_range=24h"
 ```
 
 **Response Model:**
@@ -302,7 +301,10 @@ curl -u admin:your_api_key \
 **Description:** Statistical analysis of DNS logs with filtering support.
 
 **Query Parameters:**
-Same filtering parameters as `/logs` endpoint.
+|| Parameter | Type | Default | Description |
+||-----------|------|---------|-------------|
+|| `profile` | string | - | Filter statistics by specific profile ID |
+|| `time_range` | string | all | Time range: **30m**, **1h**, **6h**, **24h**, **7d**, **30d**, **3m**, **all** |
 
 **Response Model:**
 ```json
@@ -318,8 +320,13 @@ Same filtering parameters as `/logs` endpoint.
 
 **Example:**
 ```bash
-curl -u admin:your_api_key \
-  "http://localhost:5001/logs/stats?start_date=2025-09-19T00:00:00Z"
+# Get stats for last 6 hours
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/logs/stats?time_range=6h"
+
+# Get stats for specific profile over 3 months
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/logs/stats?profile=68416b&time_range=3m"
 ```
 
 **Response:**
@@ -376,6 +383,45 @@ curl -u admin:your_api_key \
 }
 ```
 
+## ⏰ Time Range Options
+
+All statistics endpoints support flexible time range filtering for granular analysis. The system automatically selects appropriate data granularity based on the selected time range.
+
+### **Available Time Ranges**
+
+|| Time Range | Duration | Granularity | Data Points | Use Case |
+||------------|----------|-------------|-------------|----------|
+|| `30m` | 30 minutes | **1 minute** | 30 | Real-time monitoring |
+|| `1h` | 1 hour | **5 minutes** | 12 | Short-term analysis |
+|| `6h` | 6 hours | **15 minutes** | 24 | Medium-term trends |
+|| `24h` | 24 hours | **1 hour** | 24 | Daily analysis |
+|| `7d` | 7 days | **1 day** | 7 | Weekly patterns |
+|| `30d` | 30 days | **1 day** | 30 | Monthly overview |
+|| `3m` | 3 months | **1 week** | 13 | Long-term trends |
+|| `all` | All available data | **1 week** | Variable | Complete history |
+
+### **Time Range Examples**
+
+```bash
+# Real-time monitoring (last 30 minutes)
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/stats/timeseries?time_range=30m"
+
+# Medium-term analysis (last 6 hours) 
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/stats/overview?time_range=6h"
+
+# Long-term trend analysis (last 3 months)
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/stats/domains?time_range=3m&limit=20"
+```
+
+### **Granularity Benefits**
+
+- **High-frequency data** (30m, 1h, 6h): Perfect for troubleshooting, real-time monitoring, and immediate issue detection
+- **Balanced data** (24h, 7d): Ideal for daily patterns, weekly trends, and routine analysis
+- **Aggregated data** (30d, 3m, all): Excellent for long-term planning, capacity analysis, and historical insights
+
 ## 📈 Statistics Endpoints
 
 ### **Stats Overview**
@@ -385,10 +431,10 @@ curl -u admin:your_api_key \
 **Description:** Get dashboard overview statistics.
 
 **Query Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `profile` | string | - | Filter by specific profile ID |
-| `time_range` | string | 24h | Time range: 1h, 24h, 7d, 30d, all |
+|| Parameter | Type | Default | Description |
+||-----------|------|---------|-------------|
+|| `profile` | string | - | Filter by specific profile ID |
+|| `time_range` | string | 24h | Time range: **30m**, **1h**, **6h**, **24h**, **7d**, **30d**, **3m**, **all** |
 
 **Response Model:**
 ```json
@@ -403,10 +449,19 @@ curl -u admin:your_api_key \
 }
 ```
 
-**Example:**
+**Examples:**
 ```bash
-curl -H "Authorization: Bearer your_api_key" \
+# Real-time overview (30 minutes)
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/stats/overview?time_range=30m"
+
+# Daily overview for specific profile
+curl -H "Authorization: Bearer $API_KEY" \
   "http://localhost:5001/stats/overview?profile=68416b&time_range=24h"
+
+# Long-term trend analysis (3 months)
+curl -H "Authorization: Bearer $API_KEY" \
+  "http://localhost:5001/stats/overview?time_range=3m"
 ```
 
 ### **Time Series Data**
@@ -416,11 +471,11 @@ curl -H "Authorization: Bearer your_api_key" \
 **Description:** Get time series data for charts and analytics.
 
 **Query Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `profile` | string | - | Filter by specific profile ID |
-| `time_range` | string | 24h | Time range: 1h, 24h, 7d, 30d, all |
-| `granularity` | string | auto | Data granularity: 5min, hour, day, week |
+|| Parameter | Type | Default | Description |
+||-----------|------|---------|-------------|
+|| `profile` | string | - | Filter by specific profile ID |
+|| `time_range` | string | 24h | Time range: **30m**, **1h**, **6h**, **24h**, **7d**, **30d**, **3m**, **all** |
+|| `granularity` | string | auto | Data granularity: **1min**, **5min**, **15min**, **hour**, **day**, **week** |
 
 **Response Model:**
 ```json
@@ -445,11 +500,11 @@ curl -H "Authorization: Bearer your_api_key" \
 **Description:** Get top blocked and allowed domains.
 
 **Query Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `profile` | string | - | Filter by specific profile ID |
-| `time_range` | string | 24h | Time range: 1h, 24h, 7d, 30d, all |
-| `limit` | integer | 10 | Number of top domains to return (5-50) |
+|| Parameter | Type | Default | Description |
+||-----------|------|---------|-------------|
+|| `profile` | string | - | Filter by specific profile ID |
+|| `time_range` | string | 24h | Time range: **30m**, **1h**, **6h**, **24h**, **7d**, **30d**, **3m**, **all** |
+|| `limit` | integer | 10 | Number of top domains to return (5-50) |
 
 **Response Model:**
 ```json
@@ -484,11 +539,11 @@ curl -H "Authorization: Bearer your_api_key" \
 - Provides higher-level traffic insights
 
 **Query Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `profile` | string | - | Filter by specific profile ID |
-| `time_range` | string | 24h | Time range: 1h, 24h, 7d, 30d, all |
-| `limit` | integer | 10 | Number of top TLDs to return (5-50) |
+|| Parameter | Type | Default | Description |
+||-----------|------|---------|-------------|
+|| `profile` | string | - | Filter by specific profile ID |
+|| `time_range` | string | 24h | Time range: **30m**, **1h**, **6h**, **24h**, **7d**, **30d**, **3m**, **all** |
+|| `limit` | integer | 10 | Number of top TLDs to return (5-50) |
 
 **Response Model:**
 ```json
@@ -543,12 +598,12 @@ curl -H "Authorization: Bearer your_api_key" \
 - Last activity tracking
 
 **Query Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `profile` | string | - | Filter by specific profile ID |
-| `time_range` | string | 24h | Time range: 1h, 24h, 7d, 30d, all |
-| `limit` | integer | 10 | Number of top devices to return (5-50) |
-| `exclude` | string[] | - | Device names to exclude (can be repeated) |
+|| Parameter | Type | Default | Description |
+||-----------|------|---------|-------------|
+|| `profile` | string | - | Filter by specific profile ID |
+|| `time_range` | string | 24h | Time range: **30m**, **1h**, **6h**, **24h**, **7d**, **30d**, **3m**, **all** |
+|| `limit` | integer | 10 | Number of top devices to return (5-50) |
+|| `exclude` | string[] | - | Device names to exclude (can be repeated) |
 
 **Response Model:**
 ```json
