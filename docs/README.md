@@ -50,6 +50,9 @@ Welcome to the comprehensive documentation for NextDNS Optimized Analytics - a r
 - **Interactive Web Dashboard** with real-time analytics
 - **RESTful API** with FastAPI and automatic documentation
 - **Multi-profile Support** for managing multiple NextDNS configurations
+- **TLD Aggregation Analytics** - Group subdomains under parent domains
+- **Device Usage Analytics** - Track DNS activity by device with exclusion support
+- **Time Series Data** for charts and trend analysis
 - **Comprehensive Logging** with configurable levels and monitoring
 
 ## 🤝 Contributing to Documentation
@@ -68,13 +71,13 @@ Before diving into documentation, verify your system is running:
 
 ```bash
 # Check backend health
-curl http://localhost:5002/health
+curl http://localhost:5001/health
 
 # Check frontend accessibility  
-curl http://localhost:5003
+curl http://localhost:5002
 
 # View API documentation
-open http://localhost:5002/docs
+open http://localhost:5001/docs
 ```
 
 ---
