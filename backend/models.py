@@ -693,18 +693,23 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
             num_intervals = 24  # 24 x 1hour = 24 hours
             granularity = "hour"
         elif time_range == "7d":
-            start_time = now - timedelta(days=7)
+            # For daily data, align to start of today and work backwards
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            start_time = today_start - timedelta(days=6)  # 6 days back + today = 7 days
             interval_hours = 24
             num_intervals = 7  # 7 x 1day = 7 days
             granularity = "day"
         elif time_range == "30d":
-            start_time = now - timedelta(days=30)
+            # For daily data, align to start of today and work backwards
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            start_time = today_start - timedelta(days=29)  # 29 days back + today = 30 days
             interval_hours = 24
             num_intervals = 30  # 30 x 1day = 30 days
             granularity = "day"
         else:  # 'all'
             # For 'all', we'll use daily intervals for the last 30 days
-            start_time = now - timedelta(days=30)
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            start_time = today_start - timedelta(days=29)  # 29 days back + today = 30 days
             interval_hours = 24
             num_intervals = 30
             granularity = "day"
@@ -729,16 +734,20 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
             else:
                 interval_start = start_time + timedelta(hours=i * interval_hours)
                 interval_end = interval_start + timedelta(hours=interval_hours)
+                
                 if granularity == "hour":
                     # Round to exact hour for clean display
                     display_time = interval_start.replace(
                         minute=0, second=0, microsecond=0
                     )
                 else:  # day
-                    # Round to start of day for clean display
-                    display_time = interval_start.replace(
-                        hour=0, minute=0, second=0, microsecond=0
-                    )
+                    # For daily granularity, use the end of the interval minus 1 day
+                    # This ensures the display date matches the actual data period
+                    # e.g., if interval_end is 2025-09-21, display as 2025-09-21 (not 2025-09-20)
+                    display_date = (interval_end - timedelta(days=1)).date()
+                    display_time = datetime.combine(
+                        display_date, datetime.min.time()
+                    ).replace(tzinfo=timezone.utc)
 
             # Query for this interval
             interval_query = base_query.filter(
