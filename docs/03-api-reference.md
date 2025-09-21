@@ -666,7 +666,7 @@ fi
 API_KEY="your_api_key_here"
 START_DATE=$(date -u -d "24 hours ago" +"%Y-%m-%dT%H:%M:%SZ")
 
-curl -u admin:$API_KEY \
+curl -H "Authorization: Bearer $API_KEY" \
   "http://localhost:5001/logs?action=blocked&start_date=$START_DATE&limit=100" \
   | jq '.data[] | .domain' \
   | sort | uniq -c | sort -nr
@@ -695,7 +695,7 @@ params = {
 response = requests.get(
     f"{API_BASE}/logs",
     params=params,
-    auth=("admin", API_KEY)
+    headers={"Authorization": f"Bearer {API_KEY}"}
 )
 
 # Export to CSV
