@@ -768,6 +768,17 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
         logger.debug(
             f"📊 Generated {len(data_points)} {granularity} time series data points for {time_range}"
         )
+        
+        # Debug: Log first and last data points to verify timestamp alignment
+        if data_points and granularity == "day":
+            first_point = data_points[0]
+            last_point = data_points[-1]
+            logger.debug(
+                f"🕐 First data point: {first_point['timestamp']} ({first_point['total_queries']} queries)"
+            )
+            logger.debug(
+                f"🕐 Last data point: {last_point['timestamp']} ({last_point['total_queries']} queries)"
+            )
         return data_points
 
     except SQLAlchemyError as e:
