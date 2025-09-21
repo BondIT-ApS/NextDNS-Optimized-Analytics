@@ -456,11 +456,16 @@ async def get_stats():
 async def get_logs_statistics(
     profile: Optional[str] = Query(
         default=None, description="Filter statistics by specific profile ID"
-    )
+    ),
+    time_range: str = Query(
+        default="all", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
+    ),
 ):
-    """Get statistics for DNS logs in the database, optionally filtered by profile."""
-    logger.debug(f"📊 API request for logs statistics (profile: '{profile}')")
-    stats = get_logs_stats(profile_filter=profile)
+    """Get statistics for DNS logs in the database, optionally filtered by profile and time range."""
+    logger.debug(
+        f"📊 API request for logs statistics (profile: '{profile}', time_range: '{time_range}')"
+    )
+    stats = get_logs_stats(profile_filter=profile, time_range=time_range)
     logger.info(f"📊 Returning stats: {stats}")
     return LogsStatsResponse(**stats)
 
@@ -479,6 +484,9 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
     profile: Optional[str] = Query(
         default=None, description="Filter by specific profile ID"
     ),
+    time_range: str = Query(
+        default="all", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
+    ),
     limit: int = Query(
         default=100, ge=1, le=10000, description="Maximum number of records to return"
     ),
@@ -491,12 +499,13 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
     - **search**: Search query for domain names
     - **status**: Filter by status (all, blocked, allowed)
     - **profile**: Filter by specific profile ID
+    - **time_range**: Time range filter (30m, 1h, 6h, 24h, 7d, 30d, 3m, all)
     - **limit**: Maximum number of records to return (1-10000)
     - **offset**: Number of records to skip for pagination
     """
     logger.debug(
         f"📊 API request: exclude={exclude}, search='{search}', "
-        f"status={status}, profile='{profile}', limit={limit}, offset={offset}"
+        f"status={status}, profile='{profile}', time_range='{time_range}', limit={limit}, offset={offset}"
     )
 
     logs = get_logs(
@@ -504,6 +513,7 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
         search_query=search,
         status_filter=status,
         profile_filter=profile,
+        time_range=time_range,
         limit=limit,
         offset=offset,
     )
@@ -567,7 +577,7 @@ async def get_stats_overview(
         default=None, description="Filter by specific profile ID"
     ),
     time_range: str = Query(
-        default="24h", description="Time range: 1h, 24h, 7d, 30d, all"
+        default="24h", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
 ):
     """Get overview statistics for the dashboard."""
@@ -586,7 +596,7 @@ async def get_stats_timeseries(
         default=None, description="Filter by specific profile ID"
     ),
     time_range: str = Query(
-        default="24h", description="Time range: 1h, 24h, 7d, 30d, all"
+        default="24h", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
     granularity: Optional[str] = Query(
         default=None,
@@ -601,10 +611,13 @@ async def get_stats_timeseries(
     # Auto-determine granularity based on time range
     if not granularity:
         granularity_map = {
+            "30m": "1min",
             "1h": "5min",
+            "6h": "15min",
             "24h": "hour",
             "7d": "day",
             "30d": "day",
+            "3m": "week",
             "all": "week",
         }
         granularity = granularity_map.get(time_range, "hour")
@@ -630,7 +643,7 @@ async def get_top_domains(
         default=None, description="Filter by specific profile ID"
     ),
     time_range: str = Query(
-        default="24h", description="Time range: 1h, 24h, 7d, 30d, all"
+        default="24h", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
     limit: int = Query(
         default=10, ge=5, le=50, description="Number of top domains to return"
@@ -665,7 +678,7 @@ async def get_top_tlds(
         default=None, description="Filter by specific profile ID"
     ),
     time_range: str = Query(
-        default="24h", description="Time range: 1h, 24h, 7d, 30d, all"
+        default="24h", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
     limit: int = Query(
         default=10, ge=5, le=50, description="Number of top TLDs to return"
@@ -700,7 +713,7 @@ async def get_device_stats(
         default=None, description="Filter by specific profile ID"
     ),
     time_range: str = Query(
-        default="24h", description="Time range: 1h, 24h, 7d, 30d, all"
+        default="24h", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
     limit: int = Query(
         default=10, ge=5, le=50, description="Number of top devices to return"
