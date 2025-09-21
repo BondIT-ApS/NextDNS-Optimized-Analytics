@@ -1,6 +1,7 @@
 # file: backend/models.py
 import json
 import os
+import re
 from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import (
@@ -24,6 +25,40 @@ from sqlalchemy.exc import SQLAlchemyError
 from logging_config import get_logger
 
 logger = get_logger(__name__)
+
+
+# Helper function for TLD extraction
+def extract_tld(domain):
+    """Extract top-level domain from a full domain name using regex.
+
+    Examples:
+        gateway.icloud.com -> icloud.com
+        bag.itunes.apple.com -> apple.com
+        www.google.com -> google.com
+        gateway.fe2.apple-dns.net -> apple-dns.net
+
+    Args:
+        domain (str): Full domain name
+
+    Returns:
+        str: Top-level domain or original domain if extraction fails
+
+    # TODO: Consider using tldextract library for more accurate TLD extraction
+    # that handles complex TLDs like .co.uk, .com.au properly
+    """
+    if not domain or not isinstance(domain, str):
+        return domain
+
+    try:
+        # Simple regex approach: extract the last two parts of the domain
+        # This works for most common cases but won't handle complex TLDs
+        match = re.match(r"^(?:.*\.)?(\w[\w-]*\.[a-zA-Z]{2,})$", domain.lower())
+        if match:
+            return match.group(1)
+        return domain
+    except (AttributeError, IndexError) as e:
+        logger.debug(f"Failed to extract TLD from '{domain}': {e}")
+        return domain
 
 
 # Custom Text type that forces TEXT without JSON casting
@@ -930,5 +965,245 @@ def get_top_domains(profile_filter=None, time_range="24h", limit=10):
     except SQLAlchemyError as e:
         logger.error(f"❌ Error getting top domains: {e}")
         return {"blocked_domains": [], "allowed_domains": []}
+    finally:
+        session.close()
+
+
+# Get top-level domains (TLD aggregation) from database
+def get_stats_tlds(profile_filter=None, time_range="24h", limit=10):
+    """Get top-level domain statistics aggregated from full domains.
+
+    Groups all subdomains under their parent domains (TLD).
+    Examples: gateway.icloud.com -> icloud.com
+
+    Args:
+        profile_filter (str): Optional profile ID to filter by
+        time_range (str): Time range to filter by
+        limit (int): Number of top TLDs to return
+
+    Returns:
+        dict: Contains blocked_tlds and allowed_tlds lists
+    """
+    session = Session()
+    try:
+        # Build base query
+        query = session.query(DNSLog)
+
+        # Apply profile filter
+        if profile_filter and profile_filter.strip() and profile_filter != "all":
+            query = query.filter(DNSLog.profile_id == profile_filter)
+
+        # Apply time range filter
+        if time_range != "all":
+            now = datetime.now(timezone.utc)
+
+            time_deltas = {
+                "1h": timedelta(hours=1),
+                "24h": timedelta(hours=24),
+                "7d": timedelta(days=7),
+                "30d": timedelta(days=30),
+            }
+
+            if time_range in time_deltas:
+                cutoff_time = now - time_deltas[time_range]
+                query = query.filter(DNSLog.timestamp >= cutoff_time)
+
+        # Get all domains and extract TLDs
+        all_domains = query.all()
+
+        # Aggregate by TLD
+        tld_stats = {}  # tld -> {blocked: count, allowed: count}
+
+        for log_entry in all_domains:
+            tld = extract_tld(log_entry.domain)
+            if not tld:
+                continue
+
+            if tld not in tld_stats:
+                tld_stats[tld] = {"blocked": 0, "allowed": 0, "total": 0}
+
+            if log_entry.blocked:
+                tld_stats[tld]["blocked"] += 1
+            else:
+                tld_stats[tld]["allowed"] += 1
+            tld_stats[tld]["total"] += 1
+
+        # Calculate total queries for percentages
+        total_queries = sum(stats["total"] for stats in tld_stats.values())
+
+        # Sort and format blocked TLDs
+        blocked_tlds = []
+        for tld, stats in tld_stats.items():
+            if stats["blocked"] > 0:
+                percentage = (
+                    (stats["blocked"] / total_queries * 100) if total_queries > 0 else 0
+                )
+                blocked_tlds.append(
+                    {
+                        "domain": tld,
+                        "count": stats["blocked"],
+                        "percentage": round(percentage, 1),
+                    }
+                )
+        blocked_tlds.sort(key=lambda x: x["count"], reverse=True)
+        blocked_tlds = blocked_tlds[:limit]
+
+        # Sort and format allowed TLDs
+        allowed_tlds = []
+        for tld, stats in tld_stats.items():
+            if stats["allowed"] > 0:
+                percentage = (
+                    (stats["allowed"] / total_queries * 100) if total_queries > 0 else 0
+                )
+                allowed_tlds.append(
+                    {
+                        "domain": tld,
+                        "count": stats["allowed"],
+                        "percentage": round(percentage, 1),
+                    }
+                )
+        allowed_tlds.sort(key=lambda x: x["count"], reverse=True)
+        allowed_tlds = allowed_tlds[:limit]
+
+        result = {
+            "blocked_tlds": blocked_tlds,
+            "allowed_tlds": allowed_tlds,
+        }
+
+        logger.debug(
+            f"📊 Found {len(blocked_tlds)} blocked and {len(allowed_tlds)} allowed top TLDs"
+        )
+        return result
+
+    except SQLAlchemyError as e:
+        logger.error(f"❌ Error getting TLD statistics: {e}")
+        return {"blocked_tlds": [], "allowed_tlds": []}
+    finally:
+        session.close()
+
+
+# Get device usage statistics from database
+def get_stats_devices(
+    profile_filter=None, time_range="24h", limit=10, exclude_devices=None
+):
+    """Get device usage statistics showing DNS query activity by device.
+
+    Args:
+        profile_filter (str): Optional profile ID to filter by
+        time_range (str): Time range to filter by
+        limit (int): Number of top devices to return
+        exclude_devices (list): List of device names to exclude from results
+
+    Returns:
+        list: List of device statistics with usage information
+    """
+    session = Session()
+    try:
+        # Build base query
+        query = session.query(DNSLog)
+
+        # Apply profile filter
+        if profile_filter and profile_filter.strip() and profile_filter != "all":
+            query = query.filter(DNSLog.profile_id == profile_filter)
+
+        # Apply time range filter
+        if time_range != "all":
+            now = datetime.now(timezone.utc)
+
+            time_deltas = {
+                "1h": timedelta(hours=1),
+                "24h": timedelta(hours=24),
+                "7d": timedelta(days=7),
+                "30d": timedelta(days=30),
+            }
+
+            if time_range in time_deltas:
+                cutoff_time = now - time_deltas[time_range]
+                query = query.filter(DNSLog.timestamp >= cutoff_time)
+
+        # Get all logs and aggregate by device
+        all_logs = query.all()
+
+        # Aggregate by device name
+        device_stats = {}  # device_name -> {blocked, allowed, total, last_activity}
+
+        for log_entry in all_logs:
+            # Extract device name from JSON device field
+            device_name = "Unidentified Device"  # Default
+
+            if log_entry.device:
+                try:
+                    device_data = (
+                        json.loads(log_entry.device)
+                        if isinstance(log_entry.device, str)
+                        else log_entry.device
+                    )
+                    if isinstance(device_data, dict) and "name" in device_data:
+                        device_name = device_data["name"] or "Unidentified Device"
+                except (json.JSONDecodeError, KeyError, TypeError):
+                    # Keep default "Unidentified Device"
+                    pass
+
+            # Apply device exclusion filter (case-insensitive)
+            if exclude_devices:
+                exclude_lower = [name.lower() for name in exclude_devices]
+                if device_name.lower() in exclude_lower:
+                    continue
+
+            # Initialize device stats if not exists
+            if device_name not in device_stats:
+                device_stats[device_name] = {
+                    "blocked": 0,
+                    "allowed": 0,
+                    "total": 0,
+                    "last_activity": log_entry.timestamp,
+                }
+
+            # Update stats
+            if log_entry.blocked:
+                device_stats[device_name]["blocked"] += 1
+            else:
+                device_stats[device_name]["allowed"] += 1
+            device_stats[device_name]["total"] += 1
+
+            # Update last activity if this log is more recent
+            if log_entry.timestamp > device_stats[device_name]["last_activity"]:
+                device_stats[device_name]["last_activity"] = log_entry.timestamp
+
+        # Calculate total queries for percentages
+        total_queries = sum(stats["total"] for stats in device_stats.values())
+
+        # Format and sort results
+        device_results = []
+        for device_name, stats in device_stats.items():
+            blocked_percentage = (
+                (stats["blocked"] / stats["total"] * 100) if stats["total"] > 0 else 0
+            )
+            allowed_percentage = (
+                (stats["allowed"] / stats["total"] * 100) if stats["total"] > 0 else 0
+            )
+
+            device_results.append(
+                {
+                    "device_name": device_name,
+                    "total_queries": stats["total"],
+                    "blocked_queries": stats["blocked"],
+                    "allowed_queries": stats["allowed"],
+                    "blocked_percentage": round(blocked_percentage, 1),
+                    "allowed_percentage": round(allowed_percentage, 1),
+                    "last_activity": stats["last_activity"].isoformat(),
+                }
+            )
+
+        # Sort by total queries (most active first) and limit results
+        device_results.sort(key=lambda x: x["total_queries"], reverse=True)
+        device_results = device_results[:limit]
+
+        logger.debug(f"📱 Found {len(device_results)} devices with DNS activity")
+        return device_results
+
+    except SQLAlchemyError as e:
+        logger.error(f"❌ Error getting device statistics: {e}")
+        return []
     finally:
         session.close()
