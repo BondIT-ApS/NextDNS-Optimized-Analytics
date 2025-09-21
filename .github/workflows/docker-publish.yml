@@ -27,7 +27,7 @@ jobs:
         uses: docker/setup-qemu-action@v3
 
       - name: 🔧 Prepare Assembly Line (Docker Buildx)
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
         id: buildx
 
       - name: 🔑 Connect to LEGO Warehouse (Docker Hub)
@@ -36,17 +36,27 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: 🏷️ Create LEGO Set Version Tag
-        id: tag
+      - name: 🏷️ Generate Semantic Version Tag
+        id: version
         run: |
-          VERSION="v1.0.0"
-          if [ ! -z "${{ github.event.release.tag_name }}" ]; then
-            VERSION=${{ github.event.release.tag_name }}
-          fi
-          DATE_TAG=$(date +'%Y%m%d')
-          VERSION_TAG="${VERSION}-${DATE_TAG}"
-          echo "tag=${VERSION_TAG}" >> $GITHUB_ENV
-          echo "Building LEGO set version: ${VERSION_TAG}"
+          # Generate YY.M format from current date
+          YEAR_MONTH=$(date +'%y.%-m')
+          
+          # Use GitHub run number as patch version for simplicity
+          # This ensures each build gets an incrementing patch number
+          PATCH_VERSION="${{ github.run_number }}"
+          
+          # Create semantic version: YY.M.PATCH
+          VERSION="${YEAR_MONTH}.${PATCH_VERSION}"
+          YEAR_MONTH_TAG="${YEAR_MONTH}"
+          
+          # Set environment variables for use in subsequent steps
+          echo "version=${VERSION}" >> "$GITHUB_ENV"
+          echo "year_month=${YEAR_MONTH_TAG}" >> "$GITHUB_ENV"
+          
+          echo "🏷️ Building semantic version: ${VERSION}"
+          echo "📅 Year/Month tag: ${YEAR_MONTH_TAG}"
+          echo "🔢 Run number: ${PATCH_VERSION}"
 
       - name: 🔧 Prepare LEGO Pieces (Backend Dependencies)
         if: matrix.service == 'backend'
@@ -54,7 +64,7 @@ jobs:
           pip install --upgrade pip
           pip install -r backend/requirements.txt
 
-      - name: 🏢 Assemble Production LEGO Set
+      - name: 🏢 Build & Push Semantic Versioned LEGO Set
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -62,7 +72,8 @@ jobs:
           push: true
           tags: |
             maboni82/nextdns-optimized-analytics-${{ matrix.service }}:latest
-            maboni82/nextdns-optimized-analytics-${{ matrix.service }}:${{ env.tag }}
+            maboni82/nextdns-optimized-analytics-${{ matrix.service }}:${{ env.version }}
+            maboni82/nextdns-optimized-analytics-${{ matrix.service }}:${{ env.year_month }}
           builder: ${{ steps.buildx.outputs.name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
