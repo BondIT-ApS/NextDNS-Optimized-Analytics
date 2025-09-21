@@ -46,6 +46,7 @@ Welcome to the comprehensive documentation for NextDNS Optimized Analytics - a r
 
 - **Real-time DNS Log Collection** from NextDNS API
 - **Advanced Filtering** beyond standard NextDNS capabilities
+- **Flexible Time Range Analysis** - 8 time ranges from 30m to 3m with adaptive granularity
 - **Docker-based Deployment** with health monitoring
 - **Interactive Web Dashboard** with real-time analytics
 - **RESTful API** with FastAPI and automatic documentation

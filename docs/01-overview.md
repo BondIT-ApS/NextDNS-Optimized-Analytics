@@ -23,9 +23,10 @@ The NextDNS web dashboard provides basic analytics, but lacks advanced filtering
 - **Smart deduplication** prevents duplicate records
 - **Error recovery** with automatic retry logic
 
-### **📊 Advanced Analytics**
+### **📈 Advanced Analytics**
 - **Domain exclusion filtering** (filter out noise like CDNs)
-- **Time-range queries** with flexible date filtering
+- **Flexible time-range analysis** with 8 ranges from 30m to 3m
+- **Adaptive granularity** (1min → 15min → hourly → weekly)
 - **Query type analysis** (A, AAAA, CNAME, MX, etc.)
 - **Block/Allow ratios** and trending analysis
 - **Device-specific insights** when available
