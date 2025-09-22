@@ -306,9 +306,9 @@ class ConnectionStats(BaseModel):
 
 class PerformanceMetrics(BaseModel):
     """Database performance metrics."""
-
+    
     cache_hit_ratio: float
-    database_size_mb: int
+    database_size_mb: float
     total_queries: int
 
 
