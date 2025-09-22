@@ -1,7 +1,7 @@
 # file: backend/requirements.txt
 
 # FastAPI and ASGI server (updated for security fixes)
-fastapi==0.116.2
+fastapi==0.117.1
 uvicorn[standard]==0.36.0
 python-multipart==0.0.20
 starlette==0.48.0  # Explicit version to fix CVE-2024-47874 and CVE-2025-54121
