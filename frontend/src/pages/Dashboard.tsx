@@ -405,6 +405,125 @@ export function Dashboard() {
         ) : null}
       </ApiErrorBoundary>
 
+      {/* Database Metrics with Error Boundaries */}
+      <ApiErrorBoundary componentName="Database Metrics">
+        {health?.database_metrics ? (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-lego-purple mb-4">
+                Database Metrics
+              </h3>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {/* Connection Statistics Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Database className="h-5 w-5 text-lego-purple" />
+                    Connections
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Active</span>
+                      <span className="text-sm font-medium">
+                        {health.database_metrics.connections.active}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Total</span>
+                      <span className="text-sm font-medium">
+                        {health.database_metrics.connections.total}
+                      </span>
+                    </div>
+                    <div className="w-full bg-secondary rounded-full h-2">
+                      <div
+                        className="bg-lego-purple h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min(health.database_metrics.connections.usage_percent, 100)}%`,
+                        }}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground text-center">
+                      {health.database_metrics.connections.usage_percent.toFixed(1)}% utilization
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Performance Metrics Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-lego-green" />
+                    Performance
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Cache Hit</span>
+                      <span className="text-sm font-medium">
+                        {(health.database_metrics.performance.cache_hit_ratio * 100).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">DB Size</span>
+                      <span className="text-sm font-medium">
+                        {health.database_metrics.performance.database_size_mb}MB
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Total Queries</span>
+                      <span className="text-sm font-medium">
+                        {formatNumber(health.database_metrics.performance.total_queries)}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Database Health Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Server className="h-5 w-5 text-lego-blue" />
+                    Database Health
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Status</span>
+                      <span className={`text-sm font-medium ${
+                        health.database_metrics.health.status === 'healthy' ? 'text-lego-green' :
+                        health.database_metrics.health.status === 'warning' ? 'text-lego-yellow' :
+                        'text-lego-red'
+                      }`}>
+                        {health.database_metrics.health.status.charAt(0).toUpperCase() + 
+                         health.database_metrics.health.status.slice(1)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">Uptime</span>
+                      <span className="text-sm font-medium">
+                        {Math.floor(health.database_metrics.health.uptime_seconds / 3600)}h {Math.floor((health.database_metrics.health.uptime_seconds % 3600) / 60)}m
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        ) : healthError ? (
+          <ErrorState
+            message="Unable to load database metrics"
+            className="py-8"
+          />
+        ) : null}
+      </ApiErrorBoundary>
+
       {/* System Information with Error Boundaries */}
       <ApiErrorBoundary componentName="System Information">
         {health ? (

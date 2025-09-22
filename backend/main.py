@@ -21,6 +21,7 @@ from models import (
     get_top_domains as get_db_top_domains,
     get_stats_tlds,
     get_stats_devices,
+    get_database_metrics,
 )
 from profile_service import (
     get_profile_info,
@@ -294,6 +295,38 @@ class SystemResources(BaseModel):
     uptime_seconds: float
 
 
+class ConnectionStats(BaseModel):
+    """Database connection statistics."""
+
+    active: int
+    total: int
+    max_connections: Optional[int] = None
+    usage_percent: float
+
+
+class PerformanceMetrics(BaseModel):
+    """Database performance metrics."""
+
+    cache_hit_ratio: float
+    database_size_mb: int
+    total_queries: int
+
+
+class DatabaseHealth(BaseModel):
+    """Database health status."""
+
+    status: str
+    uptime_seconds: int
+
+
+class DatabaseMetrics(BaseModel):
+    """Complete database metrics information."""
+
+    connections: ConnectionStats
+    performance: PerformanceMetrics
+    health: DatabaseHealth
+
+
 class DetailedHealthResponse(BaseModel):
     """Detailed health response model."""
 
@@ -304,6 +337,7 @@ class DetailedHealthResponse(BaseModel):
     fetch_interval_minutes: int
     log_level: str
     system_resources: SystemResources
+    database_metrics: Optional[DatabaseMetrics] = None
     server_info: Dict[str, Any]
     timestamp: str
 
@@ -395,6 +429,20 @@ async def detailed_health_check():
             },
         }
 
+        # Collect database metrics
+        database_metrics = None
+        try:
+            db_metrics_data = get_database_metrics()
+            database_metrics = DatabaseMetrics(
+                connections=ConnectionStats(**db_metrics_data["connections"]),
+                performance=PerformanceMetrics(**db_metrics_data["performance"]),
+                health=DatabaseHealth(**db_metrics_data["health"]),
+            )
+            logger.debug(f"📊 Database metrics successfully collected")
+        except Exception as e:
+            logger.warning(f"⚠️ Could not collect database metrics: {e}")
+            database_metrics = None
+
         api_healthy = True  # API is responding if we get here
         overall_healthy = db_healthy and api_healthy
 
@@ -411,6 +459,7 @@ async def detailed_health_check():
             fetch_interval_minutes=fetch_interval,
             log_level=log_level,
             system_resources=system_resources,
+            database_metrics=database_metrics,
             server_info=server_info,
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
