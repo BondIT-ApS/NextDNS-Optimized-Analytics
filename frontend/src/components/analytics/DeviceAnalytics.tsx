@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,6 +18,7 @@ import {
   SortAsc,
   SortDesc,
   Activity,
+  ExternalLink,
 } from 'lucide-react'
 import { apiClient } from '@/services/api'
 import type { DeviceUsageItem, DeviceFilters } from '@/types/api'
@@ -29,7 +31,11 @@ interface DeviceAnalyticsProps {
   className?: string
 }
 
-type SortField = 'device_name' | 'total_queries' | 'blocked_percentage' | 'last_activity'
+type SortField =
+  | 'device_name'
+  | 'total_queries'
+  | 'blocked_percentage'
+  | 'last_activity'
 type SortOrder = 'asc' | 'desc'
 
 export function DeviceAnalytics({
@@ -37,13 +43,16 @@ export function DeviceAnalytics({
   timeRange = '24h',
   className = '',
 }: DeviceAnalyticsProps) {
+  const navigate = useNavigate()
   const [devices, setDevices] = useState<DeviceUsageItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Filter states
   const [searchQuery, setSearchQuery] = useState('')
-  const [excludedDevices, setExcludedDevices] = useState<string[]>(['Unidentified Device'])
+  const [excludedDevices, setExcludedDevices] = useState<string[]>([
+    'Unidentified Device',
+  ])
   const [limitDevices, setLimitDevices] = useState(20)
   const [sortField, setSortField] = useState<SortField>('total_queries')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
@@ -71,7 +80,9 @@ export function DeviceAnalytics({
       setDevices(response.devices)
     } catch (err) {
       console.error('Error fetching device data:', err)
-      setError(err instanceof Error ? err.message : 'Failed to fetch device data')
+      setError(
+        err instanceof Error ? err.message : 'Failed to fetch device data'
+      )
     } finally {
       setLoading(false)
     }
@@ -124,7 +135,11 @@ export function DeviceAnalytics({
   // Device icon based on device name
   const getDeviceIcon = (deviceName: string) => {
     const name = deviceName.toLowerCase()
-    if (name.includes('iphone') || name.includes('android') || name.includes('mobile')) {
+    if (
+      name.includes('iphone') ||
+      name.includes('android') ||
+      name.includes('mobile')
+    ) {
       return <Smartphone className="h-5 w-5 text-lego-blue" />
     }
     if (name.includes('macbook') || name.includes('laptop')) {
@@ -165,6 +180,25 @@ export function DeviceAnalytics({
   // Clear exclusions
   const clearExclusions = () => {
     setExcludedDevices([])
+  }
+
+  // Navigate to logs page with device filter
+  const handleViewLogs = (deviceName: string) => {
+    const params = new URLSearchParams()
+
+    // Apply current filters from the stats page
+    if (selectedProfile) {
+      params.append('profile', selectedProfile)
+    }
+    if (timeRange) {
+      params.append('timeRange', timeRange)
+    }
+
+    // Add device filter
+    params.append('device', deviceName)
+
+    // Navigate to logs page with query parameters
+    navigate(`/logs?${params.toString()}`)
   }
 
   if (loading) {
@@ -216,7 +250,7 @@ export function DeviceAnalytics({
             DNS query activity by device with comprehensive usage statistics
           </p>
         </CardHeader>
-        
+
         {/* Filters */}
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -226,7 +260,7 @@ export function DeviceAnalytics({
               <Input
                 placeholder="Search devices..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
                 className="pl-10"
               />
             </div>
@@ -234,7 +268,7 @@ export function DeviceAnalytics({
             {/* Sort Field */}
             <select
               value={sortField}
-              onChange={(e) => setSortField(e.target.value as SortField)}
+              onChange={e => setSortField(e.target.value as SortField)}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="device_name">Sort by: Device Name</option>
@@ -246,7 +280,9 @@ export function DeviceAnalytics({
             {/* Sort Order */}
             <Button
               variant="outline"
-              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+              onClick={() =>
+                setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))
+              }
               className="flex items-center gap-2"
             >
               {sortOrder === 'asc' ? (
@@ -260,7 +296,7 @@ export function DeviceAnalytics({
             {/* Limit */}
             <select
               value={limitDevices.toString()}
-              onChange={(e) => setLimitDevices(parseInt(e.target.value))}
+              onChange={e => setLimitDevices(parseInt(e.target.value))}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="10">Top 10</option>
@@ -277,7 +313,11 @@ export function DeviceAnalytics({
                 Excluded devices:
               </span>
               {excludedDevices.map(device => (
-                <Badge key={device} variant="secondary" className="flex items-center gap-1">
+                <Badge
+                  key={device}
+                  variant="secondary"
+                  className="flex items-center gap-1"
+                >
                   {device}
                   <X
                     className="h-3 w-3 cursor-pointer"
@@ -301,7 +341,10 @@ export function DeviceAnalytics({
       {/* Device Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredAndSortedDevices.map((device, index) => (
-          <Card key={device.device_name} className="hover:shadow-md transition-shadow">
+          <Card
+            key={device.device_name}
+            className="hover:shadow-md transition-shadow"
+          >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
@@ -321,12 +364,14 @@ export function DeviceAnalytics({
                 </Badge>
               </div>
             </CardHeader>
-            
+
             <CardContent className="space-y-4">
               {/* Total Queries */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">Total Queries</span>
+                  <span className="text-sm text-muted-foreground">
+                    Total Queries
+                  </span>
                   <span className="font-semibold text-lego-blue">
                     {formatNumber(device.total_queries)}
                   </span>
@@ -338,7 +383,9 @@ export function DeviceAnalytics({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     <Shield className="h-3 w-3 text-lego-red" />
-                    <span className="text-sm text-muted-foreground">Blocked</span>
+                    <span className="text-sm text-muted-foreground">
+                      Blocked
+                    </span>
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-lego-red">
@@ -353,7 +400,9 @@ export function DeviceAnalytics({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
                     <CheckCircle className="h-3 w-3 text-lego-green" />
-                    <span className="text-sm text-muted-foreground">Allowed</span>
+                    <span className="text-sm text-muted-foreground">
+                      Allowed
+                    </span>
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-lego-green">
@@ -376,18 +425,31 @@ export function DeviceAnalytics({
 
               {/* Actions */}
               <div className="pt-2 border-t border-border">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => toggleDeviceExclusion(device.device_name)}
-                  className={`w-full ${
-                    excludedDevices.includes(device.device_name)
-                      ? 'text-lego-green hover:text-lego-green/80'
-                      : 'text-lego-orange hover:text-lego-orange/80'
-                  }`}
-                >
-                  {excludedDevices.includes(device.device_name) ? 'Include Device' : 'Exclude Device'}
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => toggleDeviceExclusion(device.device_name)}
+                    className={`${
+                      excludedDevices.includes(device.device_name)
+                        ? 'text-lego-green hover:text-lego-green/80'
+                        : 'text-lego-orange hover:text-lego-orange/80'
+                    }`}
+                  >
+                    {excludedDevices.includes(device.device_name)
+                      ? 'Include'
+                      : 'Exclude'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleViewLogs(device.device_name)}
+                    className="text-lego-blue hover:text-lego-blue/80 flex items-center gap-1"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    View Logs
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -401,7 +463,7 @@ export function DeviceAnalytics({
             <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-semibold mb-2">No devices found</h3>
             <p className="text-muted-foreground mb-4">
-              {searchQuery 
+              {searchQuery
                 ? `No devices match "${searchQuery}". Try adjusting your search or filters.`
                 : 'No devices have been active in the selected time range.'}
             </p>
@@ -426,11 +488,13 @@ export function DeviceAnalytics({
           <CardContent className="py-4">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>
-                Showing {filteredAndSortedDevices.length} of {devices.length} devices
+                Showing {filteredAndSortedDevices.length} of {devices.length}{' '}
+                devices
                 {searchQuery && ` matching "${searchQuery}"`}
               </span>
               <span>
-                Time range: {timeRange} • Profile: {selectedProfile || 'All profiles'}
+                Time range: {timeRange} • Profile:{' '}
+                {selectedProfile || 'All profiles'}
               </span>
             </div>
           </CardContent>

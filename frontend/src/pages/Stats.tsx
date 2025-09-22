@@ -452,8 +452,10 @@ export default function Stats() {
             </TabsContent>
 
             <TabsContent value="devices" className="mt-6">
-              <DeviceAnalytics 
-                selectedProfile={selectedProfile === 'all' ? undefined : selectedProfile}
+              <DeviceAnalytics
+                selectedProfile={
+                  selectedProfile === 'all' ? undefined : selectedProfile
+                }
                 timeRange={timeRange}
               />
             </TabsContent>
