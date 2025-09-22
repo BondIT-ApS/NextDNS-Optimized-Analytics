@@ -75,6 +75,30 @@ export interface SystemResources {
   uptime_seconds: number
 }
 
+export interface ConnectionStats {
+  active: number
+  total: number
+  max_connections?: number
+  usage_percent: number
+}
+
+export interface PerformanceMetrics {
+  cache_hit_ratio: number
+  database_size_mb: number
+  total_queries: number
+}
+
+export interface DatabaseHealth {
+  status: string
+  uptime_seconds: number
+}
+
+export interface DatabaseMetrics {
+  connections: ConnectionStats
+  performance: PerformanceMetrics
+  health: DatabaseHealth
+}
+
 export interface DetailedHealthResponse {
   status_api: string
   status_db: string
@@ -83,6 +107,7 @@ export interface DetailedHealthResponse {
   fetch_interval_minutes: number
   log_level: string
   system_resources: SystemResources
+  database_metrics?: DatabaseMetrics
   server_info: {
     python_version: string
     platform: string
