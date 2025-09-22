@@ -116,6 +116,25 @@ export const apiClient = {
     return response.data
   },
 
+  // Device analytics endpoint
+  async getDeviceStats(
+    profile?: string,
+    timeRange: string = '24h',
+    limit: number = 10,
+    exclude: string[] = []
+  ): Promise<DeviceStatsResponse> {
+    const params = new URLSearchParams()
+    if (profile) params.append('profile', profile)
+    params.append('time_range', timeRange)
+    params.append('limit', limit.toString())
+    if (exclude.length > 0) {
+      exclude.forEach(device => params.append('exclude', device))
+    }
+
+    const response = await api.get(`/stats/devices?${params.toString()}`)
+    return response.data
+  },
+
   // Root endpoint
   async getRoot() {
     const response = await api.get('/')
