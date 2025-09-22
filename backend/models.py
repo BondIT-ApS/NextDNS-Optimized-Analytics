@@ -1375,9 +1375,11 @@ def get_database_metrics():
         # Get connection statistics
         try:
             connection_stats = session.execute(
-                text("SELECT count(*) as active_connections "
-                     "FROM pg_stat_activity "
-                     "WHERE state = 'active'")
+                text(
+                    "SELECT count(*) as active_connections "
+                    "FROM pg_stat_activity "
+                    "WHERE state = 'active'"
+                )
             ).fetchone()
 
             total_connections = session.execute(
@@ -1404,21 +1406,23 @@ def get_database_metrics():
         # Get cache hit ratio - using a more reliable query
         try:
             cache_stats = session.execute(
-                text("SELECT "
-                     "  CASE WHEN (sum(heap_blks_hit) + sum(heap_blks_read)) > 0 "
-                     "       THEN round(sum(heap_blks_hit)::numeric / (sum(heap_blks_hit) + sum(heap_blks_read)), 3) "
-                     "       ELSE 0.95 "
-                     "  END as hit_ratio "
-                     "FROM pg_statio_user_tables "
-                     "WHERE schemaname = 'public'")
+                text(
+                    "SELECT "
+                    "  CASE WHEN (sum(heap_blks_hit) + sum(heap_blks_read)) > 0 "
+                    "       THEN round(sum(heap_blks_hit)::numeric / (sum(heap_blks_hit) + sum(heap_blks_read)), 3) "
+                    "       ELSE 0.95 "
+                    "  END as hit_ratio "
+                    "FROM pg_statio_user_tables "
+                    "WHERE schemaname = 'public'"
+                )
             ).fetchone()
-            
+
             if cache_stats and cache_stats[0] is not None:
                 metrics["performance"]["cache_hit_ratio"] = float(cache_stats[0])
             else:
                 # Default to a reasonable cache hit ratio if no data available
                 metrics["performance"]["cache_hit_ratio"] = 0.95
-            
+
         except SQLAlchemyError as e:
             logger.debug(f"Could not fetch cache hit ratio: {e}")
             metrics["performance"]["cache_hit_ratio"] = 0.95
@@ -1452,7 +1456,9 @@ def get_database_metrics():
         # Get database uptime
         try:
             uptime_result = session.execute(
-                text("SELECT EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time())) as uptime")
+                text(
+                    "SELECT EXTRACT(EPOCH FROM (now() - pg_postmaster_start_time())) as uptime"
+                )
             ).fetchone()
 
             if uptime_result and uptime_result[0]:

@@ -305,103 +305,111 @@ export function Dashboard() {
               </h3>
             </div>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Cpu className="h-5 w-5 text-lego-blue" />
-                  CPU Usage
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      Current
-                    </span>
-                    <span className="text-sm font-medium">
-                      {systemResources.cpu_percent.toFixed(1)}%
-                    </span>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Cpu className="h-5 w-5 text-lego-blue" />
+                    CPU Usage
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Current
+                      </span>
+                      <span className="text-sm font-medium">
+                        {systemResources.cpu_percent.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-secondary rounded-full h-2">
+                      <div
+                        className="bg-lego-blue h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min(systemResources.cpu_percent, 100)}%`,
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full bg-secondary rounded-full h-2">
-                    <div
-                      className="bg-lego-blue h-2 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${Math.min(systemResources.cpu_percent, 100)}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MemoryStick className="h-5 w-5 text-lego-green" />
-                  Memory Usage
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Used</span>
-                    <span className="text-sm font-medium">
-                      {formatBytes(
-                        systemResources.memory_total -
-                          systemResources.memory_available
-                      )}
-                    </span>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MemoryStick className="h-5 w-5 text-lego-green" />
+                    Memory Usage
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Used
+                      </span>
+                      <span className="text-sm font-medium">
+                        {formatBytes(
+                          systemResources.memory_total -
+                            systemResources.memory_available
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Total
+                      </span>
+                      <span className="text-sm font-medium">
+                        {formatBytes(systemResources.memory_total)}
+                      </span>
+                    </div>
+                    <div className="w-full bg-secondary rounded-full h-2">
+                      <div
+                        className="bg-lego-green h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min(systemResources.memory_percent, 100)}%`,
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total</span>
-                    <span className="text-sm font-medium">
-                      {formatBytes(systemResources.memory_total)}
-                    </span>
-                  </div>
-                  <div className="w-full bg-secondary rounded-full h-2">
-                    <div
-                      className="bg-lego-green h-2 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${Math.min(systemResources.memory_percent, 100)}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <HardDrive className="h-5 w-5 text-lego-yellow" />
-                  Disk Usage
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Used</span>
-                    <span className="text-sm font-medium">
-                      {formatBytes(systemResources.disk_used)}
-                    </span>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <HardDrive className="h-5 w-5 text-lego-yellow" />
+                    Disk Usage
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Used
+                      </span>
+                      <span className="text-sm font-medium">
+                        {formatBytes(systemResources.disk_used)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        Total
+                      </span>
+                      <span className="text-sm font-medium">
+                        {formatBytes(systemResources.disk_total)}
+                      </span>
+                    </div>
+                    <div className="w-full bg-secondary rounded-full h-2">
+                      <div
+                        className="bg-lego-yellow h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min(systemResources.disk_percent, 100)}%`,
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total</span>
-                    <span className="text-sm font-medium">
-                      {formatBytes(systemResources.disk_total)}
-                    </span>
-                  </div>
-                  <div className="w-full bg-secondary rounded-full h-2">
-                    <div
-                      className="bg-lego-yellow h-2 rounded-full transition-all duration-300"
-                      style={{
-                        width: `${Math.min(systemResources.disk_percent, 100)}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
               {/* Backend Health Card */}
               <Card>
@@ -414,23 +422,34 @@ export function Dashboard() {
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Status</span>
-                      <span className={`text-sm font-medium ${
-                        health?.backend_metrics?.health.status === 'healthy' ? 'text-lego-green' :
-                        health?.backend_metrics?.health.status === 'warning' ? 'text-lego-yellow' :
-                        'text-lego-red'
-                      }`}>
-                        {health?.backend_metrics?.health.status.charAt(0).toUpperCase() + 
-                         health?.backend_metrics?.health.status.slice(1) || 'Unknown'}
+                      <span className="text-sm text-muted-foreground">
+                        Status
+                      </span>
+                      <span
+                        className={`text-sm font-medium ${
+                          health?.backend_metrics?.health.status === 'healthy'
+                            ? 'text-lego-green'
+                            : health?.backend_metrics?.health.status ===
+                                'warning'
+                              ? 'text-lego-yellow'
+                              : 'text-lego-red'
+                        }`}
+                      >
+                        {health?.backend_metrics?.health.status
+                          .charAt(0)
+                          .toUpperCase() +
+                          health?.backend_metrics?.health.status.slice(1) ||
+                          'Unknown'}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Uptime</span>
+                      <span className="text-sm text-muted-foreground">
+                        Uptime
+                      </span>
                       <span className="text-sm font-medium">
-                        {health?.backend_metrics?.health.uptime_seconds ?
-                          `${Math.floor(health.backend_metrics.health.uptime_seconds / 3600)}h ${Math.floor((health.backend_metrics.health.uptime_seconds % 3600) / 60)}m` :
-                          'Unknown'
-                        }
+                        {health?.backend_metrics?.health.uptime_seconds
+                          ? `${Math.floor(health.backend_metrics.health.uptime_seconds / 3600)}h ${Math.floor((health.backend_metrics.health.uptime_seconds % 3600) / 60)}m`
+                          : 'Unknown'}
                       </span>
                     </div>
                   </div>
@@ -467,13 +486,17 @@ export function Dashboard() {
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Active</span>
+                      <span className="text-sm text-muted-foreground">
+                        Active
+                      </span>
                       <span className="text-sm font-medium">
                         {health.database_metrics.connections.active}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Total</span>
+                      <span className="text-sm text-muted-foreground">
+                        Total
+                      </span>
                       <span className="text-sm font-medium">
                         {health.database_metrics.connections.total}
                       </span>
@@ -487,7 +510,10 @@ export function Dashboard() {
                       />
                     </div>
                     <div className="text-xs text-muted-foreground text-center">
-                      {health.database_metrics.connections.usage_percent.toFixed(1)}% utilization
+                      {health.database_metrics.connections.usage_percent.toFixed(
+                        1
+                      )}
+                      % utilization
                     </div>
                   </div>
                 </CardContent>
@@ -504,21 +530,33 @@ export function Dashboard() {
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Cache Hit</span>
+                      <span className="text-sm text-muted-foreground">
+                        Cache Hit
+                      </span>
                       <span className="text-sm font-medium">
-                        {(health.database_metrics.performance.cache_hit_ratio * 100).toFixed(1)}%
+                        {(
+                          health.database_metrics.performance.cache_hit_ratio *
+                          100
+                        ).toFixed(1)}
+                        %
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">DB Size</span>
+                      <span className="text-sm text-muted-foreground">
+                        DB Size
+                      </span>
                       <span className="text-sm font-medium">
                         {health.database_metrics.performance.database_size_mb}MB
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Total Queries</span>
+                      <span className="text-sm text-muted-foreground">
+                        Total Queries
+                      </span>
                       <span className="text-sm font-medium">
-                        {formatNumber(health.database_metrics.performance.total_queries)}
+                        {formatNumber(
+                          health.database_metrics.performance.total_queries
+                        )}
                       </span>
                     </div>
                   </div>
@@ -536,20 +574,40 @@ export function Dashboard() {
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Status</span>
-                      <span className={`text-sm font-medium ${
-                        health.database_metrics.health.status === 'healthy' ? 'text-lego-green' :
-                        health.database_metrics.health.status === 'warning' ? 'text-lego-yellow' :
-                        'text-lego-red'
-                      }`}>
-                        {health.database_metrics.health.status.charAt(0).toUpperCase() + 
-                         health.database_metrics.health.status.slice(1)}
+                      <span className="text-sm text-muted-foreground">
+                        Status
+                      </span>
+                      <span
+                        className={`text-sm font-medium ${
+                          health.database_metrics.health.status === 'healthy'
+                            ? 'text-lego-green'
+                            : health.database_metrics.health.status ===
+                                'warning'
+                              ? 'text-lego-yellow'
+                              : 'text-lego-red'
+                        }`}
+                      >
+                        {health.database_metrics.health.status
+                          .charAt(0)
+                          .toUpperCase() +
+                          health.database_metrics.health.status.slice(1)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">Uptime</span>
+                      <span className="text-sm text-muted-foreground">
+                        Uptime
+                      </span>
                       <span className="text-sm font-medium">
-                        {Math.floor(health.database_metrics.health.uptime_seconds / 3600)}h {Math.floor((health.database_metrics.health.uptime_seconds % 3600) / 60)}m
+                        {Math.floor(
+                          health.database_metrics.health.uptime_seconds / 3600
+                        )}
+                        h{' '}
+                        {Math.floor(
+                          (health.database_metrics.health.uptime_seconds %
+                            3600) /
+                            60
+                        )}
+                        m
                       </span>
                     </div>
                   </div>
