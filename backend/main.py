@@ -297,7 +297,7 @@ class BackendResources(BaseModel):
 
 class BackendStack(BaseModel):
     """Backend technology stack information."""
-    
+
     platform: str
     platform_release: str
     architecture: str
@@ -309,7 +309,7 @@ class BackendStack(BaseModel):
 
 class FrontendStack(BaseModel):
     """Frontend technology stack information."""
-    
+
     framework: str
     build_tool: str
     language: str
@@ -320,14 +320,14 @@ class FrontendStack(BaseModel):
 
 class BackendHealth(BaseModel):
     """Backend health status."""
-    
+
     status: str
     uptime_seconds: float
 
 
 class BackendMetrics(BaseModel):
     """Complete backend metrics information."""
-    
+
     resources: BackendResources
     health: BackendHealth
 
@@ -343,7 +343,7 @@ class ConnectionStats(BaseModel):
 
 class PerformanceMetrics(BaseModel):
     """Database performance metrics."""
-    
+
     cache_hit_ratio: float
     database_size_mb: float
     total_queries: int
@@ -449,7 +449,7 @@ async def detailed_health_check():
             disk_percent=(disk.used / disk.total) * 100,
             uptime_seconds=uptime_seconds,
         )
-        
+
         backend_stack = BackendStack(
             platform=platform.system(),
             platform_release=platform.release(),
@@ -459,17 +459,13 @@ async def detailed_health_check():
             cpu_count=psutil.cpu_count(),
             cpu_count_logical=psutil.cpu_count(logical=True),
         )
-        
-        backend_health = BackendHealth(
-            status="healthy",
-            uptime_seconds=uptime_seconds
-        )
-        
+
+        backend_health = BackendHealth(status="healthy", uptime_seconds=uptime_seconds)
+
         backend_metrics = BackendMetrics(
-            resources=backend_resources,
-            health=backend_health
+            resources=backend_resources, health=backend_health
         )
-        
+
         frontend_stack = FrontendStack(
             framework="React 19.1.1",
             build_tool="Vite 7.1.6",
@@ -529,12 +525,9 @@ async def detailed_health_check():
                 disk_percent=0.0,
                 uptime_seconds=0.0,
             ),
-            health=BackendHealth(
-                status="error",
-                uptime_seconds=0.0
-            )
+            health=BackendHealth(status="error", uptime_seconds=0.0),
         )
-        
+
         error_backend_stack = BackendStack(
             platform="unknown",
             platform_release="unknown",
@@ -544,7 +537,7 @@ async def detailed_health_check():
             cpu_count=0,
             cpu_count_logical=0,
         )
-        
+
         error_frontend_stack = FrontendStack(
             framework="unknown",
             build_tool="unknown",
@@ -553,7 +546,7 @@ async def detailed_health_check():
             ui_library="unknown",
             state_management="unknown",
         )
-        
+
         return DetailedHealthResponse(
             status_api="unhealthy",
             status_db="unknown",
@@ -652,7 +645,9 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
         offset=offset,
     )
 
-    logger.info(f"📊 Returning {len(logs)} DNS logs from {filtered_total_records} filtered records")
+    logger.info(
+        f"📊 Returning {len(logs)} DNS logs from {filtered_total_records} filtered records"
+    )
 
     return LogsResponse(
         data=logs,
