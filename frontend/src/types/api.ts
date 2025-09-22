@@ -202,3 +202,12 @@ export interface DeviceStats {
   count: number
   percentage: number
 }
+
+// Device analytics filters
+export interface DeviceFilters {
+  profile?: string
+  time_range?: string
+  limit?: number
+  exclude?: string[]
+  search?: string
+}
