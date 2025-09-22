@@ -9,17 +9,30 @@ import { LogsTable } from '@/components/LogsTable'
 import { ProfileSelector } from '@/components/ProfileSelector'
 import { DeviceFilter } from '@/components/DeviceFilter'
 import { useState, useMemo, useEffect, useCallback, useTransition } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 export function Logs() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+  const [searchParams] = useSearchParams()
+
+  // Initialize state from URL parameters
+  const [searchQuery, setSearchQuery] = useState(
+    () => searchParams.get('search') || ''
+  )
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(
+    () => searchParams.get('search') || ''
+  )
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'blocked' | 'allowed'
-  >('all')
-  const [selectedProfile, setSelectedProfile] = useState<string | undefined>(
-    undefined
+  >(
+    () => (searchParams.get('status') as 'all' | 'blocked' | 'allowed') || 'all'
   )
-  const [selectedDevices, setSelectedDevices] = useState<string[]>([])
+  const [selectedProfile, setSelectedProfile] = useState<string | undefined>(
+    () => searchParams.get('profile') || undefined
+  )
+  const [selectedDevices, setSelectedDevices] = useState<string[]>(() => {
+    const deviceParam = searchParams.get('device')
+    return deviceParam ? [deviceParam] : []
+  })
   const [, startTransition] = useTransition()
 
   // Debounce search query with transition for non-blocking updates
