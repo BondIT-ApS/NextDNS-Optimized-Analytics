@@ -10,11 +10,13 @@ import {
   Zap,
   Monitor,
   Globe,
+  Smartphone,
 } from 'lucide-react'
 
 // Chart components
 import { ChartJsOverview } from '../components/charts/ChartJsOverview'
 import { ChartJsDomains } from '../components/charts/ChartJsDomains'
+import { DeviceAnalytics } from '../components/analytics/DeviceAnalytics'
 
 // Profile data interface
 interface Profile {
@@ -426,7 +428,7 @@ export default function Stats() {
 
           {/* Tabbed Charts */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 Overview
@@ -434,6 +436,10 @@ export default function Stats() {
               <TabsTrigger value="domains" className="flex items-center gap-2">
                 <Globe className="h-4 w-4" />
                 Domains
+              </TabsTrigger>
+              <TabsTrigger value="devices" className="flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                Devices
               </TabsTrigger>
             </TabsList>
 
@@ -443,6 +449,13 @@ export default function Stats() {
 
             <TabsContent value="domains" className="mt-6">
               <ChartJsDomains data={topDomains} />
+            </TabsContent>
+
+            <TabsContent value="devices" className="mt-6">
+              <DeviceAnalytics 
+                selectedProfile={selectedProfile === 'all' ? undefined : selectedProfile}
+                timeRange={timeRange}
+              />
             </TabsContent>
           </Tabs>
         </>
