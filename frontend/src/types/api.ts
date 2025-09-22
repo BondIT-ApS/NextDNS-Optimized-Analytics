@@ -64,7 +64,7 @@ export interface HealthResponse {
   healthy: boolean
 }
 
-export interface SystemResources {
+export interface BackendResources {
   cpu_percent: number
   memory_total: number
   memory_available: number
@@ -73,6 +73,35 @@ export interface SystemResources {
   disk_used: number
   disk_percent: number
   uptime_seconds: number
+}
+
+export interface BackendStack {
+  platform: string
+  platform_release: string
+  architecture: string
+  hostname: string
+  python_version: string
+  cpu_count: number
+  cpu_count_logical: number
+}
+
+export interface FrontendStack {
+  framework: string
+  build_tool: string
+  language: string
+  styling: string
+  ui_library: string
+  state_management: string
+}
+
+export interface BackendHealth {
+  status: string
+  uptime_seconds: number
+}
+
+export interface BackendMetrics {
+  resources: BackendResources
+  health: BackendHealth
 }
 
 export interface ConnectionStats {
@@ -106,29 +135,10 @@ export interface DetailedHealthResponse {
   total_dns_records: number
   fetch_interval_minutes: number
   log_level: string
-  system_resources: SystemResources
+  backend_metrics: BackendMetrics
+  backend_stack: BackendStack
   database_metrics?: DatabaseMetrics
-  server_info: {
-    python_version: string
-    platform: string
-    cpu_count: number
-    memory_total: string
-    memory_available: string
-    disk_usage: string
-    uptime: string
-    database_status: string
-    database_version: string
-    total_logs: number
-    logs_today: number
-    frontend_stack?: {
-      framework: string
-      build_tool: string
-      language: string
-      styling: string
-      ui_library: string
-      state_management: string
-    }
-  }
+  frontend_stack: FrontendStack
   timestamp: string
 }
 

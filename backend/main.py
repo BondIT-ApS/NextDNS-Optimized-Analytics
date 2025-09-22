@@ -282,8 +282,8 @@ class HealthResponse(BaseModel):
     healthy: bool
 
 
-class SystemResources(BaseModel):
-    """System resource information."""
+class BackendResources(BaseModel):
+    """Backend container system resource information."""
 
     cpu_percent: float
     memory_total: int
@@ -293,6 +293,43 @@ class SystemResources(BaseModel):
     disk_used: int
     disk_percent: float
     uptime_seconds: float
+
+
+class BackendStack(BaseModel):
+    """Backend technology stack information."""
+    
+    platform: str
+    platform_release: str
+    architecture: str
+    hostname: str
+    python_version: str
+    cpu_count: int
+    cpu_count_logical: int
+
+
+class FrontendStack(BaseModel):
+    """Frontend technology stack information."""
+    
+    framework: str
+    build_tool: str
+    language: str
+    styling: str
+    ui_library: str
+    state_management: str
+
+
+class BackendHealth(BaseModel):
+    """Backend health status."""
+    
+    status: str
+    uptime_seconds: float
+
+
+class BackendMetrics(BaseModel):
+    """Complete backend metrics information."""
+    
+    resources: BackendResources
+    health: BackendHealth
 
 
 class ConnectionStats(BaseModel):
@@ -336,9 +373,10 @@ class DetailedHealthResponse(BaseModel):
     total_dns_records: int
     fetch_interval_minutes: int
     log_level: str
-    system_resources: SystemResources
+    backend_metrics: BackendMetrics
+    backend_stack: BackendStack
     database_metrics: Optional[DatabaseMetrics] = None
-    server_info: Dict[str, Any]
+    frontend_stack: FrontendStack
     timestamp: str
 
 
@@ -400,7 +438,8 @@ async def detailed_health_check():
         fetch_interval = int(os.getenv("FETCH_INTERVAL", "60"))
         log_level = os.getenv("LOG_LEVEL", "INFO")
 
-        system_resources = SystemResources(
+        # Create backend metrics structure
+        backend_resources = BackendResources(
             cpu_percent=cpu_percent,
             memory_total=memory.total,
             memory_available=memory.available,
@@ -410,24 +449,35 @@ async def detailed_health_check():
             disk_percent=(disk.used / disk.total) * 100,
             uptime_seconds=uptime_seconds,
         )
-
-        server_info = {
-            "platform": platform.system(),
-            "platform_release": platform.release(),
-            "architecture": platform.machine(),
-            "hostname": platform.node(),
-            "python_version": platform.python_version(),
-            "cpu_count": psutil.cpu_count(),
-            "cpu_count_logical": psutil.cpu_count(logical=True),
-            "frontend_stack": {
-                "framework": "React 19.1.1",
-                "build_tool": "Vite 7.1.6",
-                "language": "TypeScript 5.5.3",
-                "styling": "Tailwind CSS 3.4.0",
-                "ui_library": "shadcn/ui + Radix UI",
-                "state_management": "TanStack Query 5.56.2",
-            },
-        }
+        
+        backend_stack = BackendStack(
+            platform=platform.system(),
+            platform_release=platform.release(),
+            architecture=platform.machine(),
+            hostname=platform.node(),
+            python_version=platform.python_version(),
+            cpu_count=psutil.cpu_count(),
+            cpu_count_logical=psutil.cpu_count(logical=True),
+        )
+        
+        backend_health = BackendHealth(
+            status="healthy",
+            uptime_seconds=uptime_seconds
+        )
+        
+        backend_metrics = BackendMetrics(
+            resources=backend_resources,
+            health=backend_health
+        )
+        
+        frontend_stack = FrontendStack(
+            framework="React 19.1.1",
+            build_tool="Vite 7.1.6",
+            language="TypeScript 5.5.3",
+            styling="Tailwind CSS 3.4.0",
+            ui_library="shadcn/ui + Radix UI",
+            state_management="TanStack Query 5.56.2",
+        )
 
         # Collect database metrics
         database_metrics = None
@@ -458,23 +508,18 @@ async def detailed_health_check():
             total_dns_records=total_records,
             fetch_interval_minutes=fetch_interval,
             log_level=log_level,
-            system_resources=system_resources,
+            backend_metrics=backend_metrics,
+            backend_stack=backend_stack,
             database_metrics=database_metrics,
-            server_info=server_info,
+            frontend_stack=frontend_stack,
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
 
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"❌ Detailed health check failed: {e}")
         # Return minimal error response
-        return DetailedHealthResponse(
-            status_api="unhealthy",
-            status_db="unknown",
-            healthy=False,
-            total_dns_records=0,
-            fetch_interval_minutes=60,
-            log_level="UNKNOWN",
-            system_resources=SystemResources(
+        error_backend_metrics = BackendMetrics(
+            resources=BackendResources(
                 cpu_percent=0.0,
                 memory_total=0,
                 memory_available=0,
@@ -484,7 +529,42 @@ async def detailed_health_check():
                 disk_percent=0.0,
                 uptime_seconds=0.0,
             ),
-            server_info={"error": str(e)},
+            health=BackendHealth(
+                status="error",
+                uptime_seconds=0.0
+            )
+        )
+        
+        error_backend_stack = BackendStack(
+            platform="unknown",
+            platform_release="unknown",
+            architecture="unknown",
+            hostname="unknown",
+            python_version="unknown",
+            cpu_count=0,
+            cpu_count_logical=0,
+        )
+        
+        error_frontend_stack = FrontendStack(
+            framework="unknown",
+            build_tool="unknown",
+            language="unknown",
+            styling="unknown",
+            ui_library="unknown",
+            state_management="unknown",
+        )
+        
+        return DetailedHealthResponse(
+            status_api="unhealthy",
+            status_db="unknown",
+            healthy=False,
+            total_dns_records=0,
+            fetch_interval_minutes=60,
+            log_level="UNKNOWN",
+            backend_metrics=error_backend_metrics,
+            backend_stack=error_backend_stack,
+            database_metrics=None,
+            frontend_stack=error_frontend_stack,
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
 
