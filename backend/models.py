@@ -406,16 +406,12 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
         offset (int): Number of records to skip for pagination
 
     Returns:
-        list: List of DNS log dictionaries
+        tuple: (list of DNS log dictionaries, filtered total count)
     """
-    total_records = get_total_record_count()
     logger.debug(
         f"📊 Retrieving logs with limit={limit}, offset={offset}, "
         f"exclude_domains={exclude_domains}, search='{search_query}', "
         f"status='{status_filter}', profile='{profile_filter}', devices={device_filter}, time_range='{time_range}'"
-    )
-    logger.info(
-        f"📊 Database query: requesting {limit} records from {total_records:,} total records"
     )
     session = Session()
     try:
@@ -433,10 +429,10 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
 
         # Apply status filter (case-insensitive)
         if status_filter and status_filter.lower() == "blocked":
-            query = query.filter(DNSLog.blocked is True)
+            query = query.filter(DNSLog.blocked == True)
             logger.debug("🚫 Filtering for blocked requests only")
         elif status_filter and status_filter.lower() == "allowed":
-            query = query.filter(DNSLog.blocked is False)
+            query = query.filter(DNSLog.blocked == False)
             logger.debug("✅ Filtering for allowed requests only")
 
         # Apply profile filter
@@ -479,6 +475,12 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
                 query = query.filter(DNSLog.timestamp >= cutoff_time)
                 logger.debug(f"📅 Filtering for time range: {time_range}")
 
+        # Get filtered total count before applying pagination
+        filtered_total_records = query.count()
+        logger.info(
+            f"📊 Database query: requesting {limit} records from {filtered_total_records:,} filtered records"
+        )
+
         # Apply pagination
         query = query.offset(offset).limit(limit)
 
@@ -507,10 +509,10 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
             for log in query.all()
         ]
         logger.debug(f"📊 Retrieved {len(result)} logs from database")
-        return result
+        return result, filtered_total_records
     except SQLAlchemyError as e:
         logger.error(f"❌ Error retrieving logs from database: {e}")
-        return []
+        return [], 0
     finally:
         session.close()
 

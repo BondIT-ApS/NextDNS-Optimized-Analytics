@@ -641,7 +641,7 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
         f"status={status}, profile='{profile}', devices={devices}, time_range='{time_range}', limit={limit}, offset={offset}"
     )
 
-    logs = get_logs(
+    logs, filtered_total_records = get_logs(
         exclude_domains=exclude,
         search_query=search,
         status_filter=status,
@@ -651,13 +651,12 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
         limit=limit,
         offset=offset,
     )
-    total_records = get_total_record_count()
 
-    logger.info(f"📊 Returning {len(logs)} DNS logs")
+    logger.info(f"📊 Returning {len(logs)} DNS logs from {filtered_total_records} filtered records")
 
     return LogsResponse(
         data=logs,
-        total_records=total_records,
+        total_records=filtered_total_records,
         returned_records=len(logs),
         excluded_domains=exclude,
     )
