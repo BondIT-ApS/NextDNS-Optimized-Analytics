@@ -4,13 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Smartphone,
   Laptop,
   Monitor,
@@ -239,17 +232,16 @@ export function DeviceAnalytics({
             </div>
 
             {/* Sort Field */}
-            <Select value={sortField} onValueChange={(value: SortField) => setSortField(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="device_name">Device Name</SelectItem>
-                <SelectItem value="total_queries">Total Queries</SelectItem>
-                <SelectItem value="blocked_percentage">Blocked %</SelectItem>
-                <SelectItem value="last_activity">Last Activity</SelectItem>
-              </SelectContent>
-            </Select>
+            <select
+              value={sortField}
+              onChange={(e) => setSortField(e.target.value as SortField)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="device_name">Sort by: Device Name</option>
+              <option value="total_queries">Sort by: Total Queries</option>
+              <option value="blocked_percentage">Sort by: Blocked %</option>
+              <option value="last_activity">Sort by: Last Activity</option>
+            </select>
 
             {/* Sort Order */}
             <Button
@@ -266,16 +258,15 @@ export function DeviceAnalytics({
             </Button>
 
             {/* Limit */}
-            <Select value={limitDevices.toString()} onValueChange={(value) => setLimitDevices(parseInt(value))}>
-              <SelectTrigger>
-                <SelectValue placeholder="Show devices" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="10">Top 10</SelectItem>
-                <SelectItem value="20">Top 20</SelectItem>
-                <SelectItem value="50">Top 50</SelectItem>
-              </SelectContent>
-            </Select>
+            <select
+              value={limitDevices.toString()}
+              onChange={(e) => setLimitDevices(parseInt(e.target.value))}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="10">Top 10</option>
+              <option value="20">Top 20</option>
+              <option value="50">Top 50</option>
+            </select>
           </div>
 
           {/* Exclusions */}
