@@ -119,10 +119,6 @@ Contributions are welcome! Feel free to open an issue or submit a pull request. 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
 Like LEGO, you're free to rebuild and reimagine as you see fit!
 
-## 📈 Repobeats Analytics
-
-![Repobeats analytics image](https://repobeats.axiom.co/api/embed/abcc9fac036c51dc10cd34ef580cca8475df93ad.svg "Repobeats analytics image")
-
 ---
 
 ## 🏢 About BondIT ApS
