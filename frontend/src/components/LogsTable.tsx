@@ -24,9 +24,11 @@ export const LogsTable = memo<LogsTableProps>(
     const formatDevice = useCallback((device: DNSLog['device']) => {
       if (!device) return 'Unknown'
       if (typeof device === 'string') return device
-      return (device as { name?: string; id?: string }).name ||
+      return (
+        (device as { name?: string; id?: string }).name ||
         (device as { name?: string; id?: string }).id ||
         'Unknown'
+      )
     }, [])
 
     return (
