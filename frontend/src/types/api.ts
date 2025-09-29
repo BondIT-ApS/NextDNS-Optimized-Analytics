@@ -4,12 +4,12 @@ export interface DNSLog {
   timestamp: string
   domain: string
   action: string
-  device?: { [key: string]: any } | null
+  device?: Record<string, unknown> | null
   client_ip?: string | null
   query_type: string
   blocked: boolean
   profile_id?: string | null
-  data?: { [key: string]: any } | null
+  data?: Record<string, unknown> | null
   created_at: string
 }
 
