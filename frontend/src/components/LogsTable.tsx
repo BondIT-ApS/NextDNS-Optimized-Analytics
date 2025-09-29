@@ -7,9 +7,10 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Clock, Database, CheckCircle, XCircle } from 'lucide-react'
+import type { DNSLog } from '@/types/api'
 
 interface LogsTableProps {
-  logs: any[]
+  logs: DNSLog[]
   debouncedSearchQuery: string
   statusFilter: 'all' | 'blocked' | 'allowed'
 }
@@ -20,10 +21,14 @@ export const LogsTable = memo<LogsTableProps>(
       return new Date(timestamp).toLocaleTimeString()
     }, [])
 
-    const formatDevice = useCallback((device: any) => {
+    const formatDevice = useCallback((device: DNSLog['device']) => {
       if (!device) return 'Unknown'
       if (typeof device === 'string') return device
-      return device.name || device.id || 'Unknown'
+      return (
+        (device as { name?: string; id?: string }).name ||
+        (device as { name?: string; id?: string }).id ||
+        'Unknown'
+      )
     }, [])
 
     return (
@@ -75,7 +80,7 @@ export const LogsTable = memo<LogsTableProps>(
                   </tr>
                 </thead>
                 <tbody>
-                  {logs.map((log: any, index: number) => (
+                  {logs.map((log, index: number) => (
                     <tr
                       key={`${log.id}-${index}`}
                       className="border-b hover:bg-muted/50 transition-colors"

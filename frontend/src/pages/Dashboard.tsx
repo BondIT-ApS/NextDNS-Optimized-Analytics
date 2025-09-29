@@ -101,8 +101,8 @@ export function Dashboard() {
   const hasErrors = Boolean(healthError || statsError)
   const isOfflineMode = healthFromCache || statsFromCache
   const oldestCacheTimestamp = Math.min(
-    healthCacheMetadata?.lastUpdated || Date.now(),
-    statsCacheMetadata?.lastUpdated || Date.now()
+    Number(healthCacheMetadata?.lastUpdated ?? Date.now()),
+    Number(statsCacheMetadata?.lastUpdated ?? Date.now())
   )
 
   return (
