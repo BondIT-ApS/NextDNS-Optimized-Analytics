@@ -9,9 +9,11 @@ const createRetryConfig = (
   queryKey?: readonly string[]
 ) => {
   return {
-    retry: (failureCount: number, error: any) => {
+    retry: (failureCount: number, error: unknown) => {
       // Don't retry on auth errors (401) or client errors (400-499)
-      if (error?.status >= 400 && error?.status < 500) return false
+      if ((error as { status?: number })?.status && (error as { status: number }).status >= 400 && (error as { status: number }).status < 500) {
+        return false
+      }
       return failureCount < maxRetries
     },
     retryDelay: (attemptIndex: number) => {
@@ -19,7 +21,7 @@ const createRetryConfig = (
       return Math.min(1000 * 2 ** attemptIndex, 30000)
     },
     // Handle failed queries by falling back to cache
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.warn(`API Error for ${queryKey?.join('-')}:`, error)
     },
   }
@@ -27,9 +29,9 @@ const createRetryConfig = (
 
 // Enhanced connection status helper with offline detection
 const getConnectionStatus = (
-  error: any,
+  error: unknown,
   isLoading: boolean,
-  data: any,
+  data: unknown,
   isFromCache: boolean = false
 ) => {
   if (isLoading && !isFromCache) return { isConnected: false, isLoading: true }
@@ -47,7 +49,7 @@ const createCacheAwareQuery = <T>(
   queryKey: readonly string[],
   ttl?: number
 ) => {
-  return async (): Promise<T & { _cacheMetadata?: any }> => {
+  return async (): Promise<T & { _cacheMetadata?: Record<string, unknown> }> => {
     const cacheKey = queryKey.join('-')
 
     try {
@@ -57,7 +59,7 @@ const createCacheAwareQuery = <T>(
       // Cache successful response
       ApiCache.set(cacheKey, data, ttl)
 
-      return data as T & { _cacheMetadata?: any }
+      return data as T & { _cacheMetadata?: Record<string, unknown> }
     } catch (error) {
       // On error, try to get cached data (even if expired)
       const cached = ApiCache.getOffline<T>(cacheKey)
@@ -72,7 +74,7 @@ const createCacheAwareQuery = <T>(
         return {
           ...cached.data,
           _cacheMetadata: cached.metadata,
-        } as T & { _cacheMetadata?: any }
+        } as T & { _cacheMetadata?: Record<string, unknown> }
       }
 
       // If no cache available, re-throw the error
