@@ -1027,7 +1027,7 @@ def get_top_domains(profile_filter=None, time_range="24h", limit=10):
             try:
                 # pylint: disable=not-callable
                 blocked_results = (
-                    session.query(DNSLog.domain, func.count(DNSLog.id).label("count"))
+                    query.with_entities(DNSLog.domain, func.count(DNSLog.id).label("count"))
                     .filter(DNSLog.blocked.is_(True))
                     .group_by(DNSLog.domain)
                     .order_by(func.count(DNSLog.id).desc())
@@ -1058,7 +1058,7 @@ def get_top_domains(profile_filter=None, time_range="24h", limit=10):
             try:
                 # pylint: disable=not-callable
                 allowed_results = (
-                    session.query(DNSLog.domain, func.count(DNSLog.id).label("count"))
+                    query.with_entities(DNSLog.domain, func.count(DNSLog.id).label("count"))
                     .filter(DNSLog.blocked.is_(False))
                     .group_by(DNSLog.domain)
                     .order_by(func.count(DNSLog.id).desc())
