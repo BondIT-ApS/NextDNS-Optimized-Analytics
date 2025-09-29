@@ -16,6 +16,7 @@ import {
 // Chart components
 import { ChartJsOverview } from '../components/charts/ChartJsOverview'
 import { ChartJsDomains } from '../components/charts/ChartJsDomains'
+import { ChartJsTlds } from '../components/charts/ChartJsTlds'
 import { DeviceAnalytics } from '../components/analytics/DeviceAnalytics'
 
 // Profile data interface
@@ -73,6 +74,11 @@ interface TopDomainsData {
   allowed_domains: { domain: string; count: number; percentage: number }[]
 }
 
+interface TopTLDsData {
+  blocked_tlds: { domain: string; count: number; percentage: number }[]
+  allowed_tlds: { domain: string; count: number; percentage: number }[]
+}
+
 const TIME_RANGES = [
   { value: '1h', label: '1 Hour' },
   { value: '24h', label: '24 Hours' },
@@ -93,6 +99,7 @@ export default function Stats() {
   const [overview, setOverview] = useState<StatsOverview | null>(null)
   const [timeSeries, setTimeSeries] = useState<TimeSeriesData | null>(null)
   const [topDomains, setTopDomains] = useState<TopDomainsData | null>(null)
+  const [topTlds, setTopTlds] = useState<TopTLDsData | null>(null)
   const [profiles, setProfiles] = useState<ProfilesResponse | null>(null)
   const [profilesInfo, setProfilesInfo] = useState<ProfilesInfoResponse | null>(
     null
@@ -206,6 +213,23 @@ export default function Stats() {
       const domainsData = await domainsResponse.json()
       console.log('Domains data received:', domainsData)
       setTopDomains(domainsData)
+
+      // Fetch TLD data
+      console.log(
+        'Fetching TLDs data from:',
+        `${baseUrl}/stats/tlds?${params}`
+      )
+      const tldsResponse = await fetch(`${baseUrl}/stats/tlds?${params}`)
+      if (!tldsResponse.ok) {
+        const errorText = await tldsResponse.text()
+        console.error('TLDs API error:', tldsResponse.status, errorText)
+        throw new Error(
+          `Failed to fetch TLDs data: ${tldsResponse.status} ${tldsResponse.statusText}`
+        )
+      }
+      const tldsData = await tldsResponse.json()
+      console.log('TLDs data received:', tldsData)
+      setTopTlds(tldsData)
     } catch (err) {
       console.error('Error fetching stats:', err)
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -428,7 +452,7 @@ export default function Stats() {
 
           {/* Tabbed Charts */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" />
                 Overview
@@ -440,6 +464,10 @@ export default function Stats() {
               <TabsTrigger value="devices" className="flex items-center gap-2">
                 <Smartphone className="h-4 w-4" />
                 Devices
+              </TabsTrigger>
+              <TabsTrigger value="tlds" className="flex items-center gap-2">
+                <Globe className="h-4 w-4" />
+                Parent Domains
               </TabsTrigger>
             </TabsList>
 
@@ -458,6 +486,10 @@ export default function Stats() {
                 }
                 timeRange={timeRange}
               />
+            </TabsContent>
+
+            <TabsContent value="tlds" className="mt-6">
+              <ChartJsTlds data={topTlds} />
             </TabsContent>
           </Tabs>
         </>
