@@ -138,11 +138,17 @@ export function DeviceAnalytics({
     if (
       name.includes('iphone') ||
       name.includes('android') ||
-      name.includes('mobile')
+      name.includes('mobile') ||
+      name.includes('tablet') ||
+      name.includes('ipad')
     ) {
       return <Smartphone className="h-5 w-5 text-lego-blue" />
     }
-    if (name.includes('macbook') || name.includes('laptop')) {
+    if (
+      name.includes('macbook') ||
+      name.includes('laptop') ||
+      name.includes('pc')
+    ) {
       return <Laptop className="h-5 w-5 text-lego-green" />
     }
     if (name.includes('router') || name.includes('gateway')) {
@@ -266,7 +272,11 @@ export function DeviceAnalytics({
             </div>
 
             {/* Sort Field */}
+            <label htmlFor="sort-field" className="sr-only">
+              Sort field
+            </label>
             <select
+              id="sort-field"
               value={sortField}
               onChange={e => setSortField(e.target.value as SortField)}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -294,7 +304,11 @@ export function DeviceAnalytics({
             </Button>
 
             {/* Limit */}
+            <label className="sr-only" htmlFor="limit-select">
+              Limit
+            </label>
             <select
+              id="limit-select"
               value={limitDevices.toString()}
               onChange={e => setLimitDevices(parseInt(e.target.value))}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
