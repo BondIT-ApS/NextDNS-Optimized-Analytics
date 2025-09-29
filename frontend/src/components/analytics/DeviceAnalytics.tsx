@@ -151,10 +151,7 @@ export function DeviceAnalytics({
     ) {
       return <Laptop className="h-5 w-5 text-lego-green" />
     }
-    if (
-      name.includes('router') ||
-      name.includes('gateway')
-    ) {
+    if (name.includes('router') || name.includes('gateway')) {
       return <Router className="h-5 w-5 text-lego-purple" />
     }
     return <Monitor className="h-5 w-5 text-lego-yellow" />
@@ -307,7 +304,9 @@ export function DeviceAnalytics({
             </Button>
 
             {/* Limit */}
-            <label className="sr-only" htmlFor="limit-select">Limit</label>
+            <label className="sr-only" htmlFor="limit-select">
+              Limit
+            </label>
             <select
               id="limit-select"
               value={limitDevices.toString()}

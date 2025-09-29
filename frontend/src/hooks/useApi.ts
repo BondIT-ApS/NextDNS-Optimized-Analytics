@@ -11,7 +11,11 @@ const createRetryConfig = (
   return {
     retry: (failureCount: number, error: unknown) => {
       // Don't retry on auth errors (401) or client errors (400-499)
-      if ((error as { status?: number })?.status && (error as { status: number }).status >= 400 && (error as { status: number }).status < 500) {
+      if (
+        (error as { status?: number })?.status &&
+        (error as { status: number }).status >= 400 &&
+        (error as { status: number }).status < 500
+      ) {
         return false
       }
       return failureCount < maxRetries
@@ -49,7 +53,9 @@ const createCacheAwareQuery = <T>(
   queryKey: readonly string[],
   ttl?: number
 ) => {
-  return async (): Promise<T & { _cacheMetadata?: Record<string, unknown> }> => {
+  return async (): Promise<
+    T & { _cacheMetadata?: Record<string, unknown> }
+  > => {
     const cacheKey = queryKey.join('-')
 
     try {

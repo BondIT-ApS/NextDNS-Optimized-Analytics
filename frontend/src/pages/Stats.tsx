@@ -215,10 +215,7 @@ export default function Stats() {
       setTopDomains(domainsData)
 
       // Fetch TLD data
-      console.log(
-        'Fetching TLDs data from:',
-        `${baseUrl}/stats/tlds?${params}`
-      )
+      console.log('Fetching TLDs data from:', `${baseUrl}/stats/tlds?${params}`)
       const tldsResponse = await fetch(`${baseUrl}/stats/tlds?${params}`)
       if (!tldsResponse.ok) {
         const errorText = await tldsResponse.text()
