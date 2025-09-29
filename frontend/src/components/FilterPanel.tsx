@@ -52,16 +52,18 @@ export const FilterPanel = memo<FilterPanelProps>(
 
             {/* Status Filter Buttons */}
             <div className="flex gap-2">
-              {[
-                { key: 'all', label: 'All', color: 'outline' },
-                { key: 'blocked', label: 'Blocked', color: 'destructive' },
-                { key: 'allowed', label: 'Allowed', color: 'default' },
-              ].map(({ key, label, color }) => (
+              {(
+                [
+                  { key: 'all', label: 'All', color: 'outline' },
+                  { key: 'blocked', label: 'Blocked', color: 'destructive' },
+                  { key: 'allowed', label: 'Allowed', color: 'default' },
+                ] as const
+              ).map(({ key, label, color }) => (
                 <Button
                   key={key}
-                  variant={statusFilter === key ? (color as any) : 'outline'}
+                  variant={statusFilter === key ? color : 'outline'}
                   size="sm"
-                  onClick={() => onStatusFilterChange(key as any)}
+                  onClick={() => onStatusFilterChange(key)}
                   className={
                     statusFilter === key && key === 'allowed'
                       ? 'bg-lego-green hover:bg-lego-green/90 text-white'
@@ -73,7 +75,6 @@ export const FilterPanel = memo<FilterPanelProps>(
               ))}
             </div>
           </div>
-
           {/* Filter Summary */}
           {(debouncedSearchQuery ||
             statusFilter !== 'all' ||
