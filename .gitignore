@@ -143,6 +143,12 @@ build/
 
 # React/TypeScript cache
 .tsbuildinfo
+*.tsbuildinfo
+frontend/tsconfig.node.tsbuildinfo
+
+# Vite generated files
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
 # Package manager lock files (keep package-lock.json but ignore yarn.lock)
 yarn.lock
