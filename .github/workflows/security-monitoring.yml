@@ -28,13 +28,13 @@ jobs:
         uses: actions/checkout@v5
       
       - name: 🔧 Initialize Deep Security Scanner
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           build-mode: none
       
       - name: 🔍 Perform Weekly Security Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
       
