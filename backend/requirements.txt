@@ -7,7 +7,7 @@ python-multipart==0.0.20
 starlette==0.48.0  # Explicit version to fix CVE-2024-47874 and CVE-2025-54121
 
 # Database
-sqlalchemy==2.0.43
+sqlalchemy==2.0.44
 psycopg2-binary==2.9.10
 alembic==1.16.5
 
