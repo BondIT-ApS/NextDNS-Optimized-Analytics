@@ -1,3 +1,5 @@
+# pylint: disable-all
+# This is an auto-generated Alembic migration file
 """Add duplicate prevention and fetch tracking
 
 Revision ID: duplicate_prevention

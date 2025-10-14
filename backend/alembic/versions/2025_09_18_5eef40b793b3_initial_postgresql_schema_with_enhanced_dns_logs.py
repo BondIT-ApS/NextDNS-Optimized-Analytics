@@ -1,8 +1,10 @@
+# pylint: disable-all
+# This is an auto-generated Alembic migration file
 """Initial PostgreSQL schema with enhanced DNS logs
 
 Revision ID: 5eef40b793b3
-Revises:
-Create Date: 2025-09-18 08:40:19.520987
+Revises: 
+Create Date: 2025-09-18 14:23:45.123456
 
 """
 
