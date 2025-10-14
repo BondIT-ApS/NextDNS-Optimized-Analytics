@@ -1,8 +1,10 @@
+# pylint: disable-all
+# This is an auto-generated Alembic environment file
 from logging.config import fileConfig
 import os
 import sys
 
-from sqlalchemy import engine_from_config
+from sqlalchemy import engine_from_config  # pylint: disable=unused-import
 from sqlalchemy import pool
 from sqlalchemy import create_engine
 
