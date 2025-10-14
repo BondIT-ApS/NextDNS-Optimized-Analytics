@@ -650,7 +650,7 @@ def get_available_profiles():
 
 
 # Get real stats overview data from database
-def get_stats_overview(profile_filter=None, time_range="24h"):
+def get_stats_overview(profile_filter=None, time_range="24h"):  # pylint: disable=too-many-locals,too-many-branches
     """Get overview statistics from the database.
 
     Args:
@@ -806,7 +806,7 @@ def get_stats_overview(profile_filter=None, time_range="24h"):
 
 
 # Get time series data from database
-def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hour"):
+def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hour"):  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     """Get time series statistics from the database.
 
     Args:
@@ -981,7 +981,7 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
 
 
 # Get top domains from database
-def get_top_domains(profile_filter=None, time_range="24h", limit=10):
+def get_top_domains(profile_filter=None, time_range="24h", limit=10):  # pylint: disable=too-many-locals
     """Get top blocked and allowed domains from the database.
 
     Args:
@@ -1110,7 +1110,9 @@ def get_top_domains(profile_filter=None, time_range="24h", limit=10):
 
 
 # Get top-level domains (TLD aggregation) from database
-def get_stats_tlds(profile_filter=None, time_range="24h", limit=10):
+def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
+    profile_filter=None, time_range="24h", limit=10
+):
     """Get top-level domain statistics aggregated from full domains.
 
     Groups all subdomains under their parent domains (TLD).
@@ -1229,7 +1231,7 @@ def get_stats_tlds(profile_filter=None, time_range="24h", limit=10):
 
 
 # Get device usage statistics from database
-def get_stats_devices(
+def get_stats_devices(  # pylint: disable=too-many-locals,too-many-branches
     profile_filter=None, time_range="24h", limit=10, exclude_devices=None
 ):
     """Get device usage statistics showing DNS query activity by device.
@@ -1359,7 +1361,7 @@ def get_stats_devices(
 
 
 # Database metrics collection functions for PostgreSQL monitoring
-def get_database_metrics():
+def get_database_metrics():  # pylint: disable=too-many-branches,too-many-statements
     """Get comprehensive PostgreSQL database metrics.
 
     Returns:
