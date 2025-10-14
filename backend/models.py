@@ -412,7 +412,8 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
     logger.debug(
         f"📊 Retrieving logs with limit={limit}, offset={offset}, "
         f"exclude_domains={exclude_domains}, search='{search_query}', "
-        f"status='{status_filter}', profile='{profile_filter}', devices={device_filter}, time_range='{time_range}'"
+        f"status='{status_filter}', profile='{profile_filter}', "
+        f"devices={device_filter}, time_range='{time_range}'"
     )
     session = session_factory()
     try:
@@ -823,6 +824,11 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
     try:
 
         now = datetime.now(timezone.utc)
+
+        # Initialize variables to avoid unbound local variable error
+        interval_minutes = 0
+        interval_hours = 0
+        display_time = None
 
         # Determine time parameters based on time range
         if time_range == "30m":
@@ -1316,9 +1322,6 @@ def get_stats_devices(
             if log_entry.timestamp > device_stats[device_name]["last_activity"]:
                 device_stats[device_name]["last_activity"] = log_entry.timestamp
 
-        # Calculate total queries for percentages
-        total_queries = sum(stats["total"] for stats in device_stats.values())
-
         # Format and sort results
         device_results = []
         for device_name, stats in device_stats.items():
@@ -1412,7 +1415,8 @@ def get_database_metrics():
                 text(
                     "SELECT "
                     "  CASE WHEN (sum(heap_blks_hit) + sum(heap_blks_read)) > 0 "
-                    "       THEN round(sum(heap_blks_hit)::numeric / (sum(heap_blks_hit) + sum(heap_blks_read)), 3) "
+                    "       THEN round(sum(heap_blks_hit)::numeric / "
+                    "            (sum(heap_blks_hit) + sum(heap_blks_read)), 3) "
                     "       ELSE 0.95 "
                     "  END as hit_ratio "
                     "FROM pg_statio_user_tables "
@@ -1484,7 +1488,7 @@ def get_database_metrics():
         logger.debug(f"📊 Database metrics collected: {metrics}")
         return metrics
 
-    except Exception as e:
+    except (SQLAlchemyError, ValueError, TypeError) as e:
         logger.error(f"❌ Error collecting database metrics: {e}")
         return {
             "connections": {"active": 0, "total": 0, "usage_percent": 0.0},
