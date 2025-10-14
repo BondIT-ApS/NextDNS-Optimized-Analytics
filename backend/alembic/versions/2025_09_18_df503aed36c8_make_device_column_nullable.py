@@ -1,8 +1,10 @@
+# pylint: disable-all
+# This is an auto-generated Alembic migration file
 """Make device column nullable
 
 Revision ID: df503aed36c8
 Revises: duplicate_prevention
-Create Date: 2025-09-18 10:45:00.000000
+Create Date: 2025-09-18 14:24:35.123456
 
 """
 
