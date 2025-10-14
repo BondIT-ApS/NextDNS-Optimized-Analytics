@@ -414,83 +414,95 @@ async def health_check():
         return HealthResponse(
             status="healthy" if db_healthy else "unhealthy", healthy=db_healthy
         )
-    except Exception as e:  # pylint: disable=broad-exception-caught
+    except (SQLAlchemyError, ValueError, TypeError) as e:
         logger.error(f"❌ Health check failed: {e}")
         return HealthResponse(status="unhealthy", healthy=False)
+
+
+def _create_backend_resources(uptime_seconds: float) -> BackendResources:
+    """Create backend resource metrics."""
+    cpu_percent = psutil.cpu_percent(interval=1)
+    memory = psutil.virtual_memory()
+    disk = psutil.disk_usage("/")
+
+    return BackendResources(
+        cpu_percent=cpu_percent,
+        memory_total=memory.total,
+        memory_available=memory.available,
+        memory_percent=memory.percent,
+        disk_total=disk.total,
+        disk_used=disk.used,
+        disk_percent=(disk.used / disk.total) * 100,
+        uptime_seconds=uptime_seconds,
+    )
+
+
+def _create_backend_stack() -> BackendStack:
+    """Create backend stack information."""
+    return BackendStack(
+        platform=platform.system(),
+        platform_release=platform.release(),
+        architecture=platform.machine(),
+        hostname=platform.node(),
+        python_version=platform.python_version(),
+        cpu_count=psutil.cpu_count(),
+        cpu_count_logical=psutil.cpu_count(logical=True),
+    )
+
+
+def _create_frontend_stack() -> FrontendStack:
+    """Create frontend stack information."""
+    return FrontendStack(
+        framework="React 19.1.1",
+        build_tool="Vite 7.1.6",
+        language="TypeScript 5.5.3",
+        styling="Tailwind CSS 3.4.0",
+        ui_library="shadcn/ui + Radix UI",
+        state_management="TanStack Query 5.56.2",
+    )
+
+
+def _get_database_metrics() -> Optional[DatabaseMetrics]:
+    """Get database metrics, returning None on error."""
+    try:
+        db_metrics_data = get_database_metrics()
+        logger.debug("📊 Database metrics successfully collected")
+        return DatabaseMetrics(
+            connections=ConnectionStats(**db_metrics_data["connections"]),
+            performance=PerformanceMetrics(**db_metrics_data["performance"]),
+            health=DatabaseHealth(**db_metrics_data["health"]),
+        )
+    except (SQLAlchemyError, ValueError, TypeError, KeyError) as e:
+        logger.warning(f"⚠️ Could not collect database metrics: {e}")
+        return None
 
 
 @app.get("/health/detailed", response_model=DetailedHealthResponse, tags=["Health"])
 async def detailed_health_check():
     """Detailed health check with comprehensive system information."""
     try:
-        # Database check
+        # Database and basic health checks
         total_records = get_total_record_count()
         db_healthy = total_records >= 0
+        api_healthy = True  # API is responding if we get here
+        overall_healthy = db_healthy and api_healthy
 
-        # System resource monitoring
-        cpu_percent = psutil.cpu_percent(interval=1)
-        memory = psutil.virtual_memory()
-        disk = psutil.disk_usage("/")
-        current_time = datetime.now(timezone.utc)
-        uptime_seconds = (current_time - app_start_time).total_seconds()
+        # Calculate uptime
+        uptime_seconds = (datetime.now(timezone.utc) - app_start_time).total_seconds()
 
-        # Get environment variables
+        # Get environment configuration
         fetch_interval = int(os.getenv("FETCH_INTERVAL", "60"))
         log_level = os.getenv("LOG_LEVEL", "INFO")
 
-        # Create backend metrics structure
-        backend_resources = BackendResources(
-            cpu_percent=cpu_percent,
-            memory_total=memory.total,
-            memory_available=memory.available,
-            memory_percent=memory.percent,
-            disk_total=disk.total,
-            disk_used=disk.used,
-            disk_percent=(disk.used / disk.total) * 100,
-            uptime_seconds=uptime_seconds,
-        )
-
-        backend_stack = BackendStack(
-            platform=platform.system(),
-            platform_release=platform.release(),
-            architecture=platform.machine(),
-            hostname=platform.node(),
-            python_version=platform.python_version(),
-            cpu_count=psutil.cpu_count(),
-            cpu_count_logical=psutil.cpu_count(logical=True),
-        )
-
+        # Create metrics components
+        backend_resources = _create_backend_resources(uptime_seconds)
         backend_health = BackendHealth(status="healthy", uptime_seconds=uptime_seconds)
-
         backend_metrics = BackendMetrics(
             resources=backend_resources, health=backend_health
         )
-
-        frontend_stack = FrontendStack(
-            framework="React 19.1.1",
-            build_tool="Vite 7.1.6",
-            language="TypeScript 5.5.3",
-            styling="Tailwind CSS 3.4.0",
-            ui_library="shadcn/ui + Radix UI",
-            state_management="TanStack Query 5.56.2",
-        )
-
-        # Collect database metrics
-        database_metrics = None
-        try:
-            db_metrics_data = get_database_metrics()
-            database_metrics = DatabaseMetrics(
-                connections=ConnectionStats(**db_metrics_data["connections"]),
-                performance=PerformanceMetrics(**db_metrics_data["performance"]),
-                health=DatabaseHealth(**db_metrics_data["health"]),
-            )
-            logger.debug(f"📊 Database metrics successfully collected")
-        except Exception as e:
-            logger.warning(f"⚠️ Could not collect database metrics: {e}")
-            database_metrics = None
-
-        api_healthy = True  # API is responding if we get here
-        overall_healthy = db_healthy and api_healthy
+        backend_stack = _create_backend_stack()
+        frontend_stack = _create_frontend_stack()
+        database_metrics = _get_database_metrics()
 
         logger.debug(
             f"🏥 Detailed health check completed - "
@@ -511,7 +523,7 @@ async def detailed_health_check():
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
 
-    except Exception as e:  # pylint: disable=broad-exception-caught
+    except (SQLAlchemyError, ValueError, TypeError, KeyError, OSError) as e:
         logger.error(f"❌ Detailed health check failed: {e}")
         # Return minimal error response
         error_backend_metrics = BackendMetrics(
@@ -631,7 +643,8 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
     """
     logger.debug(
         f"📊 API request: exclude={exclude}, search='{search}', "
-        f"status={status}, profile='{profile}', devices={devices}, time_range='{time_range}', limit={limit}, offset={offset}"
+        f"status={status}, profile='{profile}', devices={devices}, "
+        f"time_range='{time_range}', limit={limit}, offset={offset}"
     )
 
     logs, filtered_total_records = get_logs(
@@ -887,7 +900,8 @@ async def get_device_stats(
     Useful for network monitoring, troubleshooting, and identifying device behavior patterns.
     """
     logger.debug(
-        f"📱 Device stats request: profile={profile}, time_range={time_range}, limit={limit}, exclude={exclude}"
+        f"📱 Device stats request: profile={profile}, time_range={time_range}, "
+        f"limit={limit}, exclude={exclude}"
     )
 
     # Get device statistics from database
