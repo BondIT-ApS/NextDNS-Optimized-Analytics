@@ -414,7 +414,7 @@ async def health_check():
         return HealthResponse(
             status="healthy" if db_healthy else "unhealthy", healthy=db_healthy
         )
-    except Exception as e:  # pylint: disable=broad-exception-caught
+    except (SQLAlchemyError, ValueError, TypeError) as e:
         logger.error(f"❌ Health check failed: {e}")
         return HealthResponse(status="unhealthy", healthy=False)
 
@@ -485,7 +485,7 @@ async def detailed_health_check():
                 health=DatabaseHealth(**db_metrics_data["health"]),
             )
             logger.debug("📊 Database metrics successfully collected")
-        except Exception as e:
+        except (SQLAlchemyError, ValueError, TypeError, KeyError) as e:
             logger.warning(f"⚠️ Could not collect database metrics: {e}")
             database_metrics = None
 
@@ -511,7 +511,7 @@ async def detailed_health_check():
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
 
-    except Exception as e:  # pylint: disable=broad-exception-caught
+    except (SQLAlchemyError, ValueError, TypeError, KeyError, OSError) as e:
         logger.error(f"❌ Detailed health check failed: {e}")
         # Return minimal error response
         error_backend_metrics = BackendMetrics(
