@@ -381,7 +381,7 @@ def update_fetch_status(profile_id, last_timestamp, records_count):
 
 
 # Retrieve logs with optional exclusion of domains and advanced filtering
-def get_logs(  # pylint: disable=too-many-positional-arguments
+def get_logs(  # pylint: disable=too-many-positional-arguments,too-many-locals,too-many-branches
     exclude_domains=None,
     search_query="",
     status_filter="all",
