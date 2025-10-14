@@ -23,9 +23,7 @@ def _handle_api_response(response: requests.Response, profile_id: str) -> Dict:
     """Helper function to handle API response based on status code."""
     if response.status_code == 200:
         profile_data = response.json().get("data", {})
-        logger.debug(
-            f"✅ Profile {profile_id}: {profile_data.get('name', 'Unknown')}"
-        )
+        logger.debug(f"✅ Profile {profile_id}: {profile_data.get('name', 'Unknown')}")
         return {
             "id": profile_id,
             "name": profile_data.get("name", f"Profile {profile_id}"),
@@ -36,11 +34,15 @@ def _handle_api_response(response: requests.Response, profile_id: str) -> Dict:
 
     if response.status_code == 404:
         logger.warning(f"⚠️  Profile {profile_id} not found (404)")
-        return _create_error_profile_info(profile_id, "(Not Found)", "Profile not found")
+        return _create_error_profile_info(
+            profile_id, "(Not Found)", "Profile not found"
+        )
 
     if response.status_code == 403:
         logger.warning(f"⚠️  Access denied to profile {profile_id} (403)")
-        return _create_error_profile_info(profile_id, "(Access Denied)", "Access denied")
+        return _create_error_profile_info(
+            profile_id, "(Access Denied)", "Access denied"
+        )
 
     # Handle all other status codes
     logger.error(

@@ -424,7 +424,7 @@ def _create_backend_resources(uptime_seconds: float) -> BackendResources:
     cpu_percent = psutil.cpu_percent(interval=1)
     memory = psutil.virtual_memory()
     disk = psutil.disk_usage("/")
-    
+
     return BackendResources(
         cpu_percent=cpu_percent,
         memory_total=memory.total,
@@ -486,18 +486,20 @@ async def detailed_health_check():
         db_healthy = total_records >= 0
         api_healthy = True  # API is responding if we get here
         overall_healthy = db_healthy and api_healthy
-        
+
         # Calculate uptime
         uptime_seconds = (datetime.now(timezone.utc) - app_start_time).total_seconds()
-        
+
         # Get environment configuration
         fetch_interval = int(os.getenv("FETCH_INTERVAL", "60"))
         log_level = os.getenv("LOG_LEVEL", "INFO")
-        
+
         # Create metrics components
         backend_resources = _create_backend_resources(uptime_seconds)
         backend_health = BackendHealth(status="healthy", uptime_seconds=uptime_seconds)
-        backend_metrics = BackendMetrics(resources=backend_resources, health=backend_health)
+        backend_metrics = BackendMetrics(
+            resources=backend_resources, health=backend_health
+        )
         backend_stack = _create_backend_stack()
         frontend_stack = _create_frontend_stack()
         database_metrics = _get_database_metrics()

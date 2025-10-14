@@ -650,7 +650,9 @@ def get_available_profiles():
 
 
 # Get real stats overview data from database
-def get_stats_overview(profile_filter=None, time_range="24h"):  # pylint: disable=too-many-locals,too-many-branches
+def get_stats_overview(
+    profile_filter=None, time_range="24h"
+):  # pylint: disable=too-many-locals,too-many-branches
     """Get overview statistics from the database.
 
     Args:
@@ -806,7 +808,9 @@ def get_stats_overview(profile_filter=None, time_range="24h"):  # pylint: disabl
 
 
 # Get time series data from database
-def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hour"):  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+def get_stats_timeseries(
+    profile_filter=None, time_range="24h", granularity="hour"
+):  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     """Get time series statistics from the database.
 
     Args:
@@ -981,7 +985,9 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
 
 
 # Get top domains from database
-def get_top_domains(profile_filter=None, time_range="24h", limit=10):  # pylint: disable=too-many-locals
+def get_top_domains(
+    profile_filter=None, time_range="24h", limit=10
+):  # pylint: disable=too-many-locals
     """Get top blocked and allowed domains from the database.
 
     Args:
