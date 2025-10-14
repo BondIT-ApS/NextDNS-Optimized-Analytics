@@ -484,7 +484,7 @@ async def detailed_health_check():
                 performance=PerformanceMetrics(**db_metrics_data["performance"]),
                 health=DatabaseHealth(**db_metrics_data["health"]),
             )
-            logger.debug(f"📊 Database metrics successfully collected")
+            logger.debug("📊 Database metrics successfully collected")
         except Exception as e:
             logger.warning(f"⚠️ Could not collect database metrics: {e}")
             database_metrics = None
@@ -631,7 +631,8 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
     """
     logger.debug(
         f"📊 API request: exclude={exclude}, search='{search}', "
-        f"status={status}, profile='{profile}', devices={devices}, time_range='{time_range}', limit={limit}, offset={offset}"
+        f"status={status}, profile='{profile}', devices={devices}, "
+        f"time_range='{time_range}', limit={limit}, offset={offset}"
     )
 
     logs, filtered_total_records = get_logs(
@@ -887,7 +888,8 @@ async def get_device_stats(
     Useful for network monitoring, troubleshooting, and identifying device behavior patterns.
     """
     logger.debug(
-        f"📱 Device stats request: profile={profile}, time_range={time_range}, limit={limit}, exclude={exclude}"
+        f"📱 Device stats request: profile={profile}, time_range={time_range}, "
+        f"limit={limit}, exclude={exclude}"
     )
 
     # Get device statistics from database

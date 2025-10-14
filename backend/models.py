@@ -17,6 +17,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
     text,
+    or_,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -97,7 +98,7 @@ DATABASE_URL = (
     f"{os.getenv('POSTGRES_DB')}"
 )
 engine = create_engine(DATABASE_URL, echo=False)
-Session = sessionmaker(bind=engine)
+session_factory = sessionmaker(bind=engine)
 
 
 # Database model for DNS logs
@@ -180,7 +181,7 @@ def get_total_record_count():
     Returns:
         int: Total number of records, or 0 if error occurs
     """
-    session = Session()
+    session = session_factory()
     try:
         count = session.query(DNSLog).count()
         logger.debug(f"📊 Database contains {count:,} total DNS log records")
@@ -217,7 +218,7 @@ def add_log(log):
         tuple: (record_id, is_new) where record_id is the ID and
         is_new indicates if it's a new record
     """
-    session = Session()
+    session = session_factory()
     try:
         # Extract timestamp from log data
         log_timestamp_str = log.get("timestamp")
@@ -309,7 +310,7 @@ def get_last_fetch_timestamp(profile_id):
     Returns:
         datetime: Last fetch timestamp or None if no previous fetch
     """
-    session = Session()
+    session = session_factory()
     try:
         fetch_status = (
             session.query(FetchStatus).filter_by(profile_id=profile_id).first()
@@ -339,7 +340,7 @@ def update_fetch_status(profile_id, last_timestamp, records_count):
         last_timestamp (datetime): Timestamp of the last fetched record
         records_count (int): Number of records fetched in this batch
     """
-    session = Session()
+    session = session_factory()
     try:
         fetch_status = (
             session.query(FetchStatus).filter_by(profile_id=profile_id).first()
@@ -413,7 +414,7 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
         f"exclude_domains={exclude_domains}, search='{search_query}', "
         f"status='{status_filter}', profile='{profile_filter}', devices={device_filter}, time_range='{time_range}'"
     )
-    session = Session()
+    session = session_factory()
     try:
         query = session.query(DNSLog).order_by(DNSLog.timestamp.desc())
 
@@ -429,10 +430,10 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
 
         # Apply status filter (case-insensitive)
         if status_filter and status_filter.lower() == "blocked":
-            query = query.filter(DNSLog.blocked == True)
+            query = query.filter(DNSLog.blocked.is_(True))
             logger.debug("🚫 Filtering for blocked requests only")
         elif status_filter and status_filter.lower() == "allowed":
-            query = query.filter(DNSLog.blocked == False)
+            query = query.filter(DNSLog.blocked.is_(False))
             logger.debug("✅ Filtering for allowed requests only")
 
         # Apply profile filter
@@ -451,8 +452,6 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
                         DNSLog.device.ilike(f'%"name": "{device_name}"%')
                     )
             if device_conditions:
-                from sqlalchemy import or_
-
                 query = query.filter(or_(*device_conditions))
                 logger.debug(f"📱 Filtering for devices: {device_filter}")
 
@@ -531,7 +530,7 @@ def get_logs_stats(profile_filter=None, time_range="all"):
     Returns:
         dict: Dictionary containing total, blocked, and allowed counts and percentages
     """
-    session = Session()
+    session = session_factory()
     try:
         query = session.query(DNSLog)
 
@@ -608,7 +607,7 @@ def get_available_profiles():
     Returns:
         list: List of profile IDs with record counts
     """
-    session = Session()
+    session = session_factory()
     try:
         # Query for distinct profile IDs and their counts
 
@@ -663,7 +662,7 @@ def get_stats_overview(profile_filter=None, time_range="24h"):
     Returns:
         dict: Statistics overview
     """
-    session = Session()
+    session = session_factory()
     try:
         # Build base query
         query = session.query(DNSLog)
@@ -820,7 +819,7 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
     Returns:
         list: List of time series data points
     """
-    session = Session()
+    session = session_factory()
     try:
 
         now = datetime.now(timezone.utc)
@@ -990,7 +989,7 @@ def get_top_domains(profile_filter=None, time_range="24h", limit=10):
     Returns:
         dict: Contains blocked_domains and allowed_domains lists
     """
-    session = Session()
+    session = session_factory()
     try:
         # Build base query
         query = session.query(DNSLog)
@@ -1122,7 +1121,7 @@ def get_stats_tlds(profile_filter=None, time_range="24h", limit=10):
     Returns:
         dict: Contains blocked_tlds and allowed_tlds lists
     """
-    session = Session()
+    session = session_factory()
     try:
         # Build base query
         query = session.query(DNSLog)
@@ -1241,7 +1240,7 @@ def get_stats_devices(
     Returns:
         list: List of device statistics with usage information
     """
-    session = Session()
+    session = session_factory()
     try:
         # Build base query
         query = session.query(DNSLog)
@@ -1363,7 +1362,7 @@ def get_database_metrics():
     Returns:
         dict: Database metrics including connections, performance, and health
     """
-    session = Session()
+    session = session_factory()
     try:
         # Initialize metrics structure
         metrics = {
