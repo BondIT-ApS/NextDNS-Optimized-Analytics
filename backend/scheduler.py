@@ -38,7 +38,7 @@ if not API_KEY or not profile_ids:
     logger.warning("⚠️  Missing NextDNS API credentials!")
     logger.info("💡 Please set API_KEY and PROFILE_IDS environment variables")
     logger.warning("🧱 Scheduler will not start - no logs will be fetched")
-    SCHEDULER = None
+    scheduler = None
 else:
     logger.info(
         f"✅ NextDNS API configured with API key and {len(profile_ids)} profile(s)"
@@ -187,9 +187,9 @@ else:
             logger.info("🔄 Duplicate prevention working across all profiles")
 
     # Initialize and start scheduler
-    SCHEDULER = BackgroundScheduler()
-    SCHEDULER.add_job(fetch_logs, "interval", minutes=FETCH_INTERVAL)
-    SCHEDULER.start()
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(fetch_logs, "interval", minutes=FETCH_INTERVAL)
+    scheduler.start()
     logger.info(
         f"🔄 NextDNS log fetching scheduler started (runs every {FETCH_INTERVAL} minutes)"
     )
@@ -198,5 +198,4 @@ else:
     )
     logger.info(f"📊 Fetch limit configured: {FETCH_LIMIT} records per request")
 
-    # Expose scheduler for import compatibility
-    scheduler = SCHEDULER  # pylint: disable=invalid-name
+    # Scheduler is now available as 'scheduler' variable

@@ -17,6 +17,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
     text,
+    or_,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -97,7 +98,7 @@ DATABASE_URL = (
     f"{os.getenv('POSTGRES_DB')}"
 )
 engine = create_engine(DATABASE_URL, echo=False)
-Session = sessionmaker(bind=engine)
+session_factory = sessionmaker(bind=engine)
 
 
 # Database model for DNS logs
@@ -180,7 +181,7 @@ def get_total_record_count():
     Returns:
         int: Total number of records, or 0 if error occurs
     """
-    session = Session()
+    session = session_factory()
     try:
         count = session.query(DNSLog).count()
         logger.debug(f"📊 Database contains {count:,} total DNS log records")
@@ -217,7 +218,7 @@ def add_log(log):
         tuple: (record_id, is_new) where record_id is the ID and
         is_new indicates if it's a new record
     """
-    session = Session()
+    session = session_factory()
     try:
         # Extract timestamp from log data
         log_timestamp_str = log.get("timestamp")
@@ -309,7 +310,7 @@ def get_last_fetch_timestamp(profile_id):
     Returns:
         datetime: Last fetch timestamp or None if no previous fetch
     """
-    session = Session()
+    session = session_factory()
     try:
         fetch_status = (
             session.query(FetchStatus).filter_by(profile_id=profile_id).first()
@@ -339,7 +340,7 @@ def update_fetch_status(profile_id, last_timestamp, records_count):
         last_timestamp (datetime): Timestamp of the last fetched record
         records_count (int): Number of records fetched in this batch
     """
-    session = Session()
+    session = session_factory()
     try:
         fetch_status = (
             session.query(FetchStatus).filter_by(profile_id=profile_id).first()
@@ -380,7 +381,7 @@ def update_fetch_status(profile_id, last_timestamp, records_count):
 
 
 # Retrieve logs with optional exclusion of domains and advanced filtering
-def get_logs(  # pylint: disable=too-many-positional-arguments
+def get_logs(  # pylint: disable=too-many-positional-arguments,too-many-locals,too-many-branches
     exclude_domains=None,
     search_query="",
     status_filter="all",
@@ -411,9 +412,10 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
     logger.debug(
         f"📊 Retrieving logs with limit={limit}, offset={offset}, "
         f"exclude_domains={exclude_domains}, search='{search_query}', "
-        f"status='{status_filter}', profile='{profile_filter}', devices={device_filter}, time_range='{time_range}'"
+        f"status='{status_filter}', profile='{profile_filter}', "
+        f"devices={device_filter}, time_range='{time_range}'"
     )
-    session = Session()
+    session = session_factory()
     try:
         query = session.query(DNSLog).order_by(DNSLog.timestamp.desc())
 
@@ -429,10 +431,10 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
 
         # Apply status filter (case-insensitive)
         if status_filter and status_filter.lower() == "blocked":
-            query = query.filter(DNSLog.blocked == True)
+            query = query.filter(DNSLog.blocked.is_(True))
             logger.debug("🚫 Filtering for blocked requests only")
         elif status_filter and status_filter.lower() == "allowed":
-            query = query.filter(DNSLog.blocked == False)
+            query = query.filter(DNSLog.blocked.is_(False))
             logger.debug("✅ Filtering for allowed requests only")
 
         # Apply profile filter
@@ -451,8 +453,6 @@ def get_logs(  # pylint: disable=too-many-positional-arguments
                         DNSLog.device.ilike(f'%"name": "{device_name}"%')
                     )
             if device_conditions:
-                from sqlalchemy import or_
-
                 query = query.filter(or_(*device_conditions))
                 logger.debug(f"📱 Filtering for devices: {device_filter}")
 
@@ -531,7 +531,7 @@ def get_logs_stats(profile_filter=None, time_range="all"):
     Returns:
         dict: Dictionary containing total, blocked, and allowed counts and percentages
     """
-    session = Session()
+    session = session_factory()
     try:
         query = session.query(DNSLog)
 
@@ -608,7 +608,7 @@ def get_available_profiles():
     Returns:
         list: List of profile IDs with record counts
     """
-    session = Session()
+    session = session_factory()
     try:
         # Query for distinct profile IDs and their counts
 
@@ -650,7 +650,9 @@ def get_available_profiles():
 
 
 # Get real stats overview data from database
-def get_stats_overview(profile_filter=None, time_range="24h"):
+def get_stats_overview(
+    profile_filter=None, time_range="24h"
+):  # pylint: disable=too-many-locals,too-many-branches
     """Get overview statistics from the database.
 
     Args:
@@ -663,7 +665,7 @@ def get_stats_overview(profile_filter=None, time_range="24h"):
     Returns:
         dict: Statistics overview
     """
-    session = Session()
+    session = session_factory()
     try:
         # Build base query
         query = session.query(DNSLog)
@@ -806,7 +808,9 @@ def get_stats_overview(profile_filter=None, time_range="24h"):
 
 
 # Get time series data from database
-def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hour"):
+def get_stats_timeseries(
+    profile_filter=None, time_range="24h", granularity="hour"
+):  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     """Get time series statistics from the database.
 
     Args:
@@ -820,10 +824,15 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
     Returns:
         list: List of time series data points
     """
-    session = Session()
+    session = session_factory()
     try:
 
         now = datetime.now(timezone.utc)
+
+        # Initialize variables to avoid unbound local variable error
+        interval_minutes = 0
+        interval_hours = 0
+        display_time = None
 
         # Determine time parameters based on time range
         if time_range == "30m":
@@ -976,7 +985,9 @@ def get_stats_timeseries(profile_filter=None, time_range="24h", granularity="hou
 
 
 # Get top domains from database
-def get_top_domains(profile_filter=None, time_range="24h", limit=10):
+def get_top_domains(
+    profile_filter=None, time_range="24h", limit=10
+):  # pylint: disable=too-many-locals
     """Get top blocked and allowed domains from the database.
 
     Args:
@@ -990,7 +1001,7 @@ def get_top_domains(profile_filter=None, time_range="24h", limit=10):
     Returns:
         dict: Contains blocked_domains and allowed_domains lists
     """
-    session = Session()
+    session = session_factory()
     try:
         # Build base query
         query = session.query(DNSLog)
@@ -1105,7 +1116,9 @@ def get_top_domains(profile_filter=None, time_range="24h", limit=10):
 
 
 # Get top-level domains (TLD aggregation) from database
-def get_stats_tlds(profile_filter=None, time_range="24h", limit=10):
+def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
+    profile_filter=None, time_range="24h", limit=10
+):
     """Get top-level domain statistics aggregated from full domains.
 
     Groups all subdomains under their parent domains (TLD).
@@ -1122,7 +1135,7 @@ def get_stats_tlds(profile_filter=None, time_range="24h", limit=10):
     Returns:
         dict: Contains blocked_tlds and allowed_tlds lists
     """
-    session = Session()
+    session = session_factory()
     try:
         # Build base query
         query = session.query(DNSLog)
@@ -1224,7 +1237,7 @@ def get_stats_tlds(profile_filter=None, time_range="24h", limit=10):
 
 
 # Get device usage statistics from database
-def get_stats_devices(
+def get_stats_devices(  # pylint: disable=too-many-locals,too-many-branches
     profile_filter=None, time_range="24h", limit=10, exclude_devices=None
 ):
     """Get device usage statistics showing DNS query activity by device.
@@ -1241,7 +1254,7 @@ def get_stats_devices(
     Returns:
         list: List of device statistics with usage information
     """
-    session = Session()
+    session = session_factory()
     try:
         # Build base query
         query = session.query(DNSLog)
@@ -1317,9 +1330,6 @@ def get_stats_devices(
             if log_entry.timestamp > device_stats[device_name]["last_activity"]:
                 device_stats[device_name]["last_activity"] = log_entry.timestamp
 
-        # Calculate total queries for percentages
-        total_queries = sum(stats["total"] for stats in device_stats.values())
-
         # Format and sort results
         device_results = []
         for device_name, stats in device_stats.items():
@@ -1357,13 +1367,13 @@ def get_stats_devices(
 
 
 # Database metrics collection functions for PostgreSQL monitoring
-def get_database_metrics():
+def get_database_metrics():  # pylint: disable=too-many-branches,too-many-statements
     """Get comprehensive PostgreSQL database metrics.
 
     Returns:
         dict: Database metrics including connections, performance, and health
     """
-    session = Session()
+    session = session_factory()
     try:
         # Initialize metrics structure
         metrics = {
@@ -1413,7 +1423,8 @@ def get_database_metrics():
                 text(
                     "SELECT "
                     "  CASE WHEN (sum(heap_blks_hit) + sum(heap_blks_read)) > 0 "
-                    "       THEN round(sum(heap_blks_hit)::numeric / (sum(heap_blks_hit) + sum(heap_blks_read)), 3) "
+                    "       THEN round(sum(heap_blks_hit)::numeric / "
+                    "            (sum(heap_blks_hit) + sum(heap_blks_read)), 3) "
                     "       ELSE 0.95 "
                     "  END as hit_ratio "
                     "FROM pg_statio_user_tables "
@@ -1485,7 +1496,7 @@ def get_database_metrics():
         logger.debug(f"📊 Database metrics collected: {metrics}")
         return metrics
 
-    except Exception as e:
+    except (SQLAlchemyError, ValueError, TypeError) as e:
         logger.error(f"❌ Error collecting database metrics: {e}")
         return {
             "connections": {"active": 0, "total": 0, "usage_percent": 0.0},
