@@ -126,7 +126,7 @@ export function ChartJsOverview({ data, overview }: ChartJsOverviewProps) {
   )
 
   // Common chart options
-  const commonOptions: ChartOptions<any> = {
+  const commonOptions: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -370,15 +370,42 @@ export function ChartJsOverview({ data, overview }: ChartJsOverviewProps) {
   }
 
   const barOptions: ChartOptions<'bar'> = {
-    ...commonOptions,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          font: {
+            size: 12,
+          },
+        },
+      },
+      title: {
+        display: false,
+      },
+    },
     scales: {
-      ...commonOptions.scales,
       x: {
-        ...commonOptions.scales?.x,
+        grid: {
+          color: 'rgba(107, 114, 128, 0.1)',
+        },
+        ticks: {
+          font: {
+            size: 10,
+          },
+        },
         stacked: true,
       },
       y: {
-        ...commonOptions.scales?.y,
+        grid: {
+          color: 'rgba(107, 114, 128, 0.1)',
+        },
+        ticks: {
+          font: {
+            size: 10,
+          },
+        },
         stacked: true,
       },
     },

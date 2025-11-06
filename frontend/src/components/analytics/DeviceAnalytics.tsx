@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -58,7 +58,7 @@ export function DeviceAnalytics({
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
   // Fetch device data
-  const fetchDeviceData = async () => {
+  const fetchDeviceData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -86,11 +86,11 @@ export function DeviceAnalytics({
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedProfile, timeRange, excludedDevices])
 
   useEffect(() => {
     fetchDeviceData()
-  }, [selectedProfile, timeRange, excludedDevices])
+  }, [selectedProfile, timeRange, excludedDevices, fetchDeviceData])
 
   // Filter and sort devices
   const filteredAndSortedDevices = useMemo(() => {
@@ -106,13 +106,13 @@ export function DeviceAnalytics({
 
     // Apply sorting
     filtered = [...filtered].sort((a, b) => {
-      let aValue: any = a[sortField]
-      let bValue: any = b[sortField]
+      let aValue: string | number = a[sortField]
+      let bValue: string | number = b[sortField]
 
       // Handle string comparison for device names
       if (sortField === 'device_name') {
-        aValue = aValue.toLowerCase()
-        bValue = bValue.toLowerCase()
+        aValue = (aValue as string).toLowerCase()
+        bValue = (bValue as string).toLowerCase()
       }
 
       // Handle date comparison for last_activity
