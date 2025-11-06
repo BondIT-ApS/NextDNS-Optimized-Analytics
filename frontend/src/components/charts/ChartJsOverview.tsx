@@ -323,13 +323,13 @@ export function ChartJsOverview({ data, overview }: ChartJsOverviewProps) {
           label: function (context) {
             const label = context.dataset.label || ''
             const value = context.parsed.y
-            return `${label}: ${value.toLocaleString()}`
+            return `${label}: ${(value ?? 0).toLocaleString()}`
           },
           afterBody: function (tooltipItems) {
             // Show the increment for this time period
             const dataIndex = tooltipItems[0].dataIndex
             if (dataIndex > 0) {
-              const current = tooltipItems[0].parsed.y
+              const current = tooltipItems[0].parsed.y ?? 0
               const previous = tooltipItems[0].dataset.data[
                 dataIndex - 1
               ] as number
