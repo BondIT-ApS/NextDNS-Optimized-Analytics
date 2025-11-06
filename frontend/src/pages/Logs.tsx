@@ -73,7 +73,7 @@ export function Logs() {
     // Current filtered results counts
     const filteredTotal = filteredLogs.length
     const filteredBlocked = filteredLogs.filter(
-      (log: any) => log.blocked
+      (log: { blocked: boolean }) => log.blocked
     ).length
     const filteredAllowed = filteredTotal - filteredBlocked
 

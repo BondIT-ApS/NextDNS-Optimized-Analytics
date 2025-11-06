@@ -126,7 +126,7 @@ export function ChartJsOverview({ data, overview }: ChartJsOverviewProps) {
   )
 
   // Common chart options
-  const commonOptions: ChartOptions<any> = {
+  const commonOptions: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -323,13 +323,13 @@ export function ChartJsOverview({ data, overview }: ChartJsOverviewProps) {
           label: function (context) {
             const label = context.dataset.label || ''
             const value = context.parsed.y
-            return `${label}: ${value.toLocaleString()}`
+            return `${label}: ${(value ?? 0).toLocaleString()}`
           },
           afterBody: function (tooltipItems) {
             // Show the increment for this time period
             const dataIndex = tooltipItems[0].dataIndex
             if (dataIndex > 0) {
-              const current = tooltipItems[0].parsed.y
+              const current = tooltipItems[0].parsed.y ?? 0
               const previous = tooltipItems[0].dataset.data[
                 dataIndex - 1
               ] as number
@@ -370,15 +370,42 @@ export function ChartJsOverview({ data, overview }: ChartJsOverviewProps) {
   }
 
   const barOptions: ChartOptions<'bar'> = {
-    ...commonOptions,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          font: {
+            size: 12,
+          },
+        },
+      },
+      title: {
+        display: false,
+      },
+    },
     scales: {
-      ...commonOptions.scales,
       x: {
-        ...commonOptions.scales?.x,
+        grid: {
+          color: 'rgba(107, 114, 128, 0.1)',
+        },
+        ticks: {
+          font: {
+            size: 10,
+          },
+        },
         stacked: true,
       },
       y: {
-        ...commonOptions.scales?.y,
+        grid: {
+          color: 'rgba(107, 114, 128, 0.1)',
+        },
+        ticks: {
+          font: {
+            size: 10,
+          },
+        },
         stacked: true,
       },
     },

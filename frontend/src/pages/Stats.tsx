@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
@@ -143,7 +143,7 @@ export default function Stats() {
   }, [selectedProfile, timeRange, activeTab, setSearchParams])
 
   // Fetch data
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -233,7 +233,7 @@ export default function Stats() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedProfile, timeRange])
 
   // Fetch profiles on component mount
   useEffect(() => {
@@ -263,7 +263,7 @@ export default function Stats() {
   // Fetch data when dependencies change
   useEffect(() => {
     fetchData()
-  }, [selectedProfile, timeRange])
+  }, [selectedProfile, timeRange, fetchData])
 
   // Format numbers for display
   const formatNumber = (num: number) => {
