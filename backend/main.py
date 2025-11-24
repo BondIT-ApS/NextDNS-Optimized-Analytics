@@ -6,14 +6,21 @@ from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 
 import psutil
-from fastapi import FastAPI, Depends, HTTPException, Query, Header
+from fastapi import FastAPI, Depends, HTTPException, Query, Header, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy.exc import SQLAlchemyError
 
 # Set up logging first
 from logging_config import setup_logging, get_logger
-from models import init_db, get_logs, get_total_record_count, get_logs_stats
+from models import (
+    init_db,
+    get_logs,
+    get_total_record_count,
+    get_logs_stats,
+    check_database_health,
+)
 from models import get_available_profiles as get_profiles_from_db
 from models import (
     get_stats_overview as get_db_stats_overview,
@@ -394,29 +401,40 @@ async def startup_event():
 @app.get("/", tags=["Health"])
 async def root():
     """Root endpoint for health check."""
-    total_records = get_total_record_count()
-    return {
-        "message": "NextDNS Optimized Analytics API",
-        "version": "2.0.0",
-        "status": "running",
-        "total_dns_records": total_records,
-    }
+    try:
+        total_records = check_database_health()
+        return {
+            "message": "NextDNS Optimized Analytics API",
+            "version": "2.0.0",
+            "status": "running",
+            "total_dns_records": total_records,
+        }
+    except (SQLAlchemyError, ValueError, TypeError) as e:
+        logger.error(f"❌ Root health check failed - database offline: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "message": "NextDNS Optimized Analytics API",
+                "version": "2.0.0",
+                "status": "unhealthy",
+                "error": "Database is offline or unreachable",
+            },
+        )
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 async def health_check():
     """Simple health check endpoint."""
     try:
-        # Quick database check
-        total_records = get_total_record_count()
-        db_healthy = total_records >= 0
-
-        return HealthResponse(
-            status="healthy" if db_healthy else "unhealthy", healthy=db_healthy
-        )
+        # Quick database connectivity check
+        check_database_health()
+        return HealthResponse(status="healthy", healthy=True)
     except (SQLAlchemyError, ValueError, TypeError) as e:
-        logger.error(f"❌ Health check failed: {e}")
-        return HealthResponse(status="unhealthy", healthy=False)
+        logger.error(f"❌ Health check failed - database offline: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"status": "unhealthy", "healthy": False},
+        )
 
 
 def _create_backend_resources(uptime_seconds: float) -> BackendResources:
@@ -482,8 +500,8 @@ async def detailed_health_check():
     """Detailed health check with comprehensive system information."""
     try:
         # Database and basic health checks
-        total_records = get_total_record_count()
-        db_healthy = total_records >= 0
+        total_records = check_database_health()
+        db_healthy = True  # If we get here, database is accessible
         api_healthy = True  # API is responding if we get here
         overall_healthy = db_healthy and api_healthy
 
@@ -524,8 +542,8 @@ async def detailed_health_check():
         )
 
     except (SQLAlchemyError, ValueError, TypeError, KeyError, OSError) as e:
-        logger.error(f"❌ Detailed health check failed: {e}")
-        # Return minimal error response
+        logger.error(f"❌ Detailed health check failed - database offline: {e}")
+        # Return minimal error response with 503 status
         error_backend_metrics = BackendMetrics(
             resources=BackendResources(
                 cpu_percent=0.0,
@@ -559,7 +577,7 @@ async def detailed_health_check():
             state_management="unknown",
         )
 
-        return DetailedHealthResponse(
+        error_response = DetailedHealthResponse(
             status_api="unhealthy",
             status_db="unknown",
             healthy=False,
@@ -571,6 +589,11 @@ async def detailed_health_check():
             database_metrics=None,
             frontend_stack=error_frontend_stack,
             timestamp=datetime.now(timezone.utc).isoformat(),
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=error_response.model_dump(),
         )
 
 

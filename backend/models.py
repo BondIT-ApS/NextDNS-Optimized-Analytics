@@ -174,6 +174,26 @@ class FetchStatus(Base):
     )
 
 
+# Check database connectivity for health checks
+def check_database_health():
+    """Check if database is accessible and healthy.
+
+    Returns:
+        int: Total number of records if successful
+
+    Raises:
+        SQLAlchemyError: If database is not accessible
+    """
+    session = session_factory()
+    try:
+        # Simple query to test database connectivity
+        count = session.query(DNSLog).count()
+        logger.debug(f"✅ Database health check passed: {count:,} records")
+        return count
+    finally:
+        session.close()
+
+
 # Get total record count from database
 def get_total_record_count():
     """Get the total number of DNS log records in the database.
