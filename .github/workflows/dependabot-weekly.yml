@@ -20,7 +20,7 @@ jobs:
     
     steps:
       - name: 📎 Get LEGO Instructions (Checkout)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 🧱 Post Weekly Maintenance Notice
         uses: actions/github-script@v8
@@ -98,7 +98,7 @@ jobs:
         
     steps:
       - name: 📎 Get LEGO Instructions (Checkout)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: 🔧 Setup Node.js (Frontend)
         if: matrix.component == 'frontend'
