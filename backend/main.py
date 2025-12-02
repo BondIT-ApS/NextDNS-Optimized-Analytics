@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 # Set up logging first
 from logging_config import setup_logging, get_logger
+from performance_middleware import PerformanceMiddleware
 from models import (
     init_db,
     get_logs,
@@ -77,6 +78,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add performance monitoring middleware (only in DEBUG mode)
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+if LOG_LEVEL == "DEBUG":
+    app.add_middleware(PerformanceMiddleware)
+    logger.info("🧱 Performance monitoring middleware enabled (LOG_LEVEL=DEBUG)")
+else:
+    logger.info(
+        "🔇 Performance monitoring middleware disabled (enable with LOG_LEVEL=DEBUG)"
+    )
 
 # Authentication setup
 security = HTTPBearer()
