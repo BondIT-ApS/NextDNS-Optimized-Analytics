@@ -73,6 +73,10 @@ def upgrade() -> None:
         postgresql_using='btree',
         postgresql_ops={'timestamp': 'DESC'}
     )
+    
+    # Run ANALYZE to update table statistics for the query planner
+    # This ensures PostgreSQL knows about the new indexes and can use them optimally
+    op.execute('ANALYZE dns_logs')
 
 
 def downgrade() -> None:
