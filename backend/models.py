@@ -118,7 +118,9 @@ class DNSLog(Base):
     query_type = Column(String(10), default="A")  # A, AAAA, CNAME, etc.
     blocked = Column(Boolean, default=False, nullable=False, index=True)
     profile_id = Column(String(50), index=True)
-    tld = Column(String(255), nullable=True)  # Computed TLD for fast aggregation (Phase 3)
+    tld = Column(
+        String(255), nullable=True
+    )  # Computed TLD for fast aggregation (Phase 3)
     data = Column(ForceText, nullable=False)  # Store original raw data as JSON string
     created_at = Column(
         DateTime(timezone=True),
@@ -299,7 +301,7 @@ def add_log(log):
         # Extract TLD for Phase 3 optimization
         domain = log.get("domain")
         tld = extract_tld(domain) if domain else None
-        
+
         new_log = DNSLog(
             timestamp=log_timestamp,
             domain=domain,
@@ -1190,16 +1192,14 @@ def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
 
         # Phase 3 Optimization: Use database-side aggregation with TLD column
         # This eliminates the need to load all records into Python and extract TLDs
-        
+
         # Get total queries for percentage calculation
         total_queries = query.count()
-        
+
         # Aggregate blocked TLDs using database GROUP BY
         # pylint: disable=not-callable
         blocked_results = (
-            query.with_entities(
-                DNSLog.tld, func.count(DNSLog.id).label("count")
-            )
+            query.with_entities(DNSLog.tld, func.count(DNSLog.id).label("count"))
             .filter(DNSLog.blocked.is_(True))
             .filter(DNSLog.tld.isnot(None))  # Exclude null TLDs
             .group_by(DNSLog.tld)
@@ -1207,12 +1207,10 @@ def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
             .limit(limit)
             .all()
         )
-        
+
         # Aggregate allowed TLDs using database GROUP BY
         allowed_results = (
-            query.with_entities(
-                DNSLog.tld, func.count(DNSLog.id).label("count")
-            )
+            query.with_entities(DNSLog.tld, func.count(DNSLog.id).label("count"))
             .filter(DNSLog.blocked.is_(False))
             .filter(DNSLog.tld.isnot(None))  # Exclude null TLDs
             .group_by(DNSLog.tld)
@@ -1221,7 +1219,7 @@ def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
             .all()
         )
         # pylint: enable=not-callable
-        
+
         # Format blocked TLDs
         blocked_tlds = []
         for tld_result in blocked_results:
@@ -1235,7 +1233,7 @@ def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
                     "percentage": round(percentage, 1),
                 }
             )
-        
+
         # Format allowed TLDs
         allowed_tlds = []
         for tld_result in allowed_results:
