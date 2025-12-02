@@ -25,7 +25,7 @@ jobs:
     
     steps:
       - name: 📎 Get LEGO Security Instructions
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       
       - name: 🔧 Initialize Deep Security Scanner
         uses: github/codeql-action/init@v4
