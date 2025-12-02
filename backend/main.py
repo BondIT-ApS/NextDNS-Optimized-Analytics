@@ -85,7 +85,9 @@ if LOG_LEVEL == "DEBUG":
     app.add_middleware(PerformanceMiddleware)
     logger.info("🧱 Performance monitoring middleware enabled (LOG_LEVEL=DEBUG)")
 else:
-    logger.info("🔇 Performance monitoring middleware disabled (enable with LOG_LEVEL=DEBUG)")
+    logger.info(
+        "🔇 Performance monitoring middleware disabled (enable with LOG_LEVEL=DEBUG)"
+    )
 
 # Authentication setup
 security = HTTPBearer()
