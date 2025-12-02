@@ -118,6 +118,7 @@ class DNSLog(Base):
     query_type = Column(String(10), default="A")  # A, AAAA, CNAME, etc.
     blocked = Column(Boolean, default=False, nullable=False, index=True)
     profile_id = Column(String(50), index=True)
+    tld = Column(String(255), nullable=True)  # Computed TLD for fast aggregation (Phase 3)
     data = Column(ForceText, nullable=False)  # Store original raw data as JSON string
     created_at = Column(
         DateTime(timezone=True),
@@ -295,15 +296,20 @@ def add_log(log):
             f"data value (first 100 chars): {str(data_str)[:100]}"
         )
 
+        # Extract TLD for Phase 3 optimization
+        domain = log.get("domain")
+        tld = extract_tld(domain) if domain else None
+        
         new_log = DNSLog(
             timestamp=log_timestamp,
-            domain=log.get("domain"),
+            domain=domain,
             action=action,
             device=device_str,
             client_ip=client_ip,
             query_type=log.get("query_type", "A"),
             blocked=blocked,
             profile_id=log.get("profile_id"),
+            tld=tld,  # Phase 3: Pre-computed TLD for fast aggregation
             data=data_str,
         )
         session.add(new_log)
@@ -1182,62 +1188,67 @@ def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
                 cutoff_time = now - time_deltas[time_range]
                 query = query.filter(DNSLog.timestamp >= cutoff_time)
 
-        # Get all domains and extract TLDs
-        all_domains = query.all()
-
-        # Aggregate by TLD
-        tld_stats = {}  # tld -> {blocked: count, allowed: count}
-
-        for log_entry in all_domains:
-            tld = extract_tld(log_entry.domain)
-            if not tld:
-                continue
-
-            if tld not in tld_stats:
-                tld_stats[tld] = {"blocked": 0, "allowed": 0, "total": 0}
-
-            if log_entry.blocked:
-                tld_stats[tld]["blocked"] += 1
-            else:
-                tld_stats[tld]["allowed"] += 1
-            tld_stats[tld]["total"] += 1
-
-        # Calculate total queries for percentages
-        total_queries = sum(stats["total"] for stats in tld_stats.values())
-
-        # Sort and format blocked TLDs
+        # Phase 3 Optimization: Use database-side aggregation with TLD column
+        # This eliminates the need to load all records into Python and extract TLDs
+        
+        # Get total queries for percentage calculation
+        total_queries = query.count()
+        
+        # Aggregate blocked TLDs using database GROUP BY
+        # pylint: disable=not-callable
+        blocked_results = (
+            query.with_entities(
+                DNSLog.tld, func.count(DNSLog.id).label("count")
+            )
+            .filter(DNSLog.blocked.is_(True))
+            .filter(DNSLog.tld.isnot(None))  # Exclude null TLDs
+            .group_by(DNSLog.tld)
+            .order_by(func.count(DNSLog.id).desc())
+            .limit(limit)
+            .all()
+        )
+        
+        # Aggregate allowed TLDs using database GROUP BY
+        allowed_results = (
+            query.with_entities(
+                DNSLog.tld, func.count(DNSLog.id).label("count")
+            )
+            .filter(DNSLog.blocked.is_(False))
+            .filter(DNSLog.tld.isnot(None))  # Exclude null TLDs
+            .group_by(DNSLog.tld)
+            .order_by(func.count(DNSLog.id).desc())
+            .limit(limit)
+            .all()
+        )
+        # pylint: enable=not-callable
+        
+        # Format blocked TLDs
         blocked_tlds = []
-        for tld, stats in tld_stats.items():
-            if stats["blocked"] > 0:
-                percentage = (
-                    (stats["blocked"] / total_queries * 100) if total_queries > 0 else 0
-                )
-                blocked_tlds.append(
-                    {
-                        "domain": tld,
-                        "count": stats["blocked"],
-                        "percentage": round(percentage, 1),
-                    }
-                )
-        blocked_tlds.sort(key=lambda x: x["count"], reverse=True)
-        blocked_tlds = blocked_tlds[:limit]
-
-        # Sort and format allowed TLDs
+        for tld_result in blocked_results:
+            tld = tld_result[0]
+            count = tld_result[1]
+            percentage = (count / total_queries * 100) if total_queries > 0 else 0
+            blocked_tlds.append(
+                {
+                    "domain": tld,
+                    "count": count,
+                    "percentage": round(percentage, 1),
+                }
+            )
+        
+        # Format allowed TLDs
         allowed_tlds = []
-        for tld, stats in tld_stats.items():
-            if stats["allowed"] > 0:
-                percentage = (
-                    (stats["allowed"] / total_queries * 100) if total_queries > 0 else 0
-                )
-                allowed_tlds.append(
-                    {
-                        "domain": tld,
-                        "count": stats["allowed"],
-                        "percentage": round(percentage, 1),
-                    }
-                )
-        allowed_tlds.sort(key=lambda x: x["count"], reverse=True)
-        allowed_tlds = allowed_tlds[:limit]
+        for tld_result in allowed_results:
+            tld = tld_result[0]
+            count = tld_result[1]
+            percentage = (count / total_queries * 100) if total_queries > 0 else 0
+            allowed_tlds.append(
+                {
+                    "domain": tld,
+                    "count": count,
+                    "percentage": round(percentage, 1),
+                }
+            )
 
         result = {
             "blocked_tlds": blocked_tlds,
