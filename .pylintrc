@@ -9,8 +9,11 @@ load-plugins=
 disable=
     C0114,  # missing-module-docstring (too noisy for small modules)
     C0116,  # missing-function-docstring (we have good function names)
+    C0302,  # too-many-lines (large API files are acceptable)
+    E0401,  # import-error (packages installed in Docker, not in local pylint env)
     R0903,  # too-few-public-methods (Pydantic models, data classes)
     R0913,  # too-many-arguments (API endpoints, database functions)
+    W0613,  # unused-argument (FastAPI dependency injection patterns)
     W1203,  # logging-fstring-interpolation (we prefer f-strings in logs)
     # Keep these enabled for better code quality:
     # C0413 import-outside-toplevel - should be avoided
@@ -26,9 +29,10 @@ max-line-length=110  # Practical balance for logging statements with emojis
 
 [DESIGN]
 max-args=7        # Allow a few more args for FastAPI endpoints
-max-locals=15     # Reduce from 20 to encourage better function design
-max-statements=50 # Explicit limit for function length
+max-locals=18     # Increased for complex API endpoints
+max-statements=55 # Increased for database operations
 max-branches=12   # Explicit limit for complexity
+max-positional-arguments=6  # Allow slightly more for middleware
 
 [TYPECHECK]
 ignored-modules=requests

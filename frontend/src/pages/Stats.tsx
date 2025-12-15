@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { fetchWithAuth } from '../lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Button } from '../components/ui/button'
@@ -160,7 +161,7 @@ export default function Stats() {
         'Fetching overview data from:',
         `${baseUrl}/stats/overview?${params}`
       )
-      const overviewResponse = await fetch(
+      const overviewResponse = await fetchWithAuth(
         `${baseUrl}/stats/overview?${params}`
       )
       if (!overviewResponse.ok) {
@@ -179,7 +180,7 @@ export default function Stats() {
         'Fetching timeseries data from:',
         `${baseUrl}/stats/timeseries?${params}`
       )
-      const timeSeriesResponse = await fetch(
+      const timeSeriesResponse = await fetchWithAuth(
         `${baseUrl}/stats/timeseries?${params}`
       )
       if (!timeSeriesResponse.ok) {
@@ -202,7 +203,9 @@ export default function Stats() {
         'Fetching domains data from:',
         `${baseUrl}/stats/domains?${params}`
       )
-      const domainsResponse = await fetch(`${baseUrl}/stats/domains?${params}`)
+      const domainsResponse = await fetchWithAuth(
+        `${baseUrl}/stats/domains?${params}`
+      )
       if (!domainsResponse.ok) {
         const errorText = await domainsResponse.text()
         console.error('Domains API error:', domainsResponse.status, errorText)
@@ -216,7 +219,9 @@ export default function Stats() {
 
       // Fetch TLD data
       console.log('Fetching TLDs data from:', `${baseUrl}/stats/tlds?${params}`)
-      const tldsResponse = await fetch(`${baseUrl}/stats/tlds?${params}`)
+      const tldsResponse = await fetchWithAuth(
+        `${baseUrl}/stats/tlds?${params}`
+      )
       if (!tldsResponse.ok) {
         const errorText = await tldsResponse.text()
         console.error('TLDs API error:', tldsResponse.status, errorText)
@@ -239,7 +244,7 @@ export default function Stats() {
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
-        const response = await fetch('/api/profiles')
+        const response = await fetchWithAuth('/api/profiles')
         if (response.ok) {
           const profilesData = await response.json()
           console.log('Profiles data received:', profilesData)
@@ -247,7 +252,7 @@ export default function Stats() {
         }
 
         // Also fetch profile info to get real names
-        const infoResponse = await fetch('/api/profiles/info')
+        const infoResponse = await fetchWithAuth('/api/profiles/info')
         if (infoResponse.ok) {
           const profilesInfoData = await infoResponse.json()
           console.log('Profiles info received:', profilesInfoData)
