@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
+import { fetchWithAuth } from '../lib/api'
 
 interface AuthContextType {
   isAuthenticated: boolean
@@ -66,11 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return
       }
 
-      const response = await fetch('/api/auth/status', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const response = await fetchWithAuth('/api/auth/status')
 
       if (response.ok) {
         const data = await response.json()
