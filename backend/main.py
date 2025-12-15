@@ -15,6 +15,21 @@ from sqlalchemy.exc import SQLAlchemyError
 # Set up logging first
 from logging_config import setup_logging, get_logger
 from performance_middleware import PerformanceMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from auth import (
+    init_auth,
+    authenticate_user,
+    create_access_token,
+    get_current_user,
+    LoginRequest,
+    LoginResponse,
+    AuthStatus,
+    AuthConfig,
+    AUTH_ENABLED,
+    AUTH_SESSION_TIMEOUT,
+)
 from models import (
     init_db,
     get_logs,
@@ -39,6 +54,9 @@ from profile_service import (
 
 setup_logging()
 logger = get_logger(__name__)
+
+# Initialize rate limiter for brute force protection
+limiter = Limiter(key_func=get_remote_address)
 
 # Track application start time for accurate uptime
 app_start_time = datetime.now(timezone.utc)
@@ -69,6 +87,10 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+# Add rate limiter state and exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add CORS middleware
 app.add_middleware(
@@ -406,6 +428,7 @@ async def startup_event():
     """Initialize the application on startup."""
     logger.info("🚀 Starting NextDNS Optimized Analytics FastAPI Backend")
     init_db()  # Ensure the database is initialized
+    init_auth()  # Initialize authentication system
     logger.info("✅ FastAPI application startup completed")
 
 
@@ -608,8 +631,62 @@ async def detailed_health_check():
         )
 
 
+# Authentication Endpoints
+
+
+@app.get("/auth/config", response_model=AuthConfig, tags=["Authentication"])
+async def get_auth_config():
+    """Get authentication configuration (whether auth is enabled)."""
+    return AuthConfig(
+        enabled=AUTH_ENABLED,
+        session_timeout_minutes=AUTH_SESSION_TIMEOUT,
+    )
+
+
+@app.post("/auth/login", response_model=LoginResponse, tags=["Authentication"])
+@limiter.limit("5/minute")
+async def login(request: LoginRequest):
+    """Login with username and password. Rate limited to 5 attempts per minute."""
+    if not AUTH_ENABLED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Authentication is disabled",
+        )
+
+    if not authenticate_user(request.username, request.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Create access token
+    access_token = create_access_token(data={"sub": request.username})
+
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        expires_in=AUTH_SESSION_TIMEOUT * 60,  # Convert minutes to seconds
+    )
+
+
+@app.post("/auth/logout", tags=["Authentication"])
+async def logout():
+    """Logout endpoint. Client should remove token."""
+    return {"message": "Logged out successfully"}
+
+
+@app.get("/auth/status", response_model=AuthStatus, tags=["Authentication"])
+async def get_auth_status(current_user: str = Depends(get_current_user)):
+    """Check authentication status."""
+    if not AUTH_ENABLED:
+        return AuthStatus(authenticated=False, username=None)
+
+    return AuthStatus(authenticated=True, username=current_user)
+
+
 @app.get("/stats", response_model=StatsResponse, tags=["Statistics"])
-async def get_stats():
+async def get_stats(current_user: str = Depends(get_current_user)):
     """Get database statistics."""
     total_records = get_total_record_count()
     logger.info(f"📊 Stats requested: {total_records:,} total records")
@@ -628,6 +705,7 @@ async def get_logs_statistics(
     time_range: str = Query(
         default="all", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
+    current_user: str = Depends(get_current_user),
 ):
     """Get statistics for DNS logs in the database, optionally filtered by profile and time range."""
     logger.debug(
@@ -662,6 +740,7 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
         default=100, ge=1, le=10000, description="Maximum number of records to return"
     ),
     offset: int = Query(default=0, ge=0, description="Number of records to skip"),
+    current_user: str = Depends(get_current_user),
 ):
     """
     Get DNS logs with optional filtering and pagination.
