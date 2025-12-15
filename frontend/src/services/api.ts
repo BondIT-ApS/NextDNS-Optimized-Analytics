@@ -23,14 +23,14 @@ const api = axios.create({
 
 // Request interceptor to add authentication token
 api.interceptors.request.use(
-  (config) => {
+  config => {
     const token = localStorage.getItem('auth_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
-  (error) => Promise.reject(error)
+  error => Promise.reject(error)
 )
 
 // Response interceptor for error handling
@@ -38,11 +38,14 @@ api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
     // If we get a 401, the token might be expired - redirect to login
-    if (error.response?.status === 401 && window.location.pathname !== '/login') {
+    if (
+      error.response?.status === 401 &&
+      window.location.pathname !== '/login'
+    ) {
       localStorage.removeItem('auth_token')
       window.location.href = '/login'
     }
-    
+
     return Promise.reject({
       message: error.message,
       status: error.response?.status,
