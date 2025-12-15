@@ -101,7 +101,7 @@ sequenceDiagram
 graph TB
     subgraph "Backend FastAPI Application"
         API[FastAPI App<br/>🚀 Main Application]
-        Auth[API Key Authentication<br/>🔐 LOCAL_API_KEY]
+        Auth[JWT Authentication<br/>🔐 Optional Login System]
         Scheduler[Background Scheduler<br/>⏰ APScheduler]
         Health[Health Endpoints<br/>🏥 /health /health/detailed]
         Endpoints[REST API Endpoints<br/>🔌 /stats /logs etc]
@@ -130,7 +130,7 @@ graph TB
 **Key Responsibilities:**
 - 🔌 **REST API Endpoints** - Serve DNS log data with filtering
 - 🔄 **Data Fetching** - Automated NextDNS API integration
-- 🔐 **Authentication** - Secure API key-based access control
+- 🔐 **Authentication** - JWT-based access control (optional, can be disabled)
 - 🏥 **Health Monitoring** - System health and resource metrics
 - 📊 **Data Processing** - Log parsing and analytics computation
 
@@ -333,7 +333,8 @@ graph TB
 ```mermaid
 graph TB
     subgraph "Security Layers"
-        Auth[API Authentication<br/>🔐 Bearer Token]
+        Auth[JWT Authentication<br/>🔐 Optional Login System]
+        RateLimit[Rate Limiting<br/>⏱️ Brute Force Protection]
         CORS[CORS Protection<br/>🛡️ Origin Control]
         Headers[Security Headers<br/>📋 HTTP Protection]
         Env[Environment Config<br/>🔒 Secret Management]

@@ -19,9 +19,13 @@ graph TB
         HealthDetailed[GET /health/detailed<br/>🔍 System Metrics]
         Docs[GET /docs<br/>📚 Swagger UI]
         ReDoc[GET /redoc<br/>📖 ReDoc UI]
+        AuthConfig[GET /auth/config<br/>⚙️ Auth Status]
+        AuthLogin[POST /auth/login<br/>🔑 Login]
+        AuthLogout[POST /auth/logout<br/>🚪 Logout]
     end
     
-    subgraph "Protected Endpoints"
+    subgraph "Protected Endpoints (when AUTH_ENABLED=true)"
+        AuthStatus[GET /auth/status<br/>🔐 Auth Status]
         Stats[GET /stats<br/>📊 Database Stats]
         Logs[GET /logs<br/>📝 DNS Log Data]
         LogsStats[GET /logs/stats<br/>📈 Log Statistics]
@@ -38,7 +42,11 @@ graph TB
     Public --> HealthDetailed
     Public --> Docs
     Public --> ReDoc
+    Public --> AuthConfig
+    Public --> AuthLogin
+    Public --> AuthLogout
     
+    Protected --> AuthStatus
     Protected --> Stats
     Protected --> Logs
     Protected --> LogsStats
@@ -55,19 +63,41 @@ graph TB
 
 ## 🔐 Authentication
 
-All protected endpoints require API key authentication via one of these methods:
+### Authentication System Overview
 
-1. **Bearer Token**: `Authorization: Bearer YOUR_API_KEY`
-2. **X-API-Key Header**: `X-API-Key: YOUR_API_KEY`
+The API supports **optional JWT-based authentication** that can be enabled or disabled via environment variables.
 
-The API key is configured via the `LOCAL_API_KEY` environment variable.
+**When Authentication is Disabled** (`AUTH_ENABLED=false`, default):
+- All endpoints are publicly accessible
+- No authentication required
+- Suitable for local development or trusted networks
+
+**When Authentication is Enabled** (`AUTH_ENABLED=true`):
+- Login required to obtain JWT token
+- Protected endpoints require valid JWT token
+- Configurable session timeout
+- Rate limiting on login endpoint (5 attempts/minute)
+
+### Authenticating Requests
+
+When authentication is enabled, use the JWT token obtained from `/auth/login`:
 
 ```bash
-# Using Bearer token
-curl -H "Authorization: Bearer your_api_key" http://localhost:5001/stats
+# 1. Login to get JWT token
+curl -X POST http://localhost:5001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "your_password"}'
 
-# Using X-API-Key header
-curl -H "X-API-Key: your_api_key" http://localhost:5001/logs
+# Response:
+# {
+#   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+#   "token_type": "bearer",
+#   "expires_in": 3600
+# }
+
+# 2. Use the token in subsequent requests
+curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  http://localhost:5001/stats
 ```
 
 ## 🌐 Public Endpoints
@@ -199,6 +229,122 @@ Returns basic API information and system status.
   },
   "timestamp": "2025-09-20T08:00:00.000000+00:00"
 }
+```
+
+## 🔑 Authentication Endpoints
+
+### **Get Authentication Configuration**
+`GET /auth/config`
+
+**Description:** Check if authentication is enabled and get session timeout configuration.
+
+**Authentication:** Not required
+
+**Response Model:**
+```json
+{
+  "enabled": boolean,
+  "session_timeout_minutes": integer
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:5001/auth/config
+```
+
+**Response:**
+```json
+{
+  "enabled": true,
+  "session_timeout_minutes": 60
+}
+```
+
+### **Login**
+`POST /auth/login`
+
+**Description:** Authenticate with username and password to obtain JWT access token. Rate limited to 5 attempts per minute for brute force protection.
+
+**Authentication:** Not required
+
+**Request Body:**
+```json
+{
+  "username": "admin",
+  "password": "your_password"
+}
+```
+
+**Response Model:**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 3600
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:5001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "your_password"}'
+```
+
+**Error Responses:**
+- `400`: Authentication is disabled
+- `401`: Incorrect username or password
+- `429`: Too many login attempts (rate limit exceeded)
+
+### **Logout**
+`POST /auth/logout`
+
+**Description:** Logout endpoint. Client should remove the stored JWT token.
+
+**Authentication:** Not required
+
+**Response:**
+```json
+{
+  "message": "Logged out successfully"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:5001/auth/logout
+```
+
+### **Check Authentication Status**
+`GET /auth/status`
+
+**Description:** Verify if the current JWT token is valid and get authenticated user information.
+
+**Authentication:** Required (when AUTH_ENABLED=true)
+
+**Response Model:**
+```json
+{
+  "authenticated": boolean,
+  "username": string | null
+}
+```
+
+**Example:**
+```bash
+# When authenticated
+curl -H "Authorization: Bearer your_jwt_token" \
+  http://localhost:5001/auth/status
+
+# Response:
+# {"authenticated": true, "username": "admin"}
+
+# When not authenticated (and auth is disabled)
+curl http://localhost:5001/auth/status
+
+# Response:
+# {"authenticated": false, "username": null}
 ```
 
 ## 🔒 Protected Endpoints

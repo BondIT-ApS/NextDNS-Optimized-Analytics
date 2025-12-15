@@ -33,13 +33,56 @@ docker logs container_name
 
 **Problem:** API returns 401 when accessing protected endpoints.
 
+**Cause:** Authentication is enabled but no valid JWT token provided.
+
 **Solutions:**
 ```bash
-# Verify API key is set
-docker exec backend-container env | grep LOCAL_API_KEY
+# 1. Check if authentication is enabled
+curl http://localhost:5002/auth/config
 
-# Test authentication
-curl -u admin:your_api_key http://localhost:5002/stats
+# 2. If enabled, login to get token
+curl -X POST http://localhost:5002/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "your_password"}'
+
+# 3. Use token in requests
+curl -H "Authorization: Bearer your_jwt_token" http://localhost:5002/stats
+
+# 4. Verify authentication environment variables
+docker exec backend-container env | grep AUTH_
+```
+
+### Login Failed / Invalid Credentials
+
+**Problem:** Cannot login with username and password.
+
+**Solutions:**
+```bash
+# Check authentication configuration
+docker exec backend-container env | grep AUTH_
+
+# Verify AUTH_PASSWORD is set
+docker logs backend-container | grep "AUTH_PASSWORD"
+
+# Check backend logs for authentication errors
+docker logs backend-container | grep "Authentication failed"
+```
+
+### JWT Token Expired
+
+**Problem:** Token works initially but then returns 401 errors.
+
+**Cause:** JWT tokens expire after the configured session timeout.
+
+**Solutions:**
+```bash
+# Check session timeout configuration
+curl http://localhost:5002/auth/config
+
+# Login again to get new token
+curl -X POST http://localhost:5002/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "your_password"}'
 ```
 
 ### Database Connection Failed
@@ -191,7 +234,18 @@ docker exec db-container pg_isready -U nextdns_user -d nextdns || echo "❌ Data
 
 # API Authentication
 echo "Testing API Authentication..."
-curl -u admin:$LOCAL_API_KEY http://localhost:5002/stats || echo "❌ Authentication failed"
+curl http://localhost:5002/auth/config || echo "❌ Auth config unavailable"
+
+# If auth is enabled, test login
+AUTH_ENABLED=$(curl -s http://localhost:5002/auth/config | jq -r '.enabled')
+if [ "$AUTH_ENABLED" = "true" ]; then
+    echo "Authentication is enabled, testing login..."
+    curl -X POST http://localhost:5002/auth/login \
+      -H "Content-Type: application/json" \
+      -d '{"username": "admin", "password": "'$AUTH_PASSWORD'"}' || echo "❌ Login failed"
+else
+    echo "✅ Authentication is disabled"
+fi
 
 echo "✅ Health check completed"
 ```
