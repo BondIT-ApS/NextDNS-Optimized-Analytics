@@ -453,7 +453,7 @@ async def root():
                 "status": "unhealthy",
                 "error": "Database is offline or unreachable",
             },
-        )
+        ) from e
 
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
@@ -468,7 +468,7 @@ async def health_check():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"status": "unhealthy", "healthy": False},
-        )
+        ) from e
 
 
 def _create_backend_resources(uptime_seconds: float) -> BackendResources:
@@ -628,7 +628,7 @@ async def detailed_health_check():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=error_response.model_dump(),
-        )
+        ) from e
 
 
 # Authentication Endpoints
