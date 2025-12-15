@@ -156,9 +156,9 @@ export function Layout({ children }: LayoutProps) {
           <div className="px-4 py-4 border-t border-border space-y-3">
             {/* User info and logout button */}
             {authEnabled && isAuthenticated && username && (
-              <div className="flex items-center justify-between px-3 py-2 bg-accent rounded-lg">
+              <div className="flex items-center justify-between px-3 py-2 bg-lego-blue/15 hover:bg-lego-blue/20 transition-colors rounded-lg border border-lego-blue/20">
                 <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
+                  <User className="h-4 w-4 text-lego-blue" />
                   <span className="text-sm font-medium text-foreground">
                     {username}
                   </span>
@@ -167,7 +167,7 @@ export function Layout({ children }: LayoutProps) {
                   variant="ghost"
                   size="sm"
                   onClick={handleLogout}
-                  className="h-8 text-xs"
+                  className="h-8 text-xs hover:bg-lego-blue/20 hover:text-lego-blue"
                 >
                   <LogOut className="h-3 w-3 mr-1" />
                   Logout
