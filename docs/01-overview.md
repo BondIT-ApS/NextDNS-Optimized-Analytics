@@ -43,8 +43,9 @@ The NextDNS web dashboard provides basic analytics, but lacks advanced filtering
 
 ### **🔐 Security & Privacy**
 - **Local data storage** - your DNS logs never leave your infrastructure
-- **API key authentication** for all endpoints
+- **JWT-based authentication** with optional enable/disable (configurable sessions)
 - **Environment-based configuration** with secure defaults
+- **Rate limiting** on authentication endpoints for brute force protection
 - **CORS protection** and security headers
 - **Health monitoring** for all components
 

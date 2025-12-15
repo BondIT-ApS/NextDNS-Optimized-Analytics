@@ -35,22 +35,44 @@ graph TB
 
 ## 🔑 Authentication & Authorization
 
-### API Key Security
+### JWT-Based Authentication System
+
+The application uses **JWT (JSON Web Tokens)** for secure, stateless authentication with optional enable/disable capability.
+
+**Key Features:**
+- Optional authentication (disabled by default for local dev)
+- JWT tokens with configurable expiration
+- Rate limiting on login endpoint (5 attempts/minute)
+- Support for plain text or bcrypt-hashed passwords
+- HS256 algorithm for token signing
 
 **Generate Secure Keys:**
 ```bash
-# Generate random API key
+# Generate JWT secret key (minimum 32 characters)
 openssl rand -hex 32
+# Output: a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6
 
-# Or use system random
-head -c 32 /dev/urandom | base64
+# Generate bcrypt password hash
+python3 -c "from passlib.hash import bcrypt; print(bcrypt.hash('your_secure_password'))"
+# Output: $2b$12$abcdefghijklmnopqrstuvwxyz...
+
+# Or use Python secrets module
+python3 -c "import secrets; print(secrets.token_hex(32))"
 ```
 
 **Environment Variable Security:**
 ```env
-# Use strong, unique keys
-LOCAL_API_KEY=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6
+# Authentication Configuration
+AUTH_ENABLED=true
+AUTH_USERNAME=admin
+AUTH_PASSWORD=$2b$12$hashed_password_here_or_plain_text
+AUTH_SECRET_KEY=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6
+AUTH_SESSION_TIMEOUT=60
+
+# External APIs
 API_KEY=your_nextdns_api_key_here
+
+# Database
 POSTGRES_PASSWORD=very_secure_database_password_here
 ```
 
@@ -63,12 +85,41 @@ POSTGRES_PASSWORD=very_secure_database_password_here
 
 **Application-Level Protection:**
 ```python
-# Backend implements HTTP Basic Auth
-@app.dependency
-async def authenticate_user(credentials: HTTPBasicCredentials = Depends(security)):
-    if not secrets.compare_digest(credentials.password, LOCAL_API_KEY):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+# Backend implements JWT authentication
+from jose import jwt
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def create_access_token(data: dict, expires_delta: timedelta):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + expires_delta
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, AUTH_SECRET_KEY, algorithm="HS256")
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials):
+    if not AUTH_ENABLED:
+        return "anonymous"
+    payload = jwt.decode(credentials.credentials, AUTH_SECRET_KEY)
+    return payload.get("sub")
 ```
+
+### Session Management
+
+**JWT Token Lifecycle:**
+1. User authenticates with username/password
+2. Server issues JWT token with expiration
+3. Client includes token in Authorization header
+4. Server validates token signature and expiration
+5. Token expires after configured timeout
+6. User must re-authenticate to get new token
+
+**Best Practices:**
+- Set appropriate session timeout (default: 60 minutes)
+- Store tokens securely in client (httpOnly cookies or secure storage)
+- Implement token refresh mechanism for better UX
+- Never expose tokens in URLs or logs
+- Rotate AUTH_SECRET_KEY periodically in production
 
 ## 🌐 Network Security
 
@@ -185,7 +236,10 @@ echo "Encrypted backup completed: $BACKUP_DIR"
 **Development:**
 ```env
 # .env file (never commit to git)
-LOCAL_API_KEY=dev_key_here
+AUTH_ENABLED=false
+AUTH_USERNAME=admin
+AUTH_PASSWORD=dev_password
+AUTH_SECRET_KEY=dev_secret_key_for_local_testing_only
 API_KEY=dev_nextdns_key
 POSTGRES_PASSWORD=dev_password
 ```
@@ -193,7 +247,10 @@ POSTGRES_PASSWORD=dev_password
 **Production - Environment Variables:**
 ```bash
 # Set via environment variables
-export LOCAL_API_KEY="production_secure_key"
+export AUTH_ENABLED="true"
+export AUTH_USERNAME="admin"
+export AUTH_PASSWORD="$2b$12$very_strong_bcrypt_hashed_password"
+export AUTH_SECRET_KEY="production_secret_key_minimum_32_characters"
 export API_KEY="production_nextdns_key"
 export POSTGRES_PASSWORD="production_db_password"
 ```
@@ -202,7 +259,9 @@ export POSTGRES_PASSWORD="production_db_password"
 ```yaml
 # docker-compose.yml with secrets
 secrets:
-  local_api_key:
+  auth_password:
+    external: true
+  auth_secret_key:
     external: true
   postgres_password:
     external: true
@@ -210,10 +269,14 @@ secrets:
 services:
   backend:
     secrets:
-      - local_api_key
+      - auth_password
+      - auth_secret_key
       - postgres_password
     environment:
-      LOCAL_API_KEY_FILE: /run/secrets/local_api_key
+      AUTH_ENABLED: "true"
+      AUTH_USERNAME: "admin"
+      AUTH_PASSWORD_FILE: /run/secrets/auth_password
+      AUTH_SECRET_KEY_FILE: /run/secrets/auth_secret_key
 ```
 
 ### Configuration Security
@@ -288,13 +351,17 @@ class SecurityLogFormatter(logging.Formatter):
 
 ### Deployment Security
 
-- [ ] **Strong API keys** generated and set
+- [ ] **Authentication enabled** for production (`AUTH_ENABLED=true`)
+- [ ] **Strong JWT secret key** generated (minimum 32 characters)
+- [ ] **Strong password** set (12+ characters, bcrypt hash recommended)
+- [ ] **Session timeout** configured appropriately
 - [ ] **Database password** is secure and unique
 - [ ] **Environment files** are not committed to version control
 - [ ] **Network isolation** is configured properly
 - [ ] **Minimal port exposure** (only required ports)
 - [ ] **SSL/TLS** configured for production
 - [ ] **Security headers** implemented
+- [ ] **Rate limiting** enabled on authentication endpoints
 - [ ] **Regular backups** with encryption
 - [ ] **Log monitoring** for security events
 - [ ] **Container images** updated regularly

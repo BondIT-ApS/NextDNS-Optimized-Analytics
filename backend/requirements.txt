@@ -17,3 +17,12 @@ apscheduler==3.11.1
 
 # System monitoring
 psutil==7.1.3
+
+# Authentication and security
+passlib[bcrypt]==1.7.4
+PyJWT[crypto]==2.10.1  # Replaced python-jose to avoid ecdsa vulnerabilities (CVE-2024-64396, CVE-2024-64459)
+slowapi==0.1.9
+
+# Security: Pin transitive dependencies to fix CVE vulnerabilities
+urllib3>=2.6.2  # CVE-2025-66471, CVE-2025-66418
+authlib>=1.6.6  # CVE-2025-62706, CVE-2025-61920 (if installed by transitive deps)

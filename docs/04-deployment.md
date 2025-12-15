@@ -69,8 +69,12 @@ nano config/.env
 API_KEY=your_nextdns_api_key_here
 PROFILE_IDS=profile1,profile2,profile3
 
-# Local API Authentication
-LOCAL_API_KEY=your_secure_api_key_here
+# Authentication (Optional - Disabled by default)
+AUTH_ENABLED=false
+AUTH_USERNAME=admin
+AUTH_PASSWORD=your_secure_password_here
+AUTH_SECRET_KEY=your_jwt_secret_key_here
+AUTH_SESSION_TIMEOUT=60
 
 # Database Configuration
 POSTGRES_USER=nextdns_user
@@ -137,14 +141,20 @@ For enhanced security, use Portainer's environment variables:
 2. **Add Environment Variables**:
    - `POSTGRES_PASSWORD`
    - `API_KEY`
-   - `LOCAL_API_KEY`
    - `PROFILE_IDS`
+   - `AUTH_ENABLED` (optional)
+   - `AUTH_USERNAME` (optional)
+   - `AUTH_PASSWORD` (optional)
+   - `AUTH_SECRET_KEY` (optional)
+   - `AUTH_SESSION_TIMEOUT` (optional)
 
 3. **Reference in Stack**:
 ```yaml
 environment:
   API_KEY: ${API_KEY}
-  LOCAL_API_KEY: ${LOCAL_API_KEY}
+  AUTH_ENABLED: ${AUTH_ENABLED}
+  AUTH_PASSWORD: ${AUTH_PASSWORD}
+  AUTH_SECRET_KEY: ${AUTH_SECRET_KEY}
 ```
 
 ## ⚙️ Manual Deployment
@@ -170,7 +180,7 @@ docker run -d \
   --network nextdns-network \
   --depends-on nextdns-db \
   -e API_KEY=your_nextdns_api_key \
-  -e LOCAL_API_KEY=your_local_key \
+  -e AUTH_ENABLED=false \
   -e POSTGRES_HOST=nextdns-db \
   -p 5001:5000 \
   maboni82/nextdns-optimized-analytics-backend:latest
@@ -214,8 +224,8 @@ else
     exit 1
 fi
 
-# Check database records
-RECORDS=$(curl -u admin:$LOCAL_API_KEY -s http://localhost:5002/stats | jq -r '.total_records')
+# Check database records (if auth is disabled)
+RECORDS=$(curl -s http://localhost:5002/stats | jq -r '.total_records' 2>/dev/null || echo "N/A (auth may be enabled)")
 echo "📊 Database contains $RECORDS DNS records"
 
 echo "✅ Deployment verification completed successfully!"
