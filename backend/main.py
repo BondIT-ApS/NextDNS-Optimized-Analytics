@@ -12,12 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 
-# Set up logging first
-from logging_config import setup_logging, get_logger
-from performance_middleware import PerformanceMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+
+# Set up logging first
+from logging_config import setup_logging, get_logger
+from performance_middleware import PerformanceMiddleware
 from auth import (
     init_auth,
     authenticate_user,
@@ -724,7 +725,7 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
     search: Optional[str] = Query(
         default="", description="Search query for domain names"
     ),
-    status: Optional[str] = Query(
+    status_filter: Optional[str] = Query(
         default="all", description="Filter by status: all, blocked, allowed"
     ),
     profile: Optional[str] = Query(
@@ -756,14 +757,14 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
     """
     logger.debug(
         f"📊 API request: exclude={exclude}, search='{search}', "
-        f"status={status}, profile='{profile}', devices={devices}, "
+        f"status={status_filter}, profile='{profile}', devices={devices}, "
         f"time_range='{time_range}', limit={limit}, offset={offset}"
     )
 
     logs, filtered_total_records = get_logs(
         exclude_domains=exclude,
         search_query=search,
-        status_filter=status,
+        status_filter=status_filter,
         profile_filter=profile,
         device_filter=devices,
         time_range=time_range,
