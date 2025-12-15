@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 
 import psutil
-from fastapi import FastAPI, Depends, HTTPException, Query, Header, status
+from fastapi import FastAPI, Depends, HTTPException, Query, Header, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -645,7 +645,7 @@ async def get_auth_config():
 
 @app.post("/auth/login", response_model=LoginResponse, tags=["Authentication"])
 @limiter.limit("5/minute")
-async def login(request: LoginRequest):
+async def login(request: Request, login_data: LoginRequest):
     """Login with username and password. Rate limited to 5 attempts per minute."""
     if not AUTH_ENABLED:
         raise HTTPException(
@@ -653,7 +653,7 @@ async def login(request: LoginRequest):
             detail="Authentication is disabled",
         )
 
-    if not authenticate_user(request.username, request.password):
+    if not authenticate_user(login_data.username, login_data.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -661,7 +661,7 @@ async def login(request: LoginRequest):
         )
 
     # Create access token
-    access_token = create_access_token(data={"sub": request.username})
+    access_token = create_access_token(data={"sub": login_data.username})
 
     return LoginResponse(
         access_token=access_token,
