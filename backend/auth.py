@@ -113,7 +113,9 @@ def authenticate_user(username: str, password: str) -> bool:
         is_valid = password == AUTH_PASSWORD
 
     if not is_valid:
-        logger.warning(f"🔒 Authentication failed: invalid password for user '{username}'")
+        logger.warning(
+            f"🔒 Authentication failed: invalid password for user '{username}'"
+        )
     else:
         logger.info(f"🔒 User '{username}' authenticated successfully")
 
