@@ -29,18 +29,7 @@ docker-compose up -d
 docker-compose logs -f
 ```
 
-## 🔄 FastAPI Migration (v1 → v2)
-
-The backend was migrated from Flask to FastAPI v2.0 with significant improvements:
-
-### ✅ What Changed
-- **FastAPI + uvicorn** replaced Flask development server
-- **Automatic API docs** at `/docs` and `/redoc`
-- **Type safety** with Pydantic models
-- **Enhanced logging** with configurable levels
-- **Better performance** with ASGI
-
-### 🔧 Development Workflow
+## 🔧 Development Workflow
 
 1. **Backend Development**
 ```bash
