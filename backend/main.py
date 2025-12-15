@@ -784,7 +784,7 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
 
 
 @app.get("/profiles", response_model=ProfileListResponse, tags=["Profiles"])
-async def list_available_profiles():
+async def list_available_profiles(current_user: str = Depends(get_current_user)):
     """Get list of available profiles with their record counts and last activity."""
     logger.debug("🧱 API request for available profiles")
     profiles = get_profiles_from_db()
@@ -793,7 +793,7 @@ async def list_available_profiles():
 
 
 @app.get("/profiles/info", response_model=ProfileInfoResponse, tags=["Profiles"])
-async def get_profile_information():
+async def get_profile_information(current_user: str = Depends(get_current_user)):
     """Get detailed information for all configured profiles from NextDNS API."""
     logger.debug("🧱 API request for profile information")
 
@@ -810,7 +810,9 @@ async def get_profile_information():
 @app.get(
     "/profiles/{profile_id}/info", response_model=NextDNSProfileInfo, tags=["Profiles"]
 )
-async def get_single_profile_info(profile_id: str):
+async def get_single_profile_info(
+    profile_id: str, current_user: str = Depends(get_current_user)
+):
     """Get detailed information for a specific profile from NextDNS API."""
     logger.debug(f"🧱 API request for profile {profile_id} information")
 
@@ -833,6 +835,7 @@ async def get_stats_overview(
     time_range: str = Query(
         default="24h", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
+    current_user: str = Depends(get_current_user),
 ):
     """Get overview statistics for the dashboard."""
     logger.debug(
@@ -856,6 +859,7 @@ async def get_stats_timeseries(
         default=None,
         description="Data granularity: 5min, hour, day, week (auto if not specified)",
     ),
+    current_user: str = Depends(get_current_user),
 ):
     """Get time series data for charts."""
     logger.debug(
@@ -902,6 +906,7 @@ async def get_top_domains(
     limit: int = Query(
         default=10, ge=5, le=50, description="Number of top domains to return"
     ),
+    current_user: str = Depends(get_current_user),
 ):
     """Get top blocked and allowed domains."""
     logger.debug(
@@ -937,6 +942,7 @@ async def get_top_tlds(
     limit: int = Query(
         default=10, ge=5, le=50, description="Number of top TLDs to return"
     ),
+    current_user: str = Depends(get_current_user),
 ):
     """Get top-level domain statistics (TLD aggregation).
 
@@ -969,6 +975,7 @@ async def get_devices(
     time_range: str = Query(
         default="24h", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
+    current_user: str = Depends(get_current_user),
 ):
     """Get available devices for device filtering.
 
@@ -1006,6 +1013,7 @@ async def get_device_stats(
         default=None,
         description="Device names to exclude from results (e.g. 'Unidentified Device')",
     ),
+    current_user: str = Depends(get_current_user),
 ):
     """Get device usage statistics showing DNS query activity by device.
 
