@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-// Removed auth dependencies - app is now open for everyone
+import { useAuth } from '@/contexts/AuthContext'
 import {
   Menu,
   X,
@@ -11,6 +11,8 @@ import {
   Activity,
   Building2,
   TrendingUp,
+  LogOut,
+  User,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -21,6 +23,8 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  const { isAuthenticated, username, authEnabled, logout } = useAuth()
 
   const navigation = [
     {
@@ -49,7 +53,10 @@ export function Layout({ children }: LayoutProps) {
     },
   ]
 
-  // No authentication - no logout needed
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-lego-blue/5">
@@ -146,7 +153,28 @@ export function Layout({ children }: LayoutProps) {
           </nav>
 
           {/* Footer */}
-          <div className="px-4 py-4 border-t border-border">
+          <div className="px-4 py-4 border-t border-border space-y-3">
+            {/* User info and logout button */}
+            {authEnabled && isAuthenticated && username && (
+              <div className="flex items-center justify-between px-3 py-2 bg-accent rounded-lg">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    {username}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="h-8 text-xs"
+                >
+                  <LogOut className="h-3 w-3 mr-1" />
+                  Logout
+                </Button>
+              </div>
+            )}
+            
             <div className="text-center">
               <p className="text-xs text-muted-foreground">
                 Built with 🧱 by{' '}
