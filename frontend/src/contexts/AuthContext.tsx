@@ -39,7 +39,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (response.ok) {
           const config = await response.json()
           setAuthEnabled(config.enabled)
-          
+
           // If auth is enabled, check authentication status
           if (config.enabled) {
             await checkAuthStatus()

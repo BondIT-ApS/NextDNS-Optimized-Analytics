@@ -3,7 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../components/ui/card'
 import { Lock, Loader2 } from 'lucide-react'
 
 export const Login: React.FC = () => {
@@ -24,7 +30,9 @@ export const Login: React.FC = () => {
       // Redirect to dashboard after successful login
       navigate('/dashboard')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed. Please try again.')
+      setError(
+        err instanceof Error ? err.message : 'Login failed. Please try again.'
+      )
     } finally {
       setIsLoading(false)
     }
@@ -54,7 +62,7 @@ export const Login: React.FC = () => {
                 id="username"
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={e => setUsername(e.target.value)}
                 placeholder="Enter your username"
                 required
                 disabled={isLoading}
@@ -70,7 +78,7 @@ export const Login: React.FC = () => {
                 id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 required
                 disabled={isLoading}
@@ -83,11 +91,7 @@ export const Login: React.FC = () => {
                 {error}
               </div>
             )}
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

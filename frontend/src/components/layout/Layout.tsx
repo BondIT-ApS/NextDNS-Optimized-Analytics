@@ -174,7 +174,7 @@ export function Layout({ children }: LayoutProps) {
                 </Button>
               </div>
             )}
-            
+
             <div className="text-center">
               <p className="text-xs text-muted-foreground">
                 Built with 🧱 by{' '}

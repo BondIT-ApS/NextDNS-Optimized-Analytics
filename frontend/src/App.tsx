@@ -38,7 +38,7 @@ function App() {
             <Routes>
               {/* Public route - Login page */}
               <Route path="/login" element={<Login />} />
-              
+
               {/* Protected routes - require authentication when enabled */}
               <Route
                 path="/"
