@@ -137,7 +137,7 @@ jobs:
           
       - name: 📊 Upload Security Report
         if: matrix.component == 'backend'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: security-report-${{ matrix.component }}
           path: backend/bandit-report.json
