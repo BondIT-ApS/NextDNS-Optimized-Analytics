@@ -94,9 +94,17 @@ Base = declarative_base()
 # Database connection setup
 DATABASE_URL = (
     f"postgresql://{os.getenv('POSTGRES_USER')}:"
-    f"{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}/"
+    f"{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST')}:"
+    f"{os.getenv('POSTGRES_PORT', '5432')}/"
     f"{os.getenv('POSTGRES_DB')}"
 )
+
+# Add SSL mode if specified (required for managed databases like DigitalOcean)
+# Supports both PGSSLMODE (standard PostgreSQL) and POSTGRES_SSL_MODE
+ssl_mode = os.getenv("PGSSLMODE") or os.getenv("POSTGRES_SSL_MODE", "")
+if ssl_mode:
+    DATABASE_URL += f"?sslmode={ssl_mode}"
+
 engine = create_engine(DATABASE_URL, echo=False)
 session_factory = sessionmaker(bind=engine)
 
