@@ -101,7 +101,7 @@ DATABASE_URL = (
 
 # Add SSL mode if specified (required for managed databases like DigitalOcean)
 # Supports both PGSSLMODE (standard PostgreSQL) and POSTGRES_SSL_MODE
-ssl_mode = os.getenv('PGSSLMODE') or os.getenv('POSTGRES_SSL_MODE', '')
+ssl_mode = os.getenv("PGSSLMODE") or os.getenv("POSTGRES_SSL_MODE", "")
 if ssl_mode:
     DATABASE_URL += f"?sslmode={ssl_mode}"
 
