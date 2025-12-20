@@ -32,7 +32,13 @@ target_metadata = Base.metadata
 
 # Get database URL from environment variables
 def get_url():
-    return f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST', 'localhost')}:{os.getenv('POSTGRES_PORT', '5432')}/{os.getenv('POSTGRES_DB')}"
+    url = f"postgresql://{os.getenv('POSTGRES_USER')}:{os.getenv('POSTGRES_PASSWORD')}@{os.getenv('POSTGRES_HOST', 'localhost')}:{os.getenv('POSTGRES_PORT', '5432')}/{os.getenv('POSTGRES_DB')}"
+    # Add SSL mode if specified (required for managed databases like DigitalOcean)
+    # Supports both PGSSLMODE (standard PostgreSQL) and POSTGRES_SSL_MODE
+    ssl_mode = os.getenv('PGSSLMODE') or os.getenv('POSTGRES_SSL_MODE', '')
+    if ssl_mode:
+        url += f"?sslmode={ssl_mode}"
+    return url
 
 
 # other values from the config, defined by the needs of env.py,
