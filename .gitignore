@@ -228,6 +228,9 @@ config/.env.staging
 # .env.template should be tracked
 !config/.env.template
 
+# Migration script environment files
+scripts/.env.migration
+
 # Keep template files but ignore actual Portainer stack file
 portainer-stack.yml
 !portainer-stack.yml.template
