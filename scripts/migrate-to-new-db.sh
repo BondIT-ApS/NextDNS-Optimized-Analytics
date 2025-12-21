@@ -274,27 +274,29 @@ echo -e "${YELLOW}🔄 Step 4: Migrating fetch_status table...${NC}"
 
 # Dump fetch_status data to temporary file
 FETCH_STATUS_FILE=$(mktemp)
-PGPASSWORD=$SOURCE_PASSWORD psql -h $SOURCE_HOST -p $SOURCE_PORT -U $SOURCE_USER -d $SOURCE_DB -c "\\copy (SELECT profile_id, last_fetch_timestamp, records_fetched FROM fetch_status) TO STDOUT WITH (FORMAT CSV, HEADER false, QUOTE '\"', ESCAPE '\"', FORCE_QUOTE *)" > "$FETCH_STATUS_FILE"
+PGPASSWORD=$SOURCE_PASSWORD psql -h $SOURCE_HOST -p $SOURCE_PORT -U $SOURCE_USER -d $SOURCE_DB -c "\\copy (SELECT profile_id, last_fetched_timestamp, last_fetch_status, records_fetched FROM fetch_status) TO STDOUT WITH (FORMAT CSV, HEADER false, QUOTE '\"', ESCAPE '\"', FORCE_QUOTE *)" > "$FETCH_STATUS_FILE"
 
 # Load into target with conflict handling
 PGPASSWORD=$TARGET_PASSWORD psql -h $TARGET_HOST -p $TARGET_PORT -U $TARGET_USER -d $TARGET_DB --set=sslmode=require << EOF
 -- Create temporary table
 CREATE TEMP TABLE temp_fetch_status (
     profile_id TEXT,
-    last_fetch_timestamp TIMESTAMPTZ,
+    last_fetched_timestamp TIMESTAMPTZ,
+    last_fetch_status TEXT,
     records_fetched INTEGER
 );
 
 -- Copy data into temp table
-\\copy temp_fetch_status (profile_id, last_fetch_timestamp, records_fetched) FROM '$FETCH_STATUS_FILE' WITH (FORMAT CSV, HEADER false, QUOTE '"', ESCAPE '"')
+\\copy temp_fetch_status (profile_id, last_fetched_timestamp, last_fetch_status, records_fetched) FROM '$FETCH_STATUS_FILE' WITH (FORMAT CSV, HEADER false, QUOTE '"', ESCAPE '"')
 
 -- Insert with conflict handling (update if exists)
-INSERT INTO fetch_status (profile_id, last_fetch_timestamp, records_fetched)
-SELECT profile_id, last_fetch_timestamp, records_fetched
+INSERT INTO fetch_status (profile_id, last_fetched_timestamp, last_fetch_status, records_fetched)
+SELECT profile_id, last_fetched_timestamp, last_fetch_status, records_fetched
 FROM temp_fetch_status
 ON CONFLICT (profile_id) 
 DO UPDATE SET 
-    last_fetch_timestamp = EXCLUDED.last_fetch_timestamp,
+    last_fetched_timestamp = EXCLUDED.last_fetched_timestamp,
+    last_fetch_status = EXCLUDED.last_fetch_status,
     records_fetched = EXCLUDED.records_fetched;
 
 -- Drop temp table
