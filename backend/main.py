@@ -2,6 +2,7 @@
 import os
 import platform
 import secrets
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
 
@@ -70,6 +71,20 @@ except ImportError as e:
     logger.warning(f"⚠️  Could not start scheduler: {e}")
     logger.info("🧱 App will work but won't automatically fetch NextDNS logs")
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for application startup and shutdown."""
+    # Startup
+    logger.info("🚀 Starting NextDNS Optimized Analytics FastAPI Backend")
+    init_db()  # Ensure the database is initialized
+    init_auth()  # Initialize authentication system
+    logger.info("✅ FastAPI application startup completed")
+    yield
+    # Shutdown (if needed in the future)
+    logger.info("👋 FastAPI application shutting down")
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title="NextDNS Optimized Analytics API",
@@ -87,6 +102,7 @@ app = FastAPI(
     version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # Add rate limiter state and exception handler
@@ -422,15 +438,6 @@ class DetailedHealthResponse(BaseModel):
 
 
 # API Endpoints
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize the application on startup."""
-    logger.info("🚀 Starting NextDNS Optimized Analytics FastAPI Backend")
-    init_db()  # Ensure the database is initialized
-    init_auth()  # Initialize authentication system
-    logger.info("✅ FastAPI application startup completed")
 
 
 @app.get("/", tags=["Health"])

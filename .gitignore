@@ -55,6 +55,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+# Frontend coverage
+frontend/coverage/
 
 # Translations
 *.mo
@@ -178,7 +180,6 @@ ehthumbs_vista.db
 *~
 
 # IDE and Editor files
-.vscode/
 .idea/
 *.swp
 *.swo
