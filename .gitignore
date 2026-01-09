@@ -178,7 +178,6 @@ ehthumbs_vista.db
 *~
 
 # IDE and Editor files
-.vscode/
 .idea/
 *.swp
 *.swo
