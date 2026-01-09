@@ -19,7 +19,15 @@ class TestHealthEndpoints:
         # This is expected behavior for the infrastructure tests
         assert response.status_code in [200, 503]
         data = response.json()
-        assert "status" in data
+        
+        # When status is 503, response is wrapped in 'detail' field
+        if response.status_code == 503:
+            assert "detail" in data
+            assert "status" in data["detail"]
+            assert data["detail"]["status"] == "unhealthy"
+        else:
+            assert "status" in data
+            assert data["status"] == "healthy"
 
     def test_health_endpoint_detailed(self, test_client):
         """Test detailed health endpoint."""
@@ -29,9 +37,17 @@ class TestHealthEndpoints:
         # This is expected behavior for the infrastructure tests
         assert response.status_code in [200, 503]
         data = response.json()
-        assert "status" in data
-        # Only check for these fields if status is healthy
-        if response.status_code == 200:
-            assert "database" in data
-            assert "uptime" in data
-            assert "system" in data
+        
+        # When status is 503, response is wrapped in 'detail' field
+        if response.status_code == 503:
+            assert "detail" in data
+            assert "status_api" in data["detail"]
+            assert "status_db" in data["detail"]
+            assert data["detail"]["status_api"] == "unhealthy"
+            assert data["detail"]["healthy"] is False
+        else:
+            # Healthy response has these top-level fields
+            assert "status_api" in data
+            assert "status_db" in data
+            assert data["status_api"] == "healthy"
+            assert data["healthy"] is True
