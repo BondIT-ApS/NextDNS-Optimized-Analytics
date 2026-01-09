@@ -19,9 +19,14 @@ class TestSchedulerConfiguration:
         # Need to reload module to pick up new environment
         import importlib
         import scheduler
+
         importlib.reload(scheduler)
-        
-        profile_ids = [pid.strip() for pid in os.getenv("PROFILE_IDS", "").split(",") if pid.strip()]
+
+        profile_ids = [
+            pid.strip()
+            for pid in os.getenv("PROFILE_IDS", "").split(",")
+            if pid.strip()
+        ]
         assert len(profile_ids) == 3
         assert "abc123" in profile_ids
         assert "def456" in profile_ids
@@ -30,20 +35,32 @@ class TestSchedulerConfiguration:
     @patch.dict(os.environ, {"PROFILE_IDS": "  single-profile  "})
     def test_profile_ids_with_whitespace(self):
         """Test that profile IDs handle whitespace correctly."""
-        profile_ids = [pid.strip() for pid in os.getenv("PROFILE_IDS", "").split(",") if pid.strip()]
+        profile_ids = [
+            pid.strip()
+            for pid in os.getenv("PROFILE_IDS", "").split(",")
+            if pid.strip()
+        ]
         assert len(profile_ids) == 1
         assert profile_ids[0] == "single-profile"
 
     @patch.dict(os.environ, {"PROFILE_IDS": ""})
     def test_empty_profile_ids(self):
         """Test handling of empty profile IDs."""
-        profile_ids = [pid.strip() for pid in os.getenv("PROFILE_IDS", "").split(",") if pid.strip()]
+        profile_ids = [
+            pid.strip()
+            for pid in os.getenv("PROFILE_IDS", "").split(",")
+            if pid.strip()
+        ]
         assert len(profile_ids) == 0
 
     @patch.dict(os.environ, {"PROFILE_IDS": "test1,,test2,  ,test3"})
     def test_profile_ids_with_empty_entries(self):
         """Test that empty entries in profile IDs are filtered out."""
-        profile_ids = [pid.strip() for pid in os.getenv("PROFILE_IDS", "").split(",") if pid.strip()]
+        profile_ids = [
+            pid.strip()
+            for pid in os.getenv("PROFILE_IDS", "").split(",")
+            if pid.strip()
+        ]
         assert len(profile_ids) == 3
         assert "test1" in profile_ids
         assert "test2" in profile_ids
@@ -81,8 +98,9 @@ class TestSchedulerInitialization:
         # Reload to test initialization logic
         import importlib
         import scheduler
+
         importlib.reload(scheduler)
-        
+
         # Scheduler should be None when credentials are missing
         assert scheduler.scheduler is None
 
@@ -96,12 +114,13 @@ class TestSchedulerInitialization:
         """Test that scheduler is created with valid credentials."""
         mock_scheduler_instance = MagicMock()
         mock_scheduler_class.return_value = mock_scheduler_instance
-        
+
         # Reload scheduler module with mocked environment
         import importlib
         import scheduler
+
         importlib.reload(scheduler)
-        
+
         # Scheduler should be initialized (not None)
         # Note: This is tricky to test because scheduler is created at module import time
         assert scheduler.API_KEY == "test-key"
