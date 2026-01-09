@@ -81,6 +81,41 @@ global.fetch = vi.fn(() =>
   } as Response)
 )
 
+// Mock HTMLCanvasElement for Chart.js
+HTMLCanvasElement.prototype.getContext = vi.fn(() => {
+  return {
+    fillRect: vi.fn(),
+    clearRect: vi.fn(),
+    getImageData: vi.fn(),
+    putImageData: vi.fn(),
+    createImageData: vi.fn(),
+    setTransform: vi.fn(),
+    drawImage: vi.fn(),
+    save: vi.fn(),
+    fillText: vi.fn(),
+    restore: vi.fn(),
+    beginPath: vi.fn(),
+    moveTo: vi.fn(),
+    lineTo: vi.fn(),
+    closePath: vi.fn(),
+    stroke: vi.fn(),
+    translate: vi.fn(),
+    scale: vi.fn(),
+    rotate: vi.fn(),
+    arc: vi.fn(),
+    fill: vi.fn(),
+    measureText: vi.fn(() => ({ width: 0 })),
+    transform: vi.fn(),
+    rect: vi.fn(),
+    clip: vi.fn(),
+    canvas: {
+      width: 300,
+      height: 150,
+      style: {},
+    },
+  } as any
+}) as any
+
 // Clean up after each test - keep our LEGO workspace tidy!
 afterEach(() => {
   cleanup()
