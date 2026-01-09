@@ -265,8 +265,8 @@ jobs:
       - name: Check Prettier formatting
         run: npm run format:check
 
-      - name: Run tests
-        run: npm run test
+      - name: Run tests with coverage
+        run: npm run test:coverage
 
   # 🐍 Backend Code Quality (parallel)
   quality-backend:
@@ -298,10 +298,11 @@ jobs:
       - name: Dependency security check
         run: safety check
 
-      - name: Run tests (if any)
+      - name: Run tests with coverage
         run: |
           cd backend
-          python -m pytest --cov=. --cov-report=xml || echo "No tests found, skipping"
+          pip install -r requirements-dev.txt
+          python -m pytest tests/ --cov=. --cov-report=xml --cov-report=term -v
 
   # 🛡️ Safety Action Security Check (parallel)
   safety-security-check:
@@ -327,7 +328,7 @@ jobs:
   build-test-backend:
     name: 🐳 LEGO Backend Assembly Test (Docker Build)
     runs-on: ubuntu-latest
-    needs: [discover-changes, lint-frontend, lint-backend, lint-workflows, quality-frontend, quality-backend, safety-security-check]
+    needs: [discover-changes, lint-frontend, lint-backend, lint-workflows, quality-frontend, quality-backend, safety-security-check, codecov-upload-backend]
     if: always() && !contains(needs.*.result, 'failure') && needs.discover-changes.outputs.backend-changed == 'true'
 
     steps:
@@ -351,7 +352,7 @@ jobs:
   build-test-frontend:
     name: 🐳 LEGO Frontend Assembly Test (Docker Build)
     runs-on: ubuntu-latest
-    needs: [discover-changes, lint-frontend, lint-backend, lint-workflows, quality-frontend, quality-backend, safety-security-check]
+    needs: [discover-changes, lint-frontend, lint-backend, lint-workflows, quality-frontend, quality-backend, safety-security-check, codecov-upload-frontend]
     if: always() && !contains(needs.*.result, 'failure') && needs.discover-changes.outputs.frontend-changed == 'true'
 
     steps:
@@ -371,11 +372,132 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # 📊 Frontend Codecov Coverage Upload
+  codecov-upload-frontend:
+    name: 📊 LEGO Code Coverage Report - Frontend (Codecov)
+    runs-on: ubuntu-latest
+    needs: [discover-changes, quality-frontend]
+    if: needs.discover-changes.outputs.frontend-changed == 'true'
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./frontend/coverage/lcov.info
+          flags: frontend,unittests
+          name: nextdns-analytics-frontend
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Check coverage threshold (75% minimum)
+        run: |
+          # Extract coverage from vitest output
+          COVERAGE_OUTPUT=$(npm run test:coverage 2>&1)
+          echo "$COVERAGE_OUTPUT"
+          
+          # Parse coverage percentage (vitest format)
+          COVERAGE=$(echo "$COVERAGE_OUTPUT" | grep -E "All files.*\|" | awk '{print $4}' | sed 's/%//' | head -1)
+          
+          if [ -z "$COVERAGE" ]; then
+            echo "⚠️  Could not parse coverage percentage, skipping threshold check"
+            exit 0
+          fi
+          
+          echo "📊 Current coverage: ${COVERAGE}%"
+          COVERAGE_INT=$(echo "$COVERAGE" | cut -d. -f1)
+          
+          if [ "$COVERAGE_INT" -lt 75 ]; then
+            echo "❌ Coverage ${COVERAGE}% is below minimum threshold of 75%"
+            echo "🧱 LEGO Quality Gate: More test coverage needed!"
+            exit 1
+          else
+            echo "✅ Coverage ${COVERAGE}% meets minimum threshold of 75%"
+            echo "🧱 LEGO Quality Gate: Test coverage looks excellent!"
+          fi
+
+  # 📊 Backend Codecov Coverage Upload
+  codecov-upload-backend:
+    name: 📊 LEGO Code Coverage Report - Backend (Codecov)
+    runs-on: ubuntu-latest
+    needs: [discover-changes, quality-backend]
+    if: needs.discover-changes.outputs.backend-changed == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install -r backend/requirements-dev.txt
+
+      - name: Run tests with coverage
+        run: |
+          cd backend
+          python -m pytest tests/ --cov=. --cov-report=xml --cov-report=term -v
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./backend/coverage.xml
+          flags: backend,unittests
+          name: nextdns-analytics-backend
+          fail_ci_if_error: false
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Check coverage threshold (70% minimum)
+        run: |
+          # Extract coverage percentage from XML
+          cd backend
+          COVERAGE=$(python -c "import xml.etree.ElementTree as ET; tree = ET.parse('coverage.xml'); root = tree.getroot(); print(root.attrib['line-rate'])" 2>/dev/null || echo "0")
+          COVERAGE_PERCENT=$(python -c "print(int(float($COVERAGE) * 100))" 2>/dev/null || echo "0")
+          echo "📊 Current coverage: ${COVERAGE_PERCENT}%"
+          
+          if [ "$COVERAGE_PERCENT" -lt 70 ]; then
+            echo "❌ Coverage ${COVERAGE_PERCENT}% is below minimum threshold of 70%"
+            echo "🧱 LEGO Quality Gate: More test coverage needed for backend!"
+            exit 1
+          else
+            echo "✅ Coverage ${COVERAGE_PERCENT}% meets minimum threshold of 70%"
+            echo "🧱 LEGO Quality Gate: Backend test coverage looks good!"
+          fi
+
   # 📊 Final Summary
   quality-gate-summary:
     name: 📊 LEGO Quality Gate Summary
     runs-on: ubuntu-latest
-    needs: [discover-changes, lint-frontend, lint-backend, lint-workflows, quality-frontend, quality-backend, safety-security-check, build-test-backend, build-test-frontend]
+    needs: [discover-changes, lint-frontend, lint-backend, lint-workflows, quality-frontend, quality-backend, safety-security-check, codecov-upload-frontend, codecov-upload-backend, build-test-backend, build-test-frontend]
     if: always()
 
     steps:
@@ -401,6 +523,8 @@ jobs:
                 'quality-frontend': '✨ Frontend Quality',
                 'quality-backend': '✨ Backend Quality',
                 'safety-security-check': '🛡️ Safety Security Scan',
+                'codecov-upload-frontend': '📊 Frontend Code Coverage',
+                'codecov-upload-backend': '📊 Backend Code Coverage',
                 'build-test-backend': '🐳 Backend Docker Build',
                 'build-test-frontend': '🐳 Frontend Docker Build'
               };
