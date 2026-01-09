@@ -30,8 +30,12 @@ describe('ChartJsTlds', () => {
   it('displays correct blocked and allowed TLDs labels', () => {
     render(<ChartJsTlds data={mockData} />)
     // Check for "Blocked Parent Domains" and "Allowed Parent Domains" labels
-    expect(screen.getAllByText('Blocked Parent Domains').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Allowed Parent Domains').length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText('Blocked Parent Domains').length
+    ).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText('Allowed Parent Domains').length
+    ).toBeGreaterThan(0)
   })
 
   it('displays total blocked requests count', () => {
@@ -52,7 +56,9 @@ describe('ChartJsTlds', () => {
       allowed_tlds: mockData.allowed_tlds,
     }
     render(<ChartJsTlds data={emptyData} />)
-    expect(screen.getByText('No blocked parent domains data available')).toBeInTheDocument()
+    expect(
+      screen.getByText('No blocked parent domains data available')
+    ).toBeInTheDocument()
   })
 
   it('shows empty state for allowed TLDs when no data', () => {
@@ -61,14 +67,20 @@ describe('ChartJsTlds', () => {
       allowed_tlds: [],
     }
     render(<ChartJsTlds data={emptyData} />)
-    expect(screen.getByText('No allowed parent domains data available')).toBeInTheDocument()
+    expect(
+      screen.getByText('No allowed parent domains data available')
+    ).toBeInTheDocument()
   })
 
   it('handles null data gracefully', () => {
     render(<ChartJsTlds data={null} />)
     expect(screen.getByText('Top Blocked Parent Domains')).toBeInTheDocument()
-    expect(screen.getByText('No blocked parent domains data available')).toBeInTheDocument()
-    expect(screen.getByText('No allowed parent domains data available')).toBeInTheDocument()
+    expect(
+      screen.getByText('No blocked parent domains data available')
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('No allowed parent domains data available')
+    ).toBeInTheDocument()
   })
 
   it('displays most blocked parent domains summary', () => {
@@ -81,7 +93,9 @@ describe('ChartJsTlds', () => {
 
   it('displays most requested parent domains summary', () => {
     render(<ChartJsTlds data={mockData} />)
-    expect(screen.getByText('Most Requested Parent Domains:')).toBeInTheDocument()
+    expect(
+      screen.getByText('Most Requested Parent Domains:')
+    ).toBeInTheDocument()
     expect(screen.getByText('.com')).toBeInTheDocument()
     expect(screen.getByText('.net')).toBeInTheDocument()
     expect(screen.getByText('.org')).toBeInTheDocument()
@@ -106,12 +120,12 @@ describe('ChartJsTlds', () => {
       allowed_tlds: [],
     }
     render(<ChartJsTlds data={dataWithMany} />)
-    
+
     // First 3 should be visible
     expect(screen.getByText('.tld1')).toBeInTheDocument()
     expect(screen.getByText('.tld2')).toBeInTheDocument()
     expect(screen.getByText('.tld3')).toBeInTheDocument()
-    
+
     // 4th and 5th should not be in the summary
     expect(screen.queryByText('.tld4')).not.toBeInTheDocument()
     expect(screen.queryByText('.tld5')).not.toBeInTheDocument()
@@ -130,10 +144,14 @@ describe('ChartJsTlds', () => {
       blocked_tlds: [],
       allowed_tlds: [],
     }
-    const { container } = render(<ChartJsTlds data={emptyData} />)
-    
+    render(<ChartJsTlds data={emptyData} />)
+
     // Summary sections should not exist when no data
-    expect(screen.queryByText('Most Blocked Parent Domains:')).not.toBeInTheDocument()
-    expect(screen.queryByText('Most Requested Parent Domains:')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Most Blocked Parent Domains:')
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('Most Requested Parent Domains:')
+    ).not.toBeInTheDocument()
   })
 })
