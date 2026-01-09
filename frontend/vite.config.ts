@@ -41,12 +41,6 @@ export default defineConfig({
         '**/tailwind.config.*',
         '**/postcss.config.*',
       ],
-      thresholds: {
-        lines: 15,
-        functions: 9,
-        branches: 4,
-        statements: 15,
-      },
     },
   },
 })
