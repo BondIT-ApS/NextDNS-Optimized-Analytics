@@ -19,7 +19,7 @@ class TestHealthEndpoints:
         # This is expected behavior for the infrastructure tests
         assert response.status_code in [200, 503]
         data = response.json()
-        
+
         # When status is 503, response is wrapped in 'detail' field
         if response.status_code == 503:
             assert "detail" in data
@@ -37,7 +37,7 @@ class TestHealthEndpoints:
         # This is expected behavior for the infrastructure tests
         assert response.status_code in [200, 503]
         data = response.json()
-        
+
         # When status is 503, response is wrapped in 'detail' field
         if response.status_code == 503:
             assert "detail" in data
