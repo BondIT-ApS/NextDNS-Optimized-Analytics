@@ -109,7 +109,7 @@
         {
             "label": "🧪 Backend: Run All Tests",
             "type": "shell",
-            "command": "cd backend && ([ -d venv ] || (echo '⚠️  Virtual environment not found. Run \"Backend: Setup Virtual Environment\" task first.' && exit 1)) && source venv/bin/activate && pytest tests/ -v",
+            "command": "cd /Users/martin/Documents/GitHub/BondIT-ApS/NextDNS-Optimized-Analytics/backend && source venv/bin/activate && pytest tests/ --cov=. --cov-report=html --cov-report=term -v",
             "group": "test",
             "presentation": {
                 "reveal": "always",
