@@ -26,7 +26,7 @@ from models import Base, DNSLog, FetchStatus  # pylint: disable=wrong-import-pos
 def test_db():
     """
     Create an in-memory SQLite database for testing.
-    
+
     Each test gets a fresh database that is automatically cleaned up.
     """
     # Create in-memory database
@@ -35,14 +35,14 @@ def test_db():
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    
+
     # Create all tables
     Base.metadata.create_all(engine)
-    
+
     # Create session factory
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     session = TestingSessionLocal()
-    
+
     try:
         yield session
     finally:
@@ -54,15 +54,15 @@ def test_db():
 def test_client(test_db):
     """
     Create a FastAPI test client with a test database session.
-    
+
     This fixture provides a test client for making API requests.
     """
     from main import app  # pylint: disable=import-outside-toplevel
-    
+
     # Override database dependency if needed
     # For now, just return a basic test client
     client = TestClient(app)
-    
+
     yield client
 
 
@@ -70,7 +70,7 @@ def test_client(test_db):
 def sample_dns_log_data():
     """
     Sample DNS log data for testing.
-    
+
     Returns a dictionary representing a typical DNS log entry.
     """
     return {
@@ -110,7 +110,7 @@ def sample_blocked_log_data():
 def mock_nextdns_response():
     """
     Mock NextDNS API response for testing.
-    
+
     Returns a typical response structure from NextDNS API.
     """
     return {
@@ -124,7 +124,9 @@ def mock_nextdns_response():
                 "clientIp": "192.168.1.100",
             },
             {
-                "timestamp": (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(),
+                "timestamp": (
+                    datetime.now(timezone.utc) - timedelta(hours=1)
+                ).isoformat(),
                 "domain": "tracking.com",
                 "type": "A",
                 "status": "blocked",
@@ -140,12 +142,12 @@ def mock_nextdns_response():
 def populated_test_db(test_db):
     """
     Create a test database with sample DNS logs.
-    
+
     Useful for integration tests that need existing data.
     """
     # Insert sample data
     base_time = datetime.now(timezone.utc) - timedelta(days=1)
-    
+
     for i in range(10):
         log = DNSLog(
             timestamp=base_time + timedelta(hours=i),
@@ -160,9 +162,9 @@ def populated_test_db(test_db):
             data=f'{{"index": {i}}}',
         )
         test_db.add(log)
-    
+
     test_db.commit()
-    
+
     yield test_db
 
 
@@ -178,7 +180,7 @@ def api_key():
 def mock_env_vars(monkeypatch):
     """
     Mock environment variables for testing.
-    
+
     Automatically applied to all tests.
     """
     monkeypatch.setenv("LOCAL_API_KEY", "test-api-key-123")
