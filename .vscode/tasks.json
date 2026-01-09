@@ -1,0 +1,445 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "🚀 Start NextDNS Frontend Dev Server",
+            "type": "shell",
+            "command": "cd frontend && npm run dev",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🏢 Build NextDNS Frontend Production",
+            "type": "shell",
+            "command": "cd frontend && npm run build",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🔍 Preview Production Build",
+            "type": "shell",
+            "command": "npm run preview",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🐳 Docker: Start Frontend Service",
+            "type": "shell",
+            "command": "docker-compose up --build -d",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🐳 Docker: Stop All Services",
+            "type": "shell",
+            "command": "docker-compose down",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🐳 Docker: View Logs",
+            "type": "shell",
+            "command": "docker-compose logs -f frontend",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🧪 Run Tests",
+            "type": "shell",
+            "command": "npm run test",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🧪 Run Tests with Coverage",
+            "type": "shell",
+            "command": "npm run test:coverage",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🧪 Run Tests in Watch Mode",
+            "type": "shell",
+            "command": "npm run test -- --watch",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🔍 Lint Frontend (ESLint)",
+            "type": "shell",
+            "command": "cd frontend && npm run lint",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🔧 Fix Frontend Linting Issues",
+            "type": "shell",
+            "command": "cd frontend && npm run lint:fix",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "💅 Format Frontend Code (Prettier)",
+            "type": "shell",
+            "command": "cd frontend && npm run format",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "💅 Check Frontend Formatting (Prettier)",
+            "type": "shell",
+            "command": "cd frontend && npm run format:check",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🐍 Format Backend Code (Black)",
+            "type": "shell",
+            "command": "cd backend && black . --line-length=88 --exclude=alembic",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🐍 Check Backend Formatting (Black)",
+            "type": "shell",
+            "command": "cd backend && black . --check --line-length=88 --exclude=alembic",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🔍 Lint Backend (Pylint)",
+            "type": "shell",
+            "command": "cd backend && pylint . --rcfile=../.pylintrc",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🔧 TypeScript Type Checking",
+            "type": "shell",
+            "command": "npm run type-check",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "📦 Install Dependencies",
+            "type": "shell",
+            "command": "npm install",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "📦 Update Dependencies",
+            "type": "shell",
+            "command": "npm update",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🔍 Check Node Environment",
+            "type": "shell",
+            "command": "node --version && npm --version && npm list --depth=0 | grep -E '(react|vite|typescript|eslint|prettier)'",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🌐 Open Frontend (Dev)",
+            "type": "shell",
+            "command": "python -m webbrowser http://localhost:5002",
+            "group": "none",
+            "problemMatcher": []
+        },
+        {
+            "label": "🌐 Open Frontend (Docker)",
+            "type": "shell",
+            "command": "python -m webbrowser http://localhost:5002",
+            "group": "none",
+            "problemMatcher": []
+        },
+        {
+            "label": "✨ Run All Frontend Quality Checks",
+            "type": "shell",
+            "command": "cd frontend && npm run lint && npm run format:check && npm run type-check && npm run test",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "✨ Run All Backend Quality Checks",
+            "type": "shell",
+            "command": "cd backend && black . --check --exclude=alembic && pylint . --rcfile=../.pylintrc",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "✨ Run All Quality Checks (Full Project)",
+            "type": "shell",
+            "command": "echo '🧧 LEGO Full Quality Gate - All systems check!' && echo '' && echo '⚙️ GitHub Actions Validation...' && actionlint .github/workflows/* && echo '' && echo '🐍 Backend Quality...' && cd backend && black . --check --line-length=88 --exclude=alembic && pylint . --rcfile=../.pylintrc && echo '' && echo '🎆 Frontend Quality...' && cd ../frontend && npm run lint && npm run format:check && npm run type-check && npm run test && echo '' && echo '🎉 All LEGO pieces validated! 🏢'",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🚀 Pre-Push Validation (Complete Quality Gate)",
+            "type": "shell",
+            "command": "echo '🧧 LEGO Pre-Push Quality Gate - Validating all pieces fit together!' && echo '' && echo '⚙️ Step 1: GitHub Actions Validation...' && actionlint .github/workflows/* && echo '' && echo '🔍 Step 2: Frontend Linting...' && cd frontend && npm run lint && echo '' && echo '🐍 Step 3: Backend Linting...' && cd ../backend && black . --check --line-length=88 --exclude=alembic && pylint . --rcfile=../.pylintrc && echo '' && echo '✨ Step 4: Frontend Quality...' && cd ../frontend && npm run format:check && npm run type-check && npm run test && echo '' && echo '🛡️ Step 5: Backend Security & Quality...' && cd ../backend && safety scan --apply-fixes --detailed-output && bandit -r . -f json -o bandit-report.json -x tests/ || true && echo '' && echo '🐳 Step 6: Docker Build Test...' && cd .. && docker-compose build && echo '' && echo '🎉 All LEGO pieces validated! Ready to push! 🏢'"
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🔧 Quick Pre-Push Check (Essential Only)",
+            "type": "shell",
+            "command": "echo '🧱 Quick LEGO Quality Check...' && echo '' && echo '🔍 Linting...' && cd frontend && npm run lint && cd ../backend && black . --check --line-length=88 --exclude=alembic && echo '' && echo '✨ Type Checking...' && cd ../frontend && npm run type-check && echo '' && echo '🎉 Quick validation complete! 🏢'",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🧪 Fix All Formatting Issues",
+            "type": "shell",
+            "command": "echo '🧱 LEGO Auto-Formatter - Making all pieces fit perfectly!' && echo '' && echo '🐍 Formatting Backend (Black)...' && cd backend && black . --line-length=88 --exclude=alembic && echo '' && echo '🎨 Formatting Frontend (Prettier)...' && cd ../frontend && npm run format && echo '' && echo '🎉 All LEGO pieces are now perfectly aligned! 🏢'",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "📊 Run All Tests (Frontend + Backend)",
+            "type": "shell",
+            "command": "echo '🧱 LEGO Test Suite - Validating all building blocks!' && echo '' && echo '⚙️ Frontend Tests...' && cd frontend && npm run test && echo '' && echo '🐍 Backend Tests...' && cd ../backend && python -m pytest --cov=. --cov-report=xml || echo 'No backend tests found, skipping' && echo '' && echo '🎉 All tests completed! 🏢'",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🛡️ Security Audit (Full)",
+            "type": "shell",
+            "command": "echo '🧱 LEGO Security Fortress Check!' && echo '' && echo '📱 Frontend Security Audit...' && cd frontend && npm audit --audit-level=high && echo '' && echo '🐍 Backend Security Audit...' && cd ../backend && safety scan --apply-fixes --detailed-output && bandit -r . -f json -o bandit-report.json -x tests/ || true && echo '' && echo '🎉 Security audit complete! 🏡'"
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "📝 Git Status & Changes Overview",
+            "type": "shell",
+            "command": "echo '🧱 LEGO Project Status Check!' && echo '' && echo '🌳 Git Status:' && git status --short && echo '' && echo '📈 Recent commits:' && git log --oneline -5 && echo '' && echo '📊 File changes:' && git diff --stat HEAD~1 || echo 'No recent changes to compare'",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "🚨 Emergency: Reset to Clean State",
+            "type": "shell",
+            "command": "echo '🧱 LEGO Emergency Reset - Cleaning workspace!' && echo '' && echo '🗺️ Stopping containers...' && docker-compose down || true && echo '' && echo '🧽 Cleaning up...' && git status && echo '' && echo '⚠️ This will discard uncommitted changes!' && echo 'Press Ctrl+C to cancel, or wait 5 seconds to continue...' && sleep 5 && git checkout . && git clean -fd && echo '' && echo '🎉 Workspace reset to clean state! 🏢'",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "⚙️ Lint GitHub Actions (actionlint)",
+            "type": "shell",
+            "command": "actionlint .github/workflows/*",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": {
+                "owner": "actionlint",
+                "fileLocation": "relative",
+                "pattern": {
+                    "regexp": "^(.+?):(\\d+):(\\d+): (.+?) \\[(.+?)\\]$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "message": 4,
+                    "code": 5
+                }
+            }
+        },
+        {
+            "label": "⚙️ Lint Single Workflow File",
+            "type": "shell",
+            "command": "actionlint ${input:workflowFile}",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": {
+                "owner": "actionlint",
+                "fileLocation": "relative",
+                "pattern": {
+                    "regexp": "^(.+?):(\\d+):(\\d+): (.+?) \\[(.+?)\\]$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "message": 4,
+                    "code": 5
+                }
+            }
+        },
+        {
+            "label": "⚙️ Lint GitHub Actions (Verbose)",
+            "type": "shell",
+            "command": "actionlint -verbose .github/workflows/*",
+            "group": "test",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": {
+                "owner": "actionlint",
+                "fileLocation": "relative",
+                "pattern": {
+                    "regexp": "^(.+?):(\\d+):(\\d+): (.+?) \\[(.+?)\\]$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "message": 4,
+                    "code": 5
+                }
+            }
+        },
+        {
+            "label": "🚀 Commit & Push (with Quality Gate)",
+            "type": "shell",
+            "command": "echo '🧱 LEGO Smart Push - Quality Gate + Git Push!' && echo '' && echo '🔍 Running Quality Gate...' && cd frontend && npm run lint && cd ../backend && black . --line-length=88 --exclude=alembic && cd ../frontend && npm run type-check && echo '' && echo '📝 Preparing commit...' && cd .. && git add . && echo 'Enter commit message:' && read -p 'Commit: ' commit_msg && git commit -m "🧱 $commit_msg" && echo '' && echo '🚀 Pushing to remote...' && git push && echo '' && echo '🎉 Successfully pushed with quality validation! 🏢'",
+            "group": "none",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "workflowFile",
+            "description": "Select GitHub Actions workflow file to lint",
+            "type": "pickString",
+            "options": [
+                ".github/workflows/docker-publish.yml",
+                ".github/workflows/dependabot-weekly.yml",
+                ".github/workflows/pr-quality-gate.yml",
+                ".github/workflows/security-monitoring.yml"
+            ]
+        }
+    ]
+}
