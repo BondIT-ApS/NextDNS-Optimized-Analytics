@@ -52,7 +52,9 @@ describe('ChartJsDomains', () => {
       allowed_domains: mockData.allowed_domains,
     }
     render(<ChartJsDomains data={emptyData} />)
-    expect(screen.getByText('No blocked domains data available')).toBeInTheDocument()
+    expect(
+      screen.getByText('No blocked domains data available')
+    ).toBeInTheDocument()
   })
 
   it('shows empty state for allowed domains when no data', () => {
@@ -61,14 +63,20 @@ describe('ChartJsDomains', () => {
       allowed_domains: [],
     }
     render(<ChartJsDomains data={emptyData} />)
-    expect(screen.getByText('No allowed domains data available')).toBeInTheDocument()
+    expect(
+      screen.getByText('No allowed domains data available')
+    ).toBeInTheDocument()
   })
 
   it('handles null data gracefully', () => {
     render(<ChartJsDomains data={null} />)
     expect(screen.getByText('Top Blocked Domains')).toBeInTheDocument()
-    expect(screen.getByText('No blocked domains data available')).toBeInTheDocument()
-    expect(screen.getByText('No allowed domains data available')).toBeInTheDocument()
+    expect(
+      screen.getByText('No blocked domains data available')
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('No allowed domains data available')
+    ).toBeInTheDocument()
   })
 
   it('displays most blocked domains summary', () => {
@@ -105,12 +113,12 @@ describe('ChartJsDomains', () => {
       allowed_domains: [],
     }
     render(<ChartJsDomains data={dataWithMany} />)
-    
+
     // First 3 should be visible
     expect(screen.getByText('domain1.com')).toBeInTheDocument()
     expect(screen.getByText('domain2.com')).toBeInTheDocument()
     expect(screen.getByText('domain3.com')).toBeInTheDocument()
-    
+
     // 4th and 5th should not be in the summary
     expect(screen.queryByText('domain4.com')).not.toBeInTheDocument()
     expect(screen.queryByText('domain5.com')).not.toBeInTheDocument()
