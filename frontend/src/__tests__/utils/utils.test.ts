@@ -16,7 +16,8 @@ describe('cn (className utility)', () => {
   })
 
   it('should handle conditional classes', () => {
-    const result = cn('foo', false && 'bar', 'baz')
+    const condition = false
+    const result = cn('foo', condition && 'bar', 'baz')
     expect(result).toContain('foo')
     expect(result).not.toContain('bar')
     expect(result).toContain('baz')
