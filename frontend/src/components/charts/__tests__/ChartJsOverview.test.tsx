@@ -39,7 +39,9 @@ describe('ChartJsOverview', () => {
   }
 
   it('renders without crashing with valid data', () => {
-    render(<ChartJsOverview data={mockTimeSeriesData} overview={mockOverview} />)
+    render(
+      <ChartJsOverview data={mockTimeSeriesData} overview={mockOverview} />
+    )
     expect(screen.getByText('Queries Over Time')).toBeInTheDocument()
   })
 
@@ -50,18 +52,26 @@ describe('ChartJsOverview', () => {
       total_points: 0,
     }
     render(<ChartJsOverview data={emptyData} overview={mockOverview} />)
-    expect(screen.getByText('No time series data available')).toBeInTheDocument()
-    expect(screen.getByText('Data will appear here once DNS queries are collected')).toBeInTheDocument()
+    expect(
+      screen.getByText('No time series data available')
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Data will appear here once DNS queries are collected')
+    ).toBeInTheDocument()
   })
 
   it('shows empty state when data is null', () => {
     render(<ChartJsOverview data={null} overview={mockOverview} />)
-    expect(screen.getByText('No time series data available')).toBeInTheDocument()
+    expect(
+      screen.getByText('No time series data available')
+    ).toBeInTheDocument()
   })
 
   it('displays all chart sections with data', () => {
-    render(<ChartJsOverview data={mockTimeSeriesData} overview={mockOverview} />)
-    
+    render(
+      <ChartJsOverview data={mockTimeSeriesData} overview={mockOverview} />
+    )
+
     expect(screen.getByText('Queries Over Time')).toBeInTheDocument()
     expect(screen.getByText('Cumulative Query Volume')).toBeInTheDocument()
     expect(screen.getByText('Blocked vs Allowed')).toBeInTheDocument()
@@ -69,7 +79,9 @@ describe('ChartJsOverview', () => {
   })
 
   it('displays correct granularity in chart title', () => {
-    render(<ChartJsOverview data={mockTimeSeriesData} overview={mockOverview} />)
+    render(
+      <ChartJsOverview data={mockTimeSeriesData} overview={mockOverview} />
+    )
     expect(screen.getByText('hour intervals')).toBeInTheDocument()
   })
 
@@ -78,7 +90,9 @@ describe('ChartJsOverview', () => {
       ...mockTimeSeriesData,
       granularity: 'day',
     }
-    render(<ChartJsOverview data={dayGranularityData} overview={mockOverview} />)
+    render(
+      <ChartJsOverview data={dayGranularityData} overview={mockOverview} />
+    )
     expect(screen.getByText('day intervals')).toBeInTheDocument()
   })
 
@@ -101,7 +115,9 @@ describe('ChartJsOverview', () => {
   })
 
   it('renders cumulative volume section', () => {
-    render(<ChartJsOverview data={mockTimeSeriesData} overview={mockOverview} />)
+    render(
+      <ChartJsOverview data={mockTimeSeriesData} overview={mockOverview} />
+    )
     expect(screen.getByText('Cumulative Query Volume')).toBeInTheDocument()
     expect(screen.getByText('accumulated over time')).toBeInTheDocument()
   })
@@ -113,14 +129,16 @@ describe('ChartJsOverview', () => {
       total_points: 0,
     }
     render(<ChartJsOverview data={emptyArrayData} overview={mockOverview} />)
-    expect(screen.getByText('No time series data available')).toBeInTheDocument()
+    expect(
+      screen.getByText('No time series data available')
+    ).toBeInTheDocument()
   })
 
   it('renders all four chart types', () => {
     const { container } = render(
       <ChartJsOverview data={mockTimeSeriesData} overview={mockOverview} />
     )
-    
+
     // Check for Card components (should be 4)
     const cards = container.querySelectorAll('.space-y-1\\.5')
     expect(cards.length).toBeGreaterThan(0)
