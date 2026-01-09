@@ -55,6 +55,8 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
+# Frontend coverage
+frontend/coverage/
 
 # Translations
 *.mo
