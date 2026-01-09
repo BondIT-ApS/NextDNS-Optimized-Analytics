@@ -102,50 +102,52 @@ describe('🧱 Stats Page', () => {
     vi.clearAllMocks()
 
     // Setup default mock implementation
-    vi.mocked(apiModule.fetchWithAuth).mockImplementation((url: string): Promise<Response> => {
-      if (url.includes('/stats/overview')) {
+    vi.mocked(apiModule.fetchWithAuth).mockImplementation(
+      (url: string): Promise<Response> => {
+        if (url.includes('/stats/overview')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockOverviewData),
+          } as Response)
+        }
+        if (url.includes('/stats/timeseries')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockTimeSeriesData),
+          } as Response)
+        }
+        if (url.includes('/stats/domains')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockDomainsData),
+          } as Response)
+        }
+        if (url.includes('/stats/tlds')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockTldsData),
+          } as Response)
+        }
+        if (url.includes('/profiles/info')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockProfilesInfoData),
+          } as Response)
+        }
+        if (url.includes('/profiles')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockProfilesData),
+          } as Response)
+        }
         return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockOverviewData),
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          text: () => Promise.resolve('Not Found'),
         } as Response)
       }
-      if (url.includes('/stats/timeseries')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockTimeSeriesData),
-        } as Response)
-      }
-      if (url.includes('/stats/domains')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockDomainsData),
-        } as Response)
-      }
-      if (url.includes('/stats/tlds')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockTldsData),
-        } as Response)
-      }
-      if (url.includes('/profiles/info')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProfilesInfoData),
-        } as Response)
-      }
-      if (url.includes('/profiles')) {
-        return Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve(mockProfilesData),
-        } as Response)
-      }
-      return Promise.resolve({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
-        text: () => Promise.resolve('Not Found'),
-      } as Response)
-    })
+    )
   })
 
   describe('Rendering', () => {
@@ -238,54 +240,57 @@ describe('🧱 Stats Page', () => {
     })
 
     it('should handle null values in stats', async () => {
-      vi.mocked(apiModule.fetchWithAuth).mockImplementation((url: string): Promise<Response> => {
-        if (url.includes('/stats/overview')) {
+      vi.mocked(apiModule.fetchWithAuth).mockImplementation(
+        (url: string): Promise<Response> => {
+          if (url.includes('/stats/overview')) {
+            return Promise.resolve({
+              ok: true,
+              json: () =>
+                Promise.resolve({
+                  ...mockOverviewData,
+                  most_active_device: null,
+                  top_blocked_domain: null,
+                }),
+            } as Response)
+          }
+          if (url.includes('/stats/timeseries')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockTimeSeriesData),
+            } as Response)
+          }
+          if (url.includes('/stats/domains')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockDomainsData),
+            } as Response)
+          }
+          if (url.includes('/stats/tlds')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockTldsData),
+            } as Response)
+          }
+          if (url.includes('/profiles/info')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockProfilesInfoData),
+            } as Response)
+          }
+          if (url.includes('/profiles')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockProfilesData),
+            } as Response)
+          }
           return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-              ...mockOverviewData,
-              most_active_device: null,
-              top_blocked_domain: null,
-            }),
+            ok: false,
+            status: 404,
+            statusText: 'Not Found',
+            text: () => Promise.resolve('Not Found'),
           } as Response)
         }
-        if (url.includes('/stats/timeseries')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockTimeSeriesData),
-          } as Response)
-        }
-        if (url.includes('/stats/domains')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockDomainsData),
-          } as Response)
-        }
-        if (url.includes('/stats/tlds')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockTldsData),
-          } as Response)
-        }
-        if (url.includes('/profiles/info')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockProfilesInfoData),
-          } as Response)
-        }
-        if (url.includes('/profiles')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockProfilesData),
-          } as Response)
-        }
-        return Promise.resolve({
-          ok: false,
-          status: 404,
-          statusText: 'Not Found',
-          text: () => Promise.resolve('Not Found'),
-        } as Response)
-      })
+      )
 
       render(<StatsWithRouter />)
 
@@ -321,13 +326,14 @@ describe('🧱 Stats Page', () => {
 
   describe('Error Handling', () => {
     it('should display error message when API fails', async () => {
-      vi.mocked(apiModule.fetchWithAuth).mockImplementation((): Promise<Response> =>
-        Promise.resolve({
-          ok: false,
-          status: 500,
-          statusText: 'Internal Server Error',
-          text: () => Promise.resolve('Server error'),
-        } as Response)
+      vi.mocked(apiModule.fetchWithAuth).mockImplementation(
+        (): Promise<Response> =>
+          Promise.resolve({
+            ok: false,
+            status: 500,
+            statusText: 'Internal Server Error',
+            text: () => Promise.resolve('Server error'),
+          } as Response)
       )
 
       render(<StatsWithRouter />)
@@ -340,54 +346,57 @@ describe('🧱 Stats Page', () => {
 
   describe('Number Formatting', () => {
     it('should format large numbers correctly', async () => {
-      vi.mocked(apiModule.fetchWithAuth).mockImplementation((url: string): Promise<Response> => {
-        if (url.includes('/stats/overview')) {
+      vi.mocked(apiModule.fetchWithAuth).mockImplementation(
+        (url: string): Promise<Response> => {
+          if (url.includes('/stats/overview')) {
+            return Promise.resolve({
+              ok: true,
+              json: () =>
+                Promise.resolve({
+                  ...mockOverviewData,
+                  total_queries: 1500000, // Should show as 1.5M
+                  queries_per_hour: 2500, // Should show as 2.5K
+                }),
+            } as Response)
+          }
+          if (url.includes('/stats/timeseries')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockTimeSeriesData),
+            } as Response)
+          }
+          if (url.includes('/stats/domains')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockDomainsData),
+            } as Response)
+          }
+          if (url.includes('/stats/tlds')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockTldsData),
+            } as Response)
+          }
+          if (url.includes('/profiles/info')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockProfilesInfoData),
+            } as Response)
+          }
+          if (url.includes('/profiles')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockProfilesData),
+            } as Response)
+          }
           return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({
-              ...mockOverviewData,
-              total_queries: 1500000, // Should show as 1.5M
-              queries_per_hour: 2500, // Should show as 2.5K
-            }),
+            ok: false,
+            status: 404,
+            statusText: 'Not Found',
+            text: () => Promise.resolve('Not Found'),
           } as Response)
         }
-        if (url.includes('/stats/timeseries')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockTimeSeriesData),
-          } as Response)
-        }
-        if (url.includes('/stats/domains')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockDomainsData),
-          } as Response)
-        }
-        if (url.includes('/stats/tlds')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockTldsData),
-          } as Response)
-        }
-        if (url.includes('/profiles/info')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockProfilesInfoData),
-          } as Response)
-        }
-        if (url.includes('/profiles')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockProfilesData),
-          } as Response)
-        }
-        return Promise.resolve({
-          ok: false,
-          status: 404,
-          statusText: 'Not Found',
-          text: () => Promise.resolve('Not Found'),
-        } as Response)
-      })
+      )
 
       render(<StatsWithRouter />)
 
