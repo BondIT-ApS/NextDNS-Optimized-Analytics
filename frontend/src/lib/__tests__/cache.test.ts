@@ -51,18 +51,17 @@ describe('🧱 ApiCache', () => {
 
       // Use fake timers
       vi.useFakeTimers()
-      
+
       ApiCache.set(queryKey, testData, shortTTL)
-      
+
       // Fast-forward time beyond TTL
       vi.advanceTimersByTime(200)
-      
+
       const result = ApiCache.get<typeof testData>(queryKey)
       expect(result).toBeNull()
 
       vi.useRealTimers()
     })
-
   })
 
   describe('getOffline', () => {
@@ -72,12 +71,12 @@ describe('🧱 ApiCache', () => {
       const shortTTL = 100
 
       vi.useFakeTimers()
-      
+
       ApiCache.set(queryKey, testData, shortTTL)
       vi.advanceTimersByTime(200) // Expire the cache
-      
+
       const result = ApiCache.getOffline<typeof testData>(queryKey)
-      
+
       expect(result).not.toBeNull()
       expect(result?.data).toEqual(testData)
       expect(result?.metadata.isOffline).toBe(true)
@@ -90,7 +89,6 @@ describe('🧱 ApiCache', () => {
       const result = ApiCache.getOffline('no-data')
       expect(result).toBeNull()
     })
-
   })
 
   describe('remove', () => {
@@ -104,7 +102,6 @@ describe('🧱 ApiCache', () => {
       ApiCache.remove(queryKey)
       expect(ApiCache.get(queryKey)).toBeNull()
     })
-
   })
 
   describe('clear', () => {
@@ -132,7 +129,6 @@ describe('🧱 ApiCache', () => {
       expect(localStorage.getItem('user-setting')).toBe('value')
       expect(ApiCache.get('cache-key')).toBeNull()
     })
-
   })
 
   describe('getStats', () => {
@@ -158,7 +154,6 @@ describe('🧱 ApiCache', () => {
       expect(stats.oldestEntry).toBeNull()
       expect(stats.newestEntry).toBeNull()
     })
-
   })
 
   describe('cache size management', () => {

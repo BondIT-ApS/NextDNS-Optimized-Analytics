@@ -43,11 +43,14 @@ class LocalStorageMock implements Storage {
   constructor() {
     // Create proxy to make keys enumerable
     return new Proxy(this, {
-      ownKeys: (target) => {
+      ownKeys: target => {
         return Object.keys((target as LocalStorageMock).store)
       },
       getOwnPropertyDescriptor: (target, prop) => {
-        if (typeof prop === 'string' && (target as LocalStorageMock).store[prop]) {
+        if (
+          typeof prop === 'string' &&
+          (target as LocalStorageMock).store[prop]
+        ) {
           return {
             enumerable: true,
             configurable: true,
