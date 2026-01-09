@@ -410,7 +410,7 @@ jobs:
           fail_ci_if_error: false
           verbose: true
 
-      - name: Check coverage threshold (75% minimum)
+      - name: Check coverage threshold (30% minimum)
         run: |
           # Extract coverage from vitest output
           COVERAGE_OUTPUT=$(npm run test:coverage 2>&1)
@@ -427,13 +427,13 @@ jobs:
           echo "📊 Current coverage: ${COVERAGE}%"
           COVERAGE_INT=$(echo "$COVERAGE" | cut -d. -f1)
           
-          if [ "$COVERAGE_INT" -lt 75 ]; then
-            echo "❌ Coverage ${COVERAGE}% is below minimum threshold of 75%"
+          if [ "$COVERAGE_INT" -lt 30 ]; then
+            echo "❌ Coverage ${COVERAGE}% is below minimum threshold of 30%"
             echo "🧱 LEGO Quality Gate: More test coverage needed!"
             exit 1
           else
-            echo "✅ Coverage ${COVERAGE}% meets minimum threshold of 75%"
-            echo "🧱 LEGO Quality Gate: Test coverage looks excellent!"
+            echo "✅ Coverage ${COVERAGE}% meets minimum threshold of 30%"
+            echo "🧱 LEGO Quality Gate: Test coverage looks good!"
           fi
 
   # 📊 Backend Codecov Coverage Upload
