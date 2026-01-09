@@ -186,6 +186,7 @@ ehthumbs_vista.db
 *~
 .project
 .pydevproject
+.hintrc
 
 # JetBrains IDEs
 .idea/
