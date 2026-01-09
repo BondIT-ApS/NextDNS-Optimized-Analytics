@@ -1,0 +1,55 @@
+# file: codecov.yml
+# 🧱 LEGO Codecov Configuration for NextDNS Optimized Analytics
+
+codecov:
+  require_ci_to_pass: yes
+  notify:
+    wait_for_ci: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        target: 70%
+        threshold: 5%
+        if_no_uploads: error
+        if_not_found: success
+        if_ci_failed: error
+
+    patch:
+      default:
+        target: 75%
+        threshold: 10%
+
+  flags:
+    frontend:
+      paths:
+        - frontend/
+      target: 75%
+      
+    backend:
+      paths:
+        - backend/
+      target: 70%
+
+comment:
+  layout: "reach,diff,flags,tree"
+  behavior: default
+  require_changes: false
+  require_base: no
+  require_head: yes
+
+ignore:
+  - "backend/tests/"
+  - "backend/alembic/"
+  - "frontend/src/test/"
+  - "frontend/src/**/*.test.ts"
+  - "frontend/src/**/*.test.tsx"
+  - "**/__pycache__/"
+  - "**/node_modules/"
+  - "frontend/dist/"
+  - "backend/venv/"
