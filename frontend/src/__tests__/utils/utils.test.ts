@@ -1,12 +1,18 @@
 // file: frontend/src/__tests__/utils/utils.test.ts
 /**
  * 🧱 Unit Tests for Utility Functions
- * 
+ *
  * Testing our LEGO helper tools - ensuring each utility works perfectly!
  */
 
 import { describe, it, expect } from 'vitest'
-import { cn, formatDate, formatBytes, formatNumber, truncate } from '@/lib/utils'
+import {
+  cn,
+  formatDate,
+  formatBytes,
+  formatNumber,
+  truncate,
+} from '@/lib/utils'
 
 describe('cn (className utility)', () => {
   it('should merge class names correctly', () => {
