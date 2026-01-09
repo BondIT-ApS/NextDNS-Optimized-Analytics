@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   Skeleton,
@@ -49,7 +49,7 @@ describe('LoadingSkeletons', () => {
     it('renders system info skeleton with backend and frontend sections', () => {
       const { container } = render(<SystemInfoSkeleton />)
       expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
-      
+
       // Should have 5 backend items and 6 frontend items
       const skeletonItems = container.querySelectorAll('.animate-pulse .h-4')
       expect(skeletonItems.length).toBeGreaterThan(0)
@@ -114,11 +114,11 @@ describe('LoadingSkeletons', () => {
     it('renders retry button when onRetry is provided', async () => {
       const handleRetry = vi.fn()
       const user = userEvent.setup()
-      
+
       render(<ErrorState onRetry={handleRetry} />)
       const retryButton = screen.getByRole('button', { name: /try again/i })
       expect(retryButton).toBeInTheDocument()
-      
+
       await user.click(retryButton)
       expect(handleRetry).toHaveBeenCalledTimes(1)
     })
@@ -126,12 +126,16 @@ describe('LoadingSkeletons', () => {
     it('does not render retry button when showRetryButton is false', () => {
       const handleRetry = vi.fn()
       render(<ErrorState onRetry={handleRetry} showRetryButton={false} />)
-      expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: /try again/i })
+      ).not.toBeInTheDocument()
     })
 
     it('does not render retry button when onRetry is not provided', () => {
       render(<ErrorState />)
-      expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: /try again/i })
+      ).not.toBeInTheDocument()
     })
   })
 
@@ -155,33 +159,19 @@ describe('LoadingSkeletons', () => {
   describe('RetryIndicator', () => {
     it('returns null when not retrying and retryCount is 0', () => {
       const { container } = render(
-        <RetryIndicator
-          isRetrying={false}
-          retryCount={0}
-          maxRetries={3}
-        />
+        <RetryIndicator isRetrying={false} retryCount={0} maxRetries={3} />
       )
       expect(container.firstChild).toBeNull()
     })
 
     it('shows retrying state', () => {
-      render(
-        <RetryIndicator
-          isRetrying={true}
-          retryCount={2}
-          maxRetries={5}
-        />
-      )
+      render(<RetryIndicator isRetrying={true} retryCount={2} maxRetries={5} />)
       expect(screen.getByText(/Retrying... \(2\/5\)/)).toBeInTheDocument()
     })
 
     it('shows retry count when not currently retrying', () => {
       render(
-        <RetryIndicator
-          isRetrying={false}
-          retryCount={3}
-          maxRetries={5}
-        />
+        <RetryIndicator isRetrying={false} retryCount={3} maxRetries={5} />
       )
       expect(screen.getByText(/Retried 3 times/)).toBeInTheDocument()
     })
@@ -210,9 +200,7 @@ describe('LoadingSkeletons', () => {
     })
 
     it('returns null when not offline', () => {
-      const { container } = render(
-        <OfflineBanner isOffline={false} />
-      )
+      const { container } = render(<OfflineBanner isOffline={false} />)
       expect(container.firstChild).toBeNull()
     })
 
@@ -230,7 +218,7 @@ describe('LoadingSkeletons', () => {
     it('renders with live age updates', () => {
       const lastUpdated = Date.now() - 5000 // 5 seconds ago
       render(<OfflineBanner isOffline={true} lastUpdated={lastUpdated} />)
-      
+
       // Should show initial age
       expect(screen.getByText(/\ds ago/)).toBeInTheDocument()
     })
@@ -248,20 +236,14 @@ describe('LoadingSkeletons', () => {
 
     it('returns null when loading', () => {
       const { container } = render(
-        <DataFreshnessIndicator
-          isFromCache={false}
-          isLoading={true}
-        />
+        <DataFreshnessIndicator isFromCache={false} isLoading={true} />
       )
       expect(container.firstChild).toBeNull()
     })
 
     it('returns null when not from cache and no lastUpdated', () => {
       const { container } = render(
-        <DataFreshnessIndicator
-          isFromCache={false}
-          isLoading={false}
-        />
+        <DataFreshnessIndicator isFromCache={false} isLoading={false} />
       )
       expect(container.firstChild).toBeNull()
     })
@@ -269,10 +251,7 @@ describe('LoadingSkeletons', () => {
     it('shows cached data age', () => {
       const lastUpdated = Date.now() - 30000 // 30 seconds ago
       render(
-        <DataFreshnessIndicator
-          isFromCache={true}
-          lastUpdated={lastUpdated}
-        />
+        <DataFreshnessIndicator isFromCache={true} lastUpdated={lastUpdated} />
       )
       expect(screen.getByText(/Cached 30s ago/)).toBeInTheDocument()
     })
@@ -280,10 +259,7 @@ describe('LoadingSkeletons', () => {
     it('shows updated data age', () => {
       const lastUpdated = Date.now() - 45000 // 45 seconds ago
       render(
-        <DataFreshnessIndicator
-          isFromCache={false}
-          lastUpdated={lastUpdated}
-        />
+        <DataFreshnessIndicator isFromCache={false} lastUpdated={lastUpdated} />
       )
       expect(screen.getByText(/Updated 45s ago/)).toBeInTheDocument()
     })
@@ -291,12 +267,9 @@ describe('LoadingSkeletons', () => {
     it('renders with live age updates', () => {
       const lastUpdated = Date.now() - 10000 // 10 seconds ago
       render(
-        <DataFreshnessIndicator
-          isFromCache={true}
-          lastUpdated={lastUpdated}
-        />
+        <DataFreshnessIndicator isFromCache={true} lastUpdated={lastUpdated} />
       )
-      
+
       // Should show cached age text
       expect(screen.getByText(/Cached \d+s ago/)).toBeInTheDocument()
     })
