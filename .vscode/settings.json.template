@@ -25,7 +25,8 @@
         "-v",
         "--tb=short",
         "--no-cov",
-        "-p", "no:warnings"
+        "-p", "no:warnings",
+        "--strict-markers"
     ],
     "python.testing.cwd": "${workspaceFolder}/backend",
     "python.testing.autoTestDiscoverOnSaveEnabled": true,
@@ -34,6 +35,10 @@
     // Force test refresh and discovery
     "python.testing.promptToConfigure": false,
     "python.testing.debugPort": 3000,
+    
+    // Enable pytest marker-based organization
+    "python.testing.pytestPath": "pytest",
+    "python.testing.pytestCollectOnlyArgs": ["--collect-only", "-q"],
 
     // Disable Python Test Explorer (Little Fox Team) if installed
     "pythonTestExplorer.testFramework": null,
