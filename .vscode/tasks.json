@@ -148,6 +148,34 @@
       }
     },
     {
+      "label": "🧪 Backend: Run Unit Tests Only",
+      "type": "shell",
+      "command": "cd backend && source venv/bin/activate && pytest -m unit -v",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      }
+    },
+    {
+      "label": "🧪 Backend: Run Integration Tests Only",
+      "type": "shell",
+      "command": "cd backend && source venv/bin/activate && pytest -m integration -v",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      }
+    },
+    {
       "label": "Backend: Format (Black)",
       "type": "shell",
       "command": "cd backend && source venv/bin/activate && black . --line-length=88 --exclude='(alembic|venv)'",

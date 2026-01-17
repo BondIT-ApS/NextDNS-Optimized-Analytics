@@ -63,10 +63,10 @@ This folder contains team-shared VSCode configuration for the NextDNS Optimized 
 - **🚀 Debug FastAPI Server** - Debug the backend server
 
 ### Available Tasks (Cmd+Shift+P → "Tasks: Run Task"):
-- Frontend: Lint, format, test, type-check
-- Backend: Test, lint, format, security scan
-- Docker: Build, run, health check
-- Quality: Full quality checks for both frontend and backend
+- **Frontend**: Lint, format, test, type-check
+- **Backend**: Test (all), unit tests only, integration tests only, lint, format, security scan
+- **Docker**: Build, run, health check
+- **Quality**: Full quality checks for both frontend and backend
 
 ## 🔄 Updating Configuration
 
