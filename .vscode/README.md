@@ -49,7 +49,7 @@ This folder contains team-shared VSCode configuration for the NextDNS Optimized 
 
 ### Full Stack:
 - ✅ Docker integration
-- ✅ Database (PostgreSQL) support
+- ✅ Database client (PostgreSQL, MySQL, SQLite, Redis, MongoDB, and more)
 - ✅ GitHub Actions workflow validation
 - ✅ Git workflow enhancements
 

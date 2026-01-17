@@ -22,7 +22,7 @@
     
     // ==================== DEVOPS & INFRASTRUCTURE ====================
     "ms-azuretools.vscode-docker",
-    "ms-ossdata.vscode-postgresql",
+    "cweijan.vscode-postgresql-client2",
     "redhat.vscode-yaml",
     "github.vscode-github-actions",
     
@@ -47,9 +47,6 @@
     
     // Enhanced Git workflow
     "github.vscode-pull-request-github",
-    
-    // Database management
-    "ckolkman.vscode-postgres",
     
     // REST API testing (for FastAPI development)
     "humao.rest-client",
