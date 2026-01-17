@@ -29,7 +29,7 @@
         "--strict-markers"
     ],
     "python.testing.cwd": "${workspaceFolder}/backend",
-    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "python.testing.autoTestDiscoverOnSaveEnabled": false,  // Manual refresh to avoid conflicts with Vitest
     "python.envFile": "${workspaceFolder}/backend/.env.test",
 
     // Force test refresh and discovery
@@ -40,8 +40,14 @@
     "python.testing.pytestPath": "pytest",
     "python.testing.pytestCollectOnlyArgs": ["--collect-only", "-q"],
 
-    // Disable Python Test Explorer (Little Fox Team) if installed
+    // Disable conflicting test explorers
     "pythonTestExplorer.testFramework": null,
+    
+    // ==================== DUAL FRAMEWORK TEST CONFIGURATION ====================
+    // Organize tests by framework in Test Explorer
+    "testExplorer.addToEditorContextMenu": true,
+    "testExplorer.mergeSuites": false,  // Keep pytest and vitest separate
+    "testExplorer.showCollapseButton": true,
 
     // ==================== FORMAT ON SAVE ====================
     "editor.formatOnSave": true,
