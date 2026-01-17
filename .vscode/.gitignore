@@ -3,9 +3,10 @@
 
 # Ignore personal settings that may contain sensitive info
 settings.json
+launch.json
 
 # But share these useful project files
 !tasks.json
-!launch.json
 !extensions.json
-!mcp.json
+!*.json.template
+!README.md
