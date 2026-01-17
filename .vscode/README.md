@@ -68,6 +68,18 @@ This folder contains team-shared VSCode configuration for the NextDNS Optimized 
 - **Docker**: Build, run, health check
 - **Quality**: Full quality checks for both frontend and backend
 
+### Test Organization:
+**Frontend (Vitest)**: Tests are automatically organized by Vitest Explorer with real-time watching
+
+**Backend (pytest)**: Tests appear in VSCode's Test Explorer organized by file structure:
+- 📁 `tests/unit/` - Unit tests (37 tests) with `@pytest.mark.unit`
+- 📁 `tests/integration/` - Integration tests (18 tests) with `@pytest.mark.integration`
+
+**Run by test type:**
+- Unit tests only: `🧪 Backend: Run Unit Tests Only` task
+- Integration tests only: `🧪 Backend: Run Integration Tests Only` task
+- Or use terminal: `pytest -m unit` or `pytest -m integration`
+
 ## 🔄 Updating Configuration
 
 ### For Template Changes:
