@@ -1,0 +1,190 @@
+{
+    // ==================== PYTHON/BACKEND SETTINGS ====================
+    "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/bin/python",
+    "python.formatting.provider": "black",
+    "python.formatting.blackPath": "black",
+    "python.formatting.blackArgs": ["--line-length=88", "--exclude=alembic"],
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.pylintPath": "pylint",
+    "python.linting.pylintArgs": ["--rcfile=.pylintrc"],
+
+    // Python path discovery
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.extraPaths": ["${workspaceFolder}/backend"],
+    "python.analysis.include": ["${workspaceFolder}/backend/**"],
+    "python.analysis.exclude": ["${workspaceFolder}/backend/venv", "${workspaceFolder}/backend/__pycache__", "${workspaceFolder}/backend/alembic"],
+
+    // ==================== PYTHON TESTING CONFIGURATION ====================
+    // Use ONLY the native VSCode Python testing (disable any third-party test explorers)
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.nosetestsEnabled": false,
+    "python.testing.pytestArgs": [
+        "tests",
+        "-v",
+        "--tb=short",
+        "--no-cov",
+        "-p", "no:warnings"
+    ],
+    "python.testing.cwd": "${workspaceFolder}/backend",
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    "python.envFile": "${workspaceFolder}/backend/.env.test",
+
+    // Force test refresh and discovery
+    "python.testing.promptToConfigure": false,
+    "python.testing.debugPort": 3000,
+
+    // Disable Python Test Explorer (Little Fox Team) if installed
+    "pythonTestExplorer.testFramework": null,
+
+    // ==================== FORMAT ON SAVE ====================
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
+
+    // ==================== LANGUAGE-SPECIFIC FORMATTING ====================
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+        },
+        "editor.tabSize": 4
+    },
+
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+
+    "[javascriptreact]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+
+    "[jsonc]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+
+    "[css]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+
+    "[scss]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+
+    "[html]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+
+    "[markdown]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
+
+    "[yaml]": {
+        "editor.defaultFormatter": "redhat.vscode-yaml",
+        "editor.formatOnSave": true
+    },
+
+    "[yml]": {
+        "editor.defaultFormatter": "redhat.vscode-yaml",
+        "editor.formatOnSave": true
+    },
+
+    // ==================== FILE ASSOCIATIONS ====================
+    "files.associations": {
+        "*.env.template": "dotenv",
+        "*.yml.template": "yaml",
+        "Dockerfile.*": "dockerfile",
+        ".github/workflows/*.yml": "github-actions-workflow",
+        ".github/workflows/*.yaml": "github-actions-workflow"
+    },
+
+    // ==================== YAML/GITHUB ACTIONS ====================
+    "yaml.validate": true,
+    "yaml.hover": true,
+    "yaml.completion": true,
+    "yaml.schemas": {
+        "https://json.schemastore.org/github-workflow.json": [".github/workflows/*.yml", ".github/workflows/*.yaml"]
+    },
+
+    // ==================== FILE EXCLUSIONS ====================
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/build": true,
+        "**/.pytest_cache": true,
+        "**/.coverage": true,
+        "**/coverage": true,
+        "**/.DS_Store": true
+    },
+
+    "search.exclude": {
+        "**/__pycache__": true,
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/build": true,
+        "**/*.pyc": true,
+        "**/coverage": true,
+        "**/.coverage": true
+    },
+
+    // ==================== GIT & TERMINAL ====================
+    "git.ignoreLimitWarning": true,
+    "terminal.integrated.cwd": "${workspaceFolder}",
+
+    // ==================== DOCKER ====================
+    "docker.showStartPage": false,
+
+    // ==================== EMMET FOR REACT ====================
+    "emmet.includeLanguages": {
+        "javascript": "javascriptreact",
+        "typescript": "typescriptreact"
+    },
+
+    // ==================== ESLINT & PRETTIER ====================
+    "eslint.workingDirectories": ["frontend"],
+    "prettier.configPath": "./frontend/.prettierrc",
+    "prettier.ignorePath": "./frontend/.prettierignore",
+
+    // ==================== EDITOR SETTINGS ====================
+    "editor.rulers": [88, 120],
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+
+    // Language-specific tab settings
+    "[javascript][typescript][javascriptreact][typescriptreact][json][jsonc][css][scss][html][yaml][yml]": {
+        "editor.tabSize": 2
+    },
+
+    "[python]": {
+        "editor.tabSize": 4
+    },
+
+    // ==================== AUTO-SAVE ====================
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000
+}
