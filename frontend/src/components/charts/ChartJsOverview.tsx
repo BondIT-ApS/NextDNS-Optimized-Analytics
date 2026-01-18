@@ -1,3 +1,4 @@
+import { useState, useEffect, useMemo } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -21,6 +22,8 @@ import {
   PieChart as PieChartIcon,
   BarChart,
 } from 'lucide-react'
+import { ProfileFilter } from '../ProfileFilter'
+import { fetchWithAuth } from '@/lib/api'
 
 // Register Chart.js components
 ChartJS.register(
@@ -39,14 +42,16 @@ ChartJS.register(
 interface TimeSeriesDataPoint {
   timestamp: string
   total_queries: number
-  blocked_queries: number
-  allowed_queries: number
+  blocked_queries?: number // Legacy field
+  allowed_queries?: number // Legacy field
+  profiles?: Record<string, number> // New field for profile grouping
 }
 
 interface TimeSeriesData {
   data: TimeSeriesDataPoint[]
   granularity: string
   total_points: number
+  available_profiles?: string[] // List of available profiles
 }
 
 interface StatsOverview {
@@ -76,6 +81,76 @@ const LEGO_COLORS = {
 }
 
 export function ChartJsOverview({ data, overview }: ChartJsOverviewProps) {
+  // Profile filtering state
+  const [selectedProfiles, setSelectedProfiles] = useState<string[]>([])
+  const [profileColors, setProfileColors] = useState<Record<string, string>>({})
+  const [profileNames, setProfileNames] = useState<Record<string, string>>({})
+
+  // LEGO color array for profile assignment
+  const LEGO_COLOR_ARRAY = [
+    LEGO_COLORS.blue,
+    LEGO_COLORS.red,
+    LEGO_COLORS.green,
+    LEGO_COLORS.yellow,
+    LEGO_COLORS.orange,
+    LEGO_COLORS.purple,
+    LEGO_COLORS.gray,
+  ]
+
+  // Generate color for profile (using golden angle for 8+ profiles)
+  const generateColor = (index: number): string => {
+    if (index < LEGO_COLOR_ARRAY.length) {
+      return LEGO_COLOR_ARRAY[index]
+    }
+    // Generate colors programmatically for 8+ profiles
+    const hue = (index * 137.5) % 360 // Golden angle for good distribution
+    return `hsl(${hue}, 70%, 50%)`
+  }
+
+  // Fetch profile info to get names
+  useEffect(() => {
+    const fetchProfileNames = async () => {
+      try {
+        const response = await fetchWithAuth('/api/profiles/info')
+        if (response.ok) {
+          const profilesInfoData = await response.json()
+          const names: Record<string, string> = {}
+
+          // Map profile IDs to names
+          Object.keys(profilesInfoData.profiles || {}).forEach(profileId => {
+            const profileInfo = profilesInfoData.profiles[profileId]
+            names[profileId] = profileInfo?.name || profileId
+          })
+
+          setProfileNames(names)
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile names:', error)
+      }
+    }
+
+    fetchProfileNames()
+  }, [])
+
+  // Initialize profile colors and selections when data loads
+  useEffect(() => {
+    if (data?.available_profiles && data.available_profiles.length > 0) {
+      const colors: Record<string, string> = {}
+      data.available_profiles.forEach((profileId, index) => {
+        colors[profileId] = generateColor(index)
+      })
+      setProfileColors(colors)
+
+      // Default: select all profiles
+      setSelectedProfiles(data.available_profiles)
+    }
+  }, [data?.available_profiles])
+
+  // Helper function to get profile display name
+  const getProfileName = (profileId: string): string => {
+    return profileNames[profileId] || profileId
+  }
+
   // Handle null data case
   if (!data || !data.data || data.data.length === 0) {
     return (
@@ -96,6 +171,10 @@ export function ChartJsOverview({ data, overview }: ChartJsOverviewProps) {
       </div>
     )
   }
+
+  // Determine if we're in profile mode or legacy mode
+  const isProfileMode =
+    data.available_profiles && data.available_profiles.length > 0
 
   // Process time series data for charts
   const timeSeriesData = data.data
@@ -223,29 +302,61 @@ export function ChartJsOverview({ data, overview }: ChartJsOverviewProps) {
   }
 
   // Bar chart data for hourly breakdown
-  const barChartData = {
+  const barChartData = useMemo(() => {
+    if (isProfileMode) {
+      // Profile-based datasets
+      const datasets = selectedProfiles.map(profileId => {
+        const color = profileColors[profileId] || LEGO_COLORS.gray
+
+        return {
+          label: getProfileName(profileId),
+          data: timeSeriesData.map(point => point.profiles?.[profileId] || 0),
+          backgroundColor: `${color}80`, // 50% opacity
+          borderColor: color,
+          borderWidth: 2,
+          borderRadius: 4,
+          borderSkipped: false,
+        }
+      })
+
+      return {
+        labels,
+        datasets,
+      }
+    } else {
+      // Legacy: blocked/allowed datasets
+      return {
+        labels,
+        datasets: [
+          {
+            label: 'Blocked',
+            data: timeSeriesData.map(point => point.blocked_queries || 0),
+            backgroundColor: `${LEGO_COLORS.red}80`,
+            borderColor: LEGO_COLORS.red,
+            borderWidth: 2,
+            borderRadius: 4,
+            borderSkipped: false,
+          },
+          {
+            label: 'Allowed',
+            data: timeSeriesData.map(point => point.allowed_queries || 0),
+            backgroundColor: `${LEGO_COLORS.green}80`,
+            borderColor: LEGO_COLORS.green,
+            borderWidth: 2,
+            borderRadius: 4,
+            borderSkipped: false,
+          },
+        ],
+      }
+    }
+  }, [
+    isProfileMode,
+    selectedProfiles,
+    profileColors,
+    profileNames,
+    timeSeriesData,
     labels,
-    datasets: [
-      {
-        label: 'Blocked',
-        data: timeSeriesData.map(point => point.blocked_queries),
-        backgroundColor: `${LEGO_COLORS.red}80`,
-        borderColor: LEGO_COLORS.red,
-        borderWidth: 2,
-        borderRadius: 4,
-        borderSkipped: false,
-      },
-      {
-        label: 'Allowed',
-        data: timeSeriesData.map(point => point.allowed_queries),
-        backgroundColor: `${LEGO_COLORS.green}80`,
-        borderColor: LEGO_COLORS.green,
-        borderWidth: 2,
-        borderRadius: 4,
-        borderSkipped: false,
-      },
-    ],
-  }
+  ])
 
   // Area chart data with cumulative values (using Line with fill)
   const calculateCumulativeData = (data: number[]) => {
@@ -278,7 +389,7 @@ export function ChartJsOverview({ data, overview }: ChartJsOverviewProps) {
       {
         label: 'Cumulative Blocked',
         data: calculateCumulativeData(
-          timeSeriesData.map(point => point.blocked_queries)
+          timeSeriesData.map(point => point.blocked_queries || 0)
         ),
         borderColor: LEGO_COLORS.red,
         backgroundColor: `${LEGO_COLORS.red}30`,
@@ -292,7 +403,7 @@ export function ChartJsOverview({ data, overview }: ChartJsOverviewProps) {
       {
         label: 'Cumulative Allowed',
         data: calculateCumulativeData(
-          timeSeriesData.map(point => point.allowed_queries)
+          timeSeriesData.map(point => point.allowed_queries || 0)
         ),
         borderColor: LEGO_COLORS.green,
         backgroundColor: `${LEGO_COLORS.green}30`,
@@ -469,12 +580,34 @@ export function ChartJsOverview({ data, overview }: ChartJsOverviewProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart className="h-5 w-5 text-green-600" />
-            Query Breakdown by Time
+            {isProfileMode
+              ? 'Query Breakdown by Time (by Profile)'
+              : 'Query Breakdown by Time'}
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Profile Filter Component */}
+          {isProfileMode && (
+            <div className="mb-4">
+              <ProfileFilter
+                availableProfiles={data.available_profiles || []}
+                selectedProfiles={selectedProfiles}
+                onProfileSelectionChange={setSelectedProfiles}
+                profileColors={profileColors}
+                profileNames={profileNames}
+              />
+            </div>
+          )}
+
+          {/* Chart */}
           <div className="h-64">
-            <Bar data={barChartData} options={barOptions} />
+            {isProfileMode && selectedProfiles.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-muted-foreground">
+                <p>Select at least one profile to view data</p>
+              </div>
+            ) : (
+              <Bar data={barChartData} options={barOptions} />
+            )}
           </div>
         </CardContent>
       </Card>

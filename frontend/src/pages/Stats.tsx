@@ -153,6 +153,7 @@ export default function Stats() {
       const params = new URLSearchParams()
       if (selectedProfile !== 'all') params.set('profile', selectedProfile)
       params.set('time_range', timeRange)
+      params.set('group_by', 'profile') // Use profile grouping for chart
 
       console.log('Fetching stats data with params:', params.toString())
 
