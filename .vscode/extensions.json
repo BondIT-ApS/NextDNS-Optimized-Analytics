@@ -1,49 +1,70 @@
 {
   "recommendations": [
-    // NextDNS Analytics - React 19 + TypeScript Stack
+    // ==================== CORE DEVELOPMENT STACK ====================
+    // Python Backend (FastAPI + pytest)
+    "ms-python.python",
+    "ms-python.black-formatter",
+    "ms-python.flake8",
+    "ms-python.pylint",
+    
+    // React 19 + TypeScript Frontend
     "ms-vscode.vscode-typescript-next",
-    "bradlc.vscode-tailwindcss",
-    "formulahendry.auto-rename-tag",
-    "ms-vscode.vscode-json",
-
-    // React 19 + Modern tooling
     "dsznajder.es7-react-js-snippets",
     "ms-vscode.vscode-eslint",
     "esbenp.prettier-vscode",
-
-    // Testing (Vitest)
+    
+    // Modern Build Tools
+    "antfu.vite",
+    "bradlc.vscode-tailwindcss",
+    
+    // ==================== TESTING & DEBUGGING ====================
     "vitest.explorer",
-
-    // Docker for NextDNS stack
+    
+    // ==================== DEVOPS & INFRASTRUCTURE ====================
     "ms-azuretools.vscode-docker",
-
-    // Git & Version Control
-    "eamodio.gitlens",
-    "mhutchie.git-graph",
-
-    // Code Quality & Security (DNS analytics focus)
-    "ms-python.python",
-    "ms-python.flake8",
-    "ms-python.black-formatter",
-
-    // Database (PostgreSQL)
-    "ms-ossdata.vscode-postgresql",
-
-    // Utilities for DNS Analytics
-    "streetsidesoftware.code-spell-checker",
-    "yzhang.markdown-all-in-one",
+    "cweijan.vscode-postgresql-client2",
     "redhat.vscode-yaml",
     "github.vscode-github-actions",
-
-    // Frontend Development
+    
+    // ==================== VERSION CONTROL ====================
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+    
+    // ==================== PRODUCTIVITY & CODE QUALITY ====================
+    "streetsidesoftware.code-spell-checker",
     "christian-kohler.path-intellisense",
-    "zignd.html-css-class-completion",
+    "formulahendry.auto-rename-tag",
     "formulahendry.auto-close-tag",
-
-    // Vite + Modern React
-    "antfu.vite",
-
-    // Tailwind CSS + shadcn/ui
-    "bradlc.vscode-tailwindcss"
+    "zignd.html-css-class-completion",
+    
+    // ==================== FILE FORMATS & DOCUMENTATION ====================
+    "ms-vscode.vscode-json",
+    "yzhang.markdown-all-in-one",
+    
+    // ==================== ADDITIONAL RECOMMENDED ====================
+    // Security scanning for Python dependencies
+    "ms-python.security-scanner",
+    
+    // Enhanced Git workflow
+    "github.vscode-pull-request-github",
+    
+    // REST API testing (for FastAPI development)
+    "humao.rest-client",
+    
+    // Environment file support
+    "mikestead.dotenv",
+    
+    // JSON schema validation (helpful for API development)
+    "redhat.vscode-json"
+  ],
+  
+  "unwantedRecommendations": [
+    // Disable conflicting Python test explorers
+    "littlefoxteam.vscode-python-test-adapter",
+    "kondratiev.py-test-explorer",
+    
+    // Disable conflicting formatters
+    "ms-python.autopep8",
+    "ms-python.isort"
   ]
 }
