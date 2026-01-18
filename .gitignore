@@ -263,8 +263,11 @@ pids
 *.crt
 secrets/
 
-# WARP Agent configuration (contains project-specific rules)
+# AI Agent configuration (could contain project-specific credentials)
 WARP.md
+CLAUDE.md
+.claude/
+CURSOR.md
 
 # NextDNS specific
 *.nextdns

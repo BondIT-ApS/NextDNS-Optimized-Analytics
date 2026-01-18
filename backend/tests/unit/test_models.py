@@ -9,6 +9,9 @@ from datetime import datetime, timezone
 import pytest
 from models import extract_tld, DNSLog, FetchStatus
 
+# Mark all tests in this module as unit tests
+pytestmark = pytest.mark.unit
+
 
 class TestExtractTLD:
     """Test TLD extraction utility function."""

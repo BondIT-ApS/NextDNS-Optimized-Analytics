@@ -9,6 +9,9 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 
+# Mark all tests in this module as unit tests
+pytestmark = pytest.mark.unit
+
 
 class TestSchedulerConfiguration:
     """Test scheduler configuration and initialization."""
@@ -66,8 +69,11 @@ class TestSchedulerConfiguration:
         assert "test2" in profile_ids
         assert "test3" in profile_ids
 
+    @patch.dict(os.environ, {"FETCH_INTERVAL": ""}, clear=False)
     def test_fetch_interval_default(self):
         """Test that fetch interval defaults to 60 minutes."""
+        # Remove FETCH_INTERVAL to test default
+        os.environ.pop("FETCH_INTERVAL", None)
         interval = int(os.getenv("FETCH_INTERVAL", "60"))
         assert interval == 60
 
@@ -77,8 +83,11 @@ class TestSchedulerConfiguration:
         interval = int(os.getenv("FETCH_INTERVAL", "60"))
         assert interval == 30
 
+    @patch.dict(os.environ, {"FETCH_LIMIT": ""}, clear=False)
     def test_fetch_limit_default(self):
         """Test that fetch limit defaults to 100."""
+        # Remove FETCH_LIMIT to test default
+        os.environ.pop("FETCH_LIMIT", None)
         limit = int(os.getenv("FETCH_LIMIT", "100"))
         assert limit == 100
 
