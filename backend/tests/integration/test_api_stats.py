@@ -19,6 +19,7 @@ def test_get_stats_overview(test_client, populated_test_db, monkeypatch):
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/stats/overview")
@@ -34,13 +35,17 @@ def test_get_stats_overview(test_client, populated_test_db, monkeypatch):
     assert isinstance(data["blocked_queries"], int)
     assert isinstance(data["allowed_queries"], int)
 
+
 @pytest.mark.integration
-def test_get_stats_overview_with_time_range(test_client, populated_test_db, monkeypatch):
+def test_get_stats_overview_with_time_range(
+    test_client, populated_test_db, monkeypatch
+):
     """Test GET /stats/overview with time range filter."""
     monkeypatch.setenv("AUTH_ENABLED", "false")
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/stats/overview?time_range=24h")
@@ -57,6 +62,7 @@ def test_get_stats_overview_with_profile(test_client, populated_test_db, monkeyp
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/stats/overview?profile=test-profile")
@@ -73,6 +79,7 @@ def test_get_stats_timeseries(test_client, populated_test_db, monkeypatch):
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/stats/timeseries")
@@ -86,12 +93,15 @@ def test_get_stats_timeseries(test_client, populated_test_db, monkeypatch):
 
 
 @pytest.mark.integration
-def test_get_stats_timeseries_with_time_range(test_client, populated_test_db, monkeypatch):
+def test_get_stats_timeseries_with_time_range(
+    test_client, populated_test_db, monkeypatch
+):
     """Test GET /stats/timeseries with different time ranges."""
     monkeypatch.setenv("AUTH_ENABLED", "false")
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/stats/timeseries?time_range=24h")
@@ -109,6 +119,7 @@ def test_get_stats_domains(test_client, populated_test_db, monkeypatch):
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/stats/domains")
@@ -128,6 +139,7 @@ def test_get_stats_domains_with_limit(test_client, populated_test_db, monkeypatc
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/stats/domains?limit=5")
@@ -145,6 +157,7 @@ def test_get_stats_tlds(test_client, populated_test_db, monkeypatch):
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/stats/tlds")
@@ -164,6 +177,7 @@ def test_get_devices_list(test_client, populated_test_db, monkeypatch):
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/devices")
@@ -181,6 +195,7 @@ def test_get_stats_devices(test_client, populated_test_db, monkeypatch):
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/stats/devices")
@@ -198,6 +213,7 @@ def test_get_stats_endpoint(test_client, populated_test_db, monkeypatch):
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/stats")

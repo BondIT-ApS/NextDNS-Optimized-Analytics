@@ -57,13 +57,12 @@ def test_login_endpoint_structure(test_client: TestClient):
     """Test POST /auth/login endpoint structure and response format."""
     # Test that the endpoint exists and returns proper error format
     response = test_client.post(
-        "/auth/login",
-        json={"username": "testuser", "password": "testpass"}
+        "/auth/login", json={"username": "testuser", "password": "testpass"}
     )
 
     # Should return either 400 (auth disabled) or 401 (invalid credentials)
     assert response.status_code in [
         status.HTTP_400_BAD_REQUEST,
-        status.HTTP_401_UNAUTHORIZED
+        status.HTTP_401_UNAUTHORIZED,
     ]
     assert "detail" in response.json()
