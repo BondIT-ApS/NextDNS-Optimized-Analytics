@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/BondIT-ApS/NextDNS-Optimized-Analytics/tree/main/docs
+    about: Check our comprehensive documentation before creating an issue
+  - name: 💬 Discussions
+    url: https://github.com/BondIT-ApS/NextDNS-Optimized-Analytics/discussions
+    about: Ask questions and discuss ideas with the community
