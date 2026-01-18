@@ -1,12 +1,20 @@
 # NextDNS Optimized Analytics - Portainer Stack Template
-# 
+#
 # This is a template file for Portainer stack deployment.
 # Copy this file to portainer-stack.yml and replace the placeholder values:
 #
 # 1. YOUR_POSTGRES_PASSWORD_HERE - Set a secure password for PostgreSQL
 # 2. YOUR_NEXTDNS_API_KEY_HERE - Your NextDNS API key from dashboard
 # 3. profile1,profile2,profile3 - Replace with your actual NextDNS profile IDs
-# 4. YOUR_LOCAL_API_KEY_HERE - Generate a secure key for local API access
+# 4. YOUR_LOCAL_API_KEY_HERE - Generate a secure key: openssl rand -hex 32
+# 5. YOUR_AUTH_SECRET_KEY_HERE - Generate a secure key: openssl rand -hex 32
+# 6. YOUR_DOMAIN_HERE - Replace with your actual domain (e.g., https://yourdomain.com)
+#
+# SECURITY REQUIREMENTS (PR #260):
+# - Never use default secrets in production
+# - Generate unique keys for each environment
+# - Configure ALLOWED_ORIGINS with your actual domain
+# - Enable AUTH_ENABLED=true for production
 #
 # IMPORTANT: Never commit the actual portainer-stack.yml file to version control!
 # Only this template should be tracked in git.
@@ -56,7 +64,23 @@ services:
       
       # Local API Authentication
       LOCAL_API_KEY: YOUR_LOCAL_API_KEY_HERE
-      
+
+      # Security Configuration (REQUIRED after PR #260)
+      # JWT Secret Key - CRITICAL: Generate with: openssl rand -hex 32
+      AUTH_SECRET_KEY: YOUR_AUTH_SECRET_KEY_HERE
+
+      # CORS Allowed Origins - CRITICAL: Set to your actual domain(s)
+      # Development: ALLOWED_ORIGINS=http://localhost:5002,http://localhost:5173
+      # Production: ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+      ALLOWED_ORIGINS: YOUR_DOMAIN_HERE
+
+      # Web Interface Authentication (Optional but recommended for production)
+      # Set to true to require login for web interface
+      AUTH_ENABLED: false
+      AUTH_USERNAME: admin
+      # AUTH_PASSWORD: YOUR_SECURE_PASSWORD_HERE  # Uncomment if AUTH_ENABLED=true
+      AUTH_SESSION_TIMEOUT: 60
+
       # Application Configuration
       LOG_LEVEL: INFO
       FETCH_INTERVAL: 60
@@ -102,3 +126,96 @@ volumes:
 networks:
   nextdns-network:
     driver: bridge
+
+# ==============================================================================
+# SECURITY SETUP GUIDE (PR #260 - Critical Security Fixes)
+# ==============================================================================
+#
+# Before deploying, generate secure secrets and configure CORS:
+#
+# 1. Generate LOCAL_API_KEY (backend API authentication):
+#    openssl rand -hex 32
+#    Replace: YOUR_LOCAL_API_KEY_HERE
+#
+# 2. Generate AUTH_SECRET_KEY (JWT token signing):
+#    openssl rand -hex 32
+#    Replace: YOUR_AUTH_SECRET_KEY_HERE
+#
+# 3. Configure ALLOWED_ORIGINS (CORS protection):
+#    Development: http://localhost:5003
+#    Production: https://yourdomain.com,https://www.yourdomain.com
+#    Replace: YOUR_DOMAIN_HERE
+#
+# 4. Set PostgreSQL password:
+#    openssl rand -base64 16
+#    Replace: YOUR_POSTGRES_PASSWORD_HERE
+#
+# 5. Optional - Enable authentication (recommended for production):
+#    Set AUTH_ENABLED: true
+#    Uncomment AUTH_PASSWORD and set a secure password
+#
+# ==============================================================================
+# DEPLOYMENT CHECKLIST
+# ==============================================================================
+#
+# [ ] Generated unique LOCAL_API_KEY (not from template)
+# [ ] Generated unique AUTH_SECRET_KEY (not from template)
+# [ ] Configured ALLOWED_ORIGINS with actual domain
+# [ ] Set secure POSTGRES_PASSWORD
+# [ ] Added NextDNS API_KEY and PROFILE_IDS
+# [ ] Reviewed port mappings (5001=db, 5002=backend, 5003=frontend)
+# [ ] Saved secrets to password manager
+# [ ] Never committed actual portainer-stack.yml to git
+#
+# ==============================================================================
+# QUICK START EXAMPLE
+# ==============================================================================
+#
+# # Generate all secrets at once
+# echo "LOCAL_API_KEY=$(openssl rand -hex 32)"
+# echo "AUTH_SECRET_KEY=$(openssl rand -hex 32)"
+# echo "POSTGRES_PASSWORD=$(openssl rand -base64 16)"
+#
+# # Copy template and edit
+# cp portainer-stack.yml.template portainer-stack.yml
+# nano portainer-stack.yml  # Replace all YOUR_*_HERE placeholders
+#
+# # Deploy in Portainer
+# 1. Go to Portainer → Stacks → Add Stack
+# 2. Name: nextdns-analytics
+# 3. Paste edited YAML content
+# 4. Deploy
+#
+# ==============================================================================
+# VERIFICATION AFTER DEPLOYMENT
+# ==============================================================================
+#
+# 1. Check backend health:
+#    curl http://YOUR_SERVER:5002/health
+#    Expected: {"status":"healthy","healthy":true}
+#
+# 2. Verify CORS configuration:
+#    Check backend logs for: "🔒 CORS configured for origins: ..."
+#
+# 3. Verify frontend has NO API key exposed:
+#    Visit: http://YOUR_SERVER:5003
+#    Open DevTools → Sources → config.js
+#    Should NOT contain LOCAL_API_KEY
+#
+# 4. Test API authentication:
+#    curl -H "X-API-Key: YOUR_LOCAL_API_KEY_HERE" \
+#         http://YOUR_SERVER:5002/health/detailed
+#
+# ==============================================================================
+# SECURITY REMINDERS
+# ==============================================================================
+#
+# ⚠️  CRITICAL:
+# - Never use wildcard (*) in ALLOWED_ORIGINS
+# - Never expose LOCAL_API_KEY in frontend
+# - Never commit secrets to version control
+# - Always use HTTPS in production for ALLOWED_ORIGINS
+# - Rotate secrets every 90 days
+# - Enable AUTH_ENABLED=true for production
+#
+# ==============================================================================
