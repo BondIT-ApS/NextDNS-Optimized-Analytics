@@ -9,15 +9,6 @@
 # 4. YOUR_LOCAL_API_KEY_HERE - Generate a secure key: openssl rand -hex 32
 # 5. YOUR_AUTH_SECRET_KEY_HERE - Generate a secure key: openssl rand -hex 32
 # 6. YOUR_DOMAIN_HERE - Replace with your actual domain (e.g., https://yourdomain.com)
-#
-# SECURITY REQUIREMENTS (PR #260):
-# - Never use default secrets in production
-# - Generate unique keys for each environment
-# - Configure ALLOWED_ORIGINS with your actual domain
-# - Enable AUTH_ENABLED=true for production
-#
-# IMPORTANT: Never commit the actual portainer-stack.yml file to version control!
-# Only this template should be tracked in git.
 
 services:
   # PostgreSQL Database
