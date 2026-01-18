@@ -4,8 +4,9 @@
 cat > /usr/share/nginx/html/config.js << EOF
 window.ENV = {
   API_BASE_URL: "${API_BASE_URL:-/api}",
-  LOCAL_API_KEY: "${LOCAL_API_KEY:-}",
   ENVIRONMENT: "${NODE_ENV:-production}"
+  // SECURITY: API keys must NOT be exposed to frontend
+  // Frontend uses JWT tokens for authentication
 };
 EOF
 

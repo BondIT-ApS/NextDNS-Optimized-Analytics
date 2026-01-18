@@ -24,11 +24,21 @@ security = HTTPBearer(auto_error=False)
 AUTH_ENABLED = os.getenv("AUTH_ENABLED", "false").lower() == "true"
 AUTH_USERNAME = os.getenv("AUTH_USERNAME", "admin")
 AUTH_PASSWORD = os.getenv("AUTH_PASSWORD", "")
-AUTH_SECRET_KEY = os.getenv(
-    "AUTH_SECRET_KEY", "default-secret-key-change-in-production"
-)
+AUTH_SECRET_KEY = os.getenv("AUTH_SECRET_KEY")
 AUTH_ALGORITHM = "HS256"
 AUTH_SESSION_TIMEOUT = int(os.getenv("AUTH_SESSION_TIMEOUT", "60"))  # minutes
+
+# Validate AUTH_SECRET_KEY when authentication is enabled
+if AUTH_ENABLED and not AUTH_SECRET_KEY:
+    logger.critical(
+        "❌ SECURITY ERROR: AUTH_SECRET_KEY must be set when AUTH_ENABLED=true"
+    )
+    logger.critical("💡 Generate a secure key with: openssl rand -hex 32")
+    logger.critical("💡 Add to .env file: AUTH_SECRET_KEY=<generated-key>")
+    raise ValueError(
+        "AUTH_SECRET_KEY is required when authentication is enabled. "
+        "Set AUTH_SECRET_KEY environment variable."
+    )
 
 
 # Pydantic models
