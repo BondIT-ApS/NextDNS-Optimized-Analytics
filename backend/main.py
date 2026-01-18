@@ -110,12 +110,25 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add CORS middleware
+# SECURITY: Get allowed origins from environment variable (comma-separated)
+# Default includes common development ports
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:5002,http://localhost:5173,http://localhost:3000",
+).split(",")
+
+logger.info(f"🔒 CORS configured for origins: {', '.join(ALLOWED_ORIGINS)}")
+logger.warning(
+    "⚠️  SECURITY: Ensure ALLOWED_ORIGINS is properly configured for production"
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure this properly for production
+    allow_origins=ALLOWED_ORIGINS,  # Specific origins only - never use ["*"]
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-API-Key"],
+    expose_headers=["X-Response-Time"],
 )
 
 # Add performance monitoring middleware (only in DEBUG mode)

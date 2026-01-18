@@ -184,6 +184,9 @@ def mock_env_vars(monkeypatch):
     Automatically applied to all tests.
     """
     monkeypatch.setenv("LOCAL_API_KEY", "test-api-key-123")
+    monkeypatch.setenv(
+        "AUTH_SECRET_KEY", "test-secret-key-for-testing-only-min-32-chars"
+    )
     monkeypatch.setenv("POSTGRES_USER", "test_user")
     monkeypatch.setenv("POSTGRES_PASSWORD", "test_password")
     monkeypatch.setenv("POSTGRES_HOST", "localhost")

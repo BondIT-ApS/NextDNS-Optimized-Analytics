@@ -38,7 +38,7 @@ class LocalStorageMock implements Storage {
   }
 
   // Make store keys enumerable for Object.keys(localStorage)
-  [key: string]: any
+  [key: string]: unknown
 
   constructor() {
     // Create proxy to make keys enumerable
@@ -113,8 +113,8 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => {
       height: 150,
       style: {},
     },
-  } as any
-}) as any
+  } as unknown as CanvasRenderingContext2D
+}) as unknown as HTMLCanvasElement['getContext']
 
 // Clean up after each test - keep our LEGO workspace tidy!
 afterEach(() => {
