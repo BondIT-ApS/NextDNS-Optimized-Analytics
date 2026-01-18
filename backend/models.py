@@ -780,7 +780,10 @@ def get_stats_overview(
                 # Use the same filtered query with profile and time range filters applied
                 # We need to build a new query with the same filters for aggregation
                 blocked_domain_query = session.query(
-                    DNSLog.domain, func.count(DNSLog.id).label("count")
+                    DNSLog.domain,
+                    func.count(DNSLog.id).label(
+                        "count"
+                    ),  # pylint: disable=not-callable
                 )
 
                 # Apply the same profile filter
@@ -844,7 +847,7 @@ def get_stats_overview(
 
 # Get time series data from database
 def get_stats_timeseries(
-    profile_filter=None, time_range="24h", granularity="hour"
+    profile_filter=None, time_range="24h", granularity="hour", group_by="status"
 ):  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     """Get time series statistics from the database.
 
@@ -855,9 +858,11 @@ def get_stats_timeseries(
                          - 6h: Last 6 hours (15-minute granularity)
                          - 3m: Last 3 months (weekly granularity)
         granularity (str): Time granularity (hour, day, etc.)
+        group_by (str): Grouping mode - "status" (blocked/allowed) or "profile" (by profile_id)
 
     Returns:
-        list: List of time series data points
+        list or dict: List of time series data points (status mode) or dict with data and
+                      available_profiles (profile mode)
     """
     session = session_factory()
     try:
@@ -983,18 +988,47 @@ def get_stats_timeseries(
                 DNSLog.timestamp >= interval_start, DNSLog.timestamp < interval_end
             )
 
-            total_queries = interval_query.count()
-            blocked_queries = interval_query.filter(DNSLog.blocked.is_(True)).count()
-            allowed_queries = total_queries - blocked_queries
+            if group_by == "profile":
+                # Group by profile_id within this time interval
+                profile_counts = {}
+                profile_query = (
+                    interval_query.with_entities(
+                        DNSLog.profile_id,
+                        func.count(DNSLog.id),  # pylint: disable=not-callable
+                    )
+                    .group_by(DNSLog.profile_id)
+                    .all()
+                )
 
-            data_points.append(
-                {
-                    "timestamp": display_time.isoformat(),
-                    "total_queries": total_queries,
-                    "blocked_queries": blocked_queries,
-                    "allowed_queries": allowed_queries,
-                }
-            )
+                total_queries = 0
+                for profile_id, count in profile_query:
+                    if profile_id:  # Skip None profile_ids
+                        profile_counts[profile_id] = count
+                        total_queries += count
+
+                data_points.append(
+                    {
+                        "timestamp": display_time.isoformat(),
+                        "total_queries": total_queries,
+                        "profiles": profile_counts,
+                    }
+                )
+            else:
+                # Default: group by status (blocked/allowed)
+                total_queries = interval_query.count()
+                blocked_queries = interval_query.filter(
+                    DNSLog.blocked.is_(True)
+                ).count()
+                allowed_queries = total_queries - blocked_queries
+
+                data_points.append(
+                    {
+                        "timestamp": display_time.isoformat(),
+                        "total_queries": total_queries,
+                        "blocked_queries": blocked_queries,
+                        "allowed_queries": allowed_queries,
+                    }
+                )
 
         logger.debug(
             f"📊 Generated {len(data_points)} {granularity} time series data points for {time_range}"
@@ -1010,10 +1044,32 @@ def get_stats_timeseries(
             logger.debug(
                 f"🕐 Last data point: {last_point['timestamp']} ({last_point['total_queries']} queries)"
             )
+
+        # Return format depends on grouping mode
+        if group_by == "profile":
+            # Get list of all available profiles from the query
+            all_profiles = base_query.with_entities(DNSLog.profile_id).distinct().all()
+            available_profiles = [p[0] for p in all_profiles if p[0]]
+
+            return {
+                "data": data_points,
+                "granularity": granularity,
+                "total_points": len(data_points),
+                "available_profiles": available_profiles,
+            }
+
+        # Legacy format: return list directly
         return data_points
 
     except SQLAlchemyError as e:
         logger.error(f"❌ Error getting time series data: {e}")
+        if group_by == "profile":
+            return {
+                "data": [],
+                "granularity": granularity,
+                "total_points": 0,
+                "available_profiles": [],
+            }
         return []
     finally:
         session.close()

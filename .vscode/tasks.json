@@ -112,7 +112,7 @@
     {
       "label": "Backend: Setup Virtual Environment",
       "type": "shell",
-      "command": "cd backend && python3 -m venv venv && source venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && pip install -r requirements-dev.txt && echo '✅ Virtual environment created!'",
+      "command": "cd backend && python3 -m venv venv && . venv/bin/activate && pip install --upgrade pip && pip install -r requirements.txt && pip install -r requirements-dev.txt && echo '✅ Virtual environment created!'",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -122,7 +122,7 @@
     {
       "label": "Backend: Run Tests",
       "type": "shell",
-      "command": "cd backend && source venv/bin/activate && pytest tests/ -v",
+      "command": "cd backend && . venv/bin/activate && pytest tests/ -v",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -136,7 +136,7 @@
     {
       "label": "Backend: Run Tests with Coverage",
       "type": "shell",
-      "command": "cd backend && source venv/bin/activate && pytest tests/ --cov=. --cov-report=html --cov-report=term",
+      "command": "cd backend && . venv/bin/activate && pytest tests/ --cov=. --cov-report=html --cov-report=term",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -150,7 +150,7 @@
     {
       "label": "🧪 Backend: Run Unit Tests Only",
       "type": "shell",
-      "command": "cd backend && source venv/bin/activate && pytest -m unit -v",
+      "command": "cd backend && . venv/bin/activate && pytest -m unit -v",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -164,7 +164,7 @@
     {
       "label": "🧪 Backend: Run Integration Tests Only",
       "type": "shell",
-      "command": "cd backend && source venv/bin/activate && pytest -m integration -v",
+      "command": "cd backend && . venv/bin/activate && pytest -m integration -v",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -178,7 +178,7 @@
     {
       "label": "Backend: Format (Black)",
       "type": "shell",
-      "command": "cd backend && source venv/bin/activate && black . --line-length=88 --exclude='(alembic|venv)'",
+      "command": "cd backend && . venv/bin/activate && black . --line-length=88 --exclude='(alembic|venv)'",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -188,7 +188,7 @@
     {
       "label": "Backend: Check Formatting",
       "type": "shell",
-      "command": "cd backend && source venv/bin/activate && black . --check --line-length=88 --exclude='(alembic|venv)'",
+      "command": "cd backend && . venv/bin/activate && black . --check --line-length=88 --exclude='(alembic|venv)'",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -198,7 +198,7 @@
     {
       "label": "Backend: Lint (Pylint)",
       "type": "shell",
-      "command": "cd backend && source venv/bin/activate && pylint . --rcfile=../.pylintrc",
+      "command": "cd backend && . venv/bin/activate && pylint . --rcfile=../.pylintrc",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -212,7 +212,7 @@
     {
       "label": "Backend: Security Scan (Bandit)",
       "type": "shell",
-      "command": "cd backend && source venv/bin/activate && bandit -r . -x tests/",
+      "command": "cd backend && . venv/bin/activate && bandit -r . -x tests/",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -304,7 +304,7 @@
     {
       "label": "Security: Full Scan",
       "type": "shell",
-      "command": "cd frontend && npm audit --audit-level=high && cd ../backend && source venv/bin/activate && bandit -r . -x tests/",
+      "command": "cd frontend && npm audit --audit-level=high && cd ../backend && . venv/bin/activate && bandit -r . -x tests/",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",

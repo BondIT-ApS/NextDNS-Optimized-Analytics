@@ -274,8 +274,11 @@ class TimeSeriesDataPoint(BaseModel):
 
     timestamp: str
     total_queries: int
-    blocked_queries: int
-    allowed_queries: int
+    # Legacy fields for status grouping (blocked/allowed)
+    blocked_queries: Optional[int] = None
+    allowed_queries: Optional[int] = None
+    # New field for profile grouping
+    profiles: Optional[Dict[str, int]] = None
 
 
 class TimeSeriesResponse(BaseModel):
@@ -284,6 +287,8 @@ class TimeSeriesResponse(BaseModel):
     data: List[TimeSeriesDataPoint]
     granularity: str
     total_points: int
+    # Available profiles when group_by="profile"
+    available_profiles: Optional[List[str]] = None
 
 
 class TopDomainsItem(BaseModel):
@@ -880,11 +885,19 @@ async def get_stats_timeseries(
         default=None,
         description="Data granularity: 5min, hour, day, week (auto if not specified)",
     ),
+    group_by: str = Query(
+        default="status",
+        description="Group by: 'status' (blocked/allowed) or 'profile' (by profile_id)",
+    ),
     current_user: str = Depends(get_current_user),
 ):
     """Get time series data for charts."""
     logger.debug(
-        f"📊 Time series request: profile={profile}, time_range={time_range}, granularity={granularity}"
+        "📊 Time series request: profile=%s, time_range=%s, granularity=%s, group_by=%s",
+        profile,
+        time_range,
+        granularity,
+        group_by,
     )
 
     # Auto-determine granularity based on time range
@@ -902,12 +915,29 @@ async def get_stats_timeseries(
         granularity = granularity_map.get(time_range, "hour")
 
     # Get real time series data from database
-    data_points = get_db_stats_timeseries(
-        profile_filter=profile, time_range=time_range, granularity=granularity
+    result = get_db_stats_timeseries(
+        profile_filter=profile,
+        time_range=time_range,
+        granularity=granularity,
+        group_by=group_by,
     )
 
-    # Convert to TimeSeriesDataPoint objects
-    time_series_data = [TimeSeriesDataPoint(**point) for point in data_points]
+    # Handle different return types based on group_by mode
+    if group_by == "profile":
+        # Result is a dict with data, granularity, total_points, available_profiles
+        data_points = result.get("data", [])
+        available_profiles = result.get("available_profiles", [])
+        time_series_data = [TimeSeriesDataPoint(**point) for point in data_points]
+
+        return TimeSeriesResponse(
+            data=time_series_data,
+            granularity=granularity,
+            total_points=len(time_series_data),
+            available_profiles=available_profiles,
+        )
+
+    # Legacy mode: result is a list of data points
+    time_series_data = [TimeSeriesDataPoint(**point) for point in result]
 
     return TimeSeriesResponse(
         data=time_series_data,
