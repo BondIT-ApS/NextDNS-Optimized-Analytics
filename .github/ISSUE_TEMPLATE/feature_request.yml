@@ -1,0 +1,99 @@
+name: ✨ Feature Request
+description: Suggest a new LEGO brick for our analytics platform
+title: "[FEATURE] "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🧱 Build Something New!
+        Have an idea for a new feature? Let's hear it! Help us understand what you'd like to build.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 🎯 Problem Statement
+      description: What problem does this feature solve?
+      placeholder: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: 💡 Proposed Solution
+      description: How would you like to solve this?
+      placeholder: "I'd like to see..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 🔄 Alternatives Considered
+      description: Have you thought about other approaches?
+      placeholder: "I've also considered..."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: 🧩 Component
+      description: Which part of the system would this affect?
+      options:
+        - Frontend (React/UI)
+        - Backend (FastAPI/Python)
+        - Database (PostgreSQL)
+        - Docker/Deployment
+        - Documentation
+        - CI/CD
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: ⚡ Priority
+      description: How important is this feature to you?
+      options:
+        - "🔥 Critical - Blocking my workflow"
+        - "⭐ High - Would significantly improve experience"
+        - "👍 Medium - Nice to have"
+        - "💭 Low - Just an idea"
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: 📖 Use Case
+      description: Describe a specific scenario where this would be useful
+      placeholder: |
+        As a [user type], I want to [action] so that [benefit]
+    validations:
+      required: false
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: 🎨 Mockups or Examples
+      description: Add any mockups, diagrams, or examples
+      placeholder: "Drag & drop images or provide links..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✨ Pre-submission Checklist
+      options:
+        - label: I've checked the documentation in `/docs`
+          required: true
+        - label: I've searched existing issues for similar requests
+          required: true
+        - label: This feature aligns with the project's goals
+          required: false
+        - label: I'm willing to help implement this feature
+          required: false
