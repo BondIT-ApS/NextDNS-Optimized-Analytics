@@ -266,6 +266,7 @@ secrets/
 # AI Agent configuration (could contain project-specific credentials)
 WARP.md
 CLAUDE.md
+.claude/
 CURSOR.md
 
 # NextDNS specific
