@@ -76,6 +76,11 @@ services:
       # Local API Authentication
       LOCAL_API_KEY: YOUR_LOCAL_API_KEY_HERE
       
+      # CORS Allowed Origins - CRITICAL: Set to your actual domain(s)
+      # Development: ALLOWED_ORIGINS=http://localhost:5003
+      # Production: ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+      ALLOWED_ORIGINS: YOUR_DOMAIN_HERE
+      
       # Web Interface Authentication (Optional)
       # Set to true to require login for web interface
       AUTH_ENABLED: false
@@ -145,6 +150,7 @@ networks:
 #   PROFILE_IDS - Comma-separated NextDNS profile IDs (e.g., abc123,def456)
 #   LOCAL_API_KEY - Backend API key (generate with: openssl rand -hex 32)
 #   AUTH_SECRET_KEY - JWT signing key (generate with: openssl rand -hex 32)
+#   ALLOWED_ORIGINS - CORS allowed origins (e.g., https://yourdomain.com)
 #
 # Optional Authentication:
 #   Set AUTH_ENABLED=true to require login for web interface
