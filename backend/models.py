@@ -874,6 +874,27 @@ def get_stats_timeseries(
         interval_hours = 0
         display_time = None
 
+        # For 'all' time range, we need to query the actual data range from the database
+        earliest_timestamp = None
+        if time_range == "all":
+            # Query the earliest timestamp in the database
+            earliest_query = session.query(func.min(DNSLog.timestamp))
+
+            # Apply profile filter if specified
+            if profile_filter and profile_filter.strip() and profile_filter != "all":
+                earliest_query = earliest_query.filter(
+                    DNSLog.profile_id == profile_filter
+                )
+
+            earliest_timestamp = earliest_query.scalar()
+
+            # If no data exists, use last 30 days as fallback
+            if earliest_timestamp is None:
+                logger.warning(
+                    "⚠️ No data found in database for 'all' time range, using 30-day fallback"
+                )
+                earliest_timestamp = now - timedelta(days=29)
+
         # Determine time parameters based on time range
         if time_range == "30m":
             start_time = now - timedelta(minutes=30)
@@ -924,14 +945,48 @@ def get_stats_timeseries(
             num_intervals = 13  # 13 x 1week = ~3 months
             granularity = "week"
         else:  # 'all'
-            # For 'all', we'll use daily intervals for the last 30 days
+            # For 'all', use the actual data range from the database
+            # Align to start of day for clean boundaries
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            start_time = today_start - timedelta(
-                days=29
-            )  # 29 days back + today = 30 days
-            interval_hours = 24
-            num_intervals = 30
-            granularity = "day"
+            earliest_day = earliest_timestamp.replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
+
+            # Calculate total days of data
+            total_days = (today_start - earliest_day).days + 1
+
+            logger.info(
+                "📅 'all' time range: %d days of data (from %s to %s)",
+                total_days,
+                earliest_day.date(),
+                today_start.date(),
+            )
+
+            # Choose granularity based on data range
+            if total_days <= 90:
+                # Up to 90 days: use daily granularity
+                start_time = earliest_day
+                interval_hours = 24
+                num_intervals = total_days
+                granularity = "day"
+                logger.debug("📊 Using daily granularity for %d days", total_days)
+            else:
+                # More than 90 days: use weekly granularity
+                # Align to start of week (Monday)
+                days_since_monday = earliest_day.weekday()
+                week_start = earliest_day - timedelta(days=days_since_monday)
+                start_time = week_start
+
+                # Calculate number of weeks
+                days_to_cover = (today_start - week_start).days + 1
+                num_intervals = (days_to_cover + 6) // 7  # Round up to nearest week
+                interval_hours = 24 * 7
+                granularity = "week"
+                logger.debug(
+                    "📊 Using weekly granularity for %d days (%d weeks)",
+                    total_days,
+                    num_intervals,
+                )
 
         # Build base query
         base_query = session.query(DNSLog).filter(DNSLog.timestamp >= start_time)
