@@ -147,9 +147,18 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          prompt: |
+            Please review this pull request for code quality issues, security vulnerabilities, and best practices.
+            Post your findings as a comment on the PR at ${{ github.repository }}/pull/${{ github.event.pull_request.number }}.
+            
+            Focus on:
+            - Security vulnerabilities (SQL injection, hardcoded secrets, unsafe eval, etc.)
+            - Code quality (duplication, complexity, error handling, dead code)
+            - Best practices violations (missing type hints, improper exception handling, global state)
+            - Performance concerns
+            - Missing tests or low test coverage
+            
+            Be constructive and provide specific suggestions for improvement.
 
   # 🔍 Frontend Linting (parallel)
   lint-frontend:

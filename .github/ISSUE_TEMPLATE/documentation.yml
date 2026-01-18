@@ -1,0 +1,76 @@
+name: 📚 Documentation
+description: Help improve our LEGO instruction manual
+title: "[DOCS] "
+labels: ["documentation", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📖 Building Better Instructions
+        Found unclear documentation or have suggestions? Let's make our docs crystal clear!
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: 📝 Type of Documentation Issue
+      description: What kind of documentation needs attention?
+      options:
+        - "❌ Missing Documentation"
+        - "🔄 Outdated Information"
+        - "🐛 Error or Inaccuracy"
+        - "✨ Improvement Suggestion"
+        - "🌐 Translation"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: location
+    attributes:
+      label: 📍 Documentation Location
+      description: Where is the documentation issue?
+      placeholder: |
+        - File: docs/03-api-reference.md
+        - Section: "API Authentication"
+        - URL: https://...
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: 🔍 What's Wrong?
+      description: Describe the documentation issue
+      placeholder: "The documentation states X, but it should say Y because..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 💡 Suggested Fix
+      description: How would you improve this?
+      placeholder: "I suggest updating the docs to explain..."
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: ➕ Additional Context
+      description: Any other relevant information
+      placeholder: "This is confusing because..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✨ Pre-submission Checklist
+      options:
+        - label: I've checked if this is already documented elsewhere
+          required: true
+        - label: I've searched existing issues for duplicates
+          required: true
+        - label: I'm willing to help fix this documentation
+          required: false

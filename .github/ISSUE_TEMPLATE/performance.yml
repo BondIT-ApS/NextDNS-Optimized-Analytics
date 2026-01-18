@@ -1,0 +1,97 @@
+name: ⚡ Performance Issue
+description: Report slow or resource-intensive LEGO building
+title: "[PERF] "
+labels: ["performance", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🚀 Speed Up the Build!
+        Found something running slowly? Let's optimize it together!
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 🐌 Performance Issue
+      description: What's running slowly?
+      placeholder: "The dashboard takes 10+ seconds to load when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: 📊 Performance Metrics
+      description: Provide specific measurements if available
+      placeholder: |
+        - Load time: 15 seconds
+        - Memory usage: 2GB
+        - CPU usage: 90%
+        - Query time: 5000ms
+    validations:
+      required: false
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: 🧩 Component
+      description: Where is the performance issue?
+      options:
+        - Frontend (React/UI)
+        - Backend (FastAPI/Python)
+        - Database (PostgreSQL)
+        - Docker/Containers
+        - Network/API
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 🔍 Context
+      description: When does this happen?
+      placeholder: |
+        - Data size: 10,000 records
+        - Time period: Last 30 days
+        - Concurrent users: 5
+        - Specific operation: Loading analytics dashboard
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 🏗️ Environment
+      description: Your system specs
+      value: |
+        - OS: [e.g., macOS 14.0, Ubuntu 22.04]
+        - RAM: [e.g., 16GB]
+        - CPU: [e.g., M2, Intel i7]
+        - Docker version: [e.g., 24.0.6]
+        - Deployment: [Local, Portainer, Other]
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 📋 Logs or Profiling Data
+      description: Add relevant logs, profiling data, or screenshots
+      placeholder: "Paste logs, profiler output, or drag & drop screenshots..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✨ Pre-submission Checklist
+      options:
+        - label: I've checked the health endpoints for errors
+          required: false
+        - label: I've verified this isn't a network/connectivity issue
+          required: false
+        - label: I've tested with different data sizes
+          required: false
+        - label: I've checked container resource limits
+          required: false
