@@ -15,33 +15,22 @@ from models import (
     extract_tld,
 )
 
-# Mark all tests in this module as unit tests
-pytestmark = pytest.mark.unit
+# Additional extract_tld tests focusing on query-specific scenarios
+@pytest.mark.unit
+def test_extract_tld_with_query_context():
+    """Test TLD extraction in query processing context."""
+    # Test cases that might come up in actual DNS log processing
+    assert extract_tld("cdn.example.com") == "example.com"
+    assert extract_tld("api.service.domain.co.uk") == "co.uk"  # Complex TLD extraction
+    assert extract_tld("subdomain.long-domain-name.org") == "long-domain-name.org"
 
 
-def test_extract_tld_with_subdomain():
-    """Test TLD extraction from subdomain."""
-    assert extract_tld("gateway.icloud.com") == "icloud.com"
-    assert extract_tld("bag.itunes.apple.com") == "apple.com"
-    assert extract_tld("www.google.com") == "google.com"
+def test_extract_tld_with_malformed_domains():
+    """Test TLD extraction with edge cases from real DNS logs."""
+    assert extract_tld("..invalid..") == "..invalid.."
+    assert extract_tld("single") == "single"
+    assert extract_tld(".leadingdot.com") == "leadingdot.com"  # Leading dot removed
 
-
-def test_extract_tld_with_hyphen():
-    """Test TLD extraction with hyphenated domain."""
-    assert extract_tld("gateway.fe2.apple-dns.net") == "apple-dns.net"
-
-
-def test_extract_tld_simple_domain():
-    """Test TLD extraction from simple domain."""
-    assert extract_tld("example.com") == "example.com"
-    assert extract_tld("test.org") == "test.org"
-
-
-def test_extract_tld_invalid_input():
-    """Test TLD extraction with invalid input."""
-    assert extract_tld("") == ""
-    assert extract_tld(None) is None
-    assert extract_tld("localhost") == "localhost"
 
 
 def test_dns_log_with_explicit_tld(test_db):

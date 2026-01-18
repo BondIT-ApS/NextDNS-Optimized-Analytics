@@ -12,6 +12,7 @@ from fastapi import status
 pytestmark = pytest.mark.integration
 
 
+@pytest.mark.integration
 def test_get_stats_overview(test_client, populated_test_db, monkeypatch):
     """Test GET /stats/overview returns overview statistics."""
     monkeypatch.setenv("AUTH_ENABLED", "false")
@@ -33,7 +34,7 @@ def test_get_stats_overview(test_client, populated_test_db, monkeypatch):
     assert isinstance(data["blocked_queries"], int)
     assert isinstance(data["allowed_queries"], int)
 
-
+@pytest.mark.integration
 def test_get_stats_overview_with_time_range(test_client, populated_test_db, monkeypatch):
     """Test GET /stats/overview with time range filter."""
     monkeypatch.setenv("AUTH_ENABLED", "false")
@@ -188,3 +189,22 @@ def test_get_stats_devices(test_client, populated_test_db, monkeypatch):
     data = response.json()
     assert "devices" in data
     assert isinstance(data["devices"], list)
+
+
+@pytest.mark.integration
+def test_get_stats_endpoint(test_client, populated_test_db, monkeypatch):
+    """Test GET /stats returns database statistics."""
+    monkeypatch.setenv("AUTH_ENABLED", "false")
+
+    from main import app
+    from fastapi.testclient import TestClient
+    client = TestClient(app)
+
+    response = client.get("/stats")
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert "total_records" in data
+    assert "message" in data
+    assert isinstance(data["total_records"], int)
+    assert isinstance(data["message"], str)
