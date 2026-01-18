@@ -10,10 +10,59 @@ permissions:
   packages: write
 
 jobs:
+  # 🔍 LEGO Changed Brick Discovery
+  detect-changes:
+    name: 🔍 LEGO Changed Brick Discovery
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+      any-service: ${{ steps.filter.outputs.frontend == 'true' || steps.filter.outputs.backend == 'true' }}
+    steps:
+      - name: 📎 Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 2  # Need at least 2 commits to compare
+
+      - name: 🔍 Detect Changed LEGO Bricks
+        id: filter
+        run: |
+          # Get changed files from last commit (main branch push)
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "FORCE_ALL")
+          echo "Changed files: $CHANGED_FILES"
+
+          # Fallback: if no previous commit or error, build everything
+          if [ "$CHANGED_FILES" = "FORCE_ALL" ]; then
+            echo "⚠️  Unable to detect changes (first commit or error), building all services"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Check if frontend changed
+          if echo "$CHANGED_FILES" | grep -E '^(frontend/|Dockerfile\.frontend|docker-compose\.yml)' > /dev/null; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "🧱 Frontend changes detected"
+          else
+            echo "frontend=false" >> "$GITHUB_OUTPUT"
+            echo "⏭️  No frontend changes"
+          fi
+
+          # Check if backend changed
+          if echo "$CHANGED_FILES" | grep -E '^(backend/|Dockerfile\.backend|docker-compose\.yml)' > /dev/null; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "🧱 Backend changes detected"
+          else
+            echo "backend=false" >> "$GITHUB_OUTPUT"
+            echo "⏭️  No backend changes"
+          fi
+
   # 🧪 Run Tests and Upload Coverage (Before Build)
   test-and-coverage-frontend:
     name: 🧪 Frontend Tests & Coverage Upload
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
     defaults:
       run:
         working-directory: frontend
@@ -48,6 +97,8 @@ jobs:
   test-and-coverage-backend:
     name: 🧪 Backend Tests & Coverage Upload
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
 
     steps:
       - name: 📎 Checkout code
@@ -81,15 +132,56 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  # 🎯 Generate Dynamic Build Matrix
+  generate-matrix:
+    name: 🎯 Generate Dynamic LEGO Build Matrix
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      should-build: ${{ steps.set-matrix.outputs.should-build }}
+    steps:
+      - name: 📋 Generate build matrix based on changes
+        id: set-matrix
+        run: |
+          SERVICES="[]"
+
+          # Add backend to matrix if changed
+          if [ "${{ needs.detect-changes.outputs.backend }}" = "true" ]; then
+            SERVICES=$(echo "$SERVICES" | jq -c '. += ["backend"]')
+            echo "🧱 Backend added to build matrix"
+          fi
+
+          # Add frontend to matrix if changed
+          if [ "${{ needs.detect-changes.outputs.frontend }}" = "true" ]; then
+            SERVICES=$(echo "$SERVICES" | jq -c '. += ["frontend"]')
+            echo "🧱 Frontend added to build matrix"
+          fi
+
+          echo "matrix={\"service\":$SERVICES}" >> "$GITHUB_OUTPUT"
+          echo "📋 Build matrix: $SERVICES"
+
+          # Set flag if we should build anything
+          if [ "$SERVICES" = "[]" ]; then
+            echo "should-build=false" >> "$GITHUB_OUTPUT"
+            echo "⏭️  No services to build"
+          else
+            echo "should-build=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Build matrix generated"
+          fi
+
   # 🏢 Production LEGO Assembly Line
   production-build:
     name: 🏢 Build Production LEGO Set (${{ matrix.service }})
     runs-on: ubuntu-latest
-    needs: [test-and-coverage-frontend, test-and-coverage-backend]
+    needs: [detect-changes, generate-matrix, test-and-coverage-frontend, test-and-coverage-backend]
+    if: |
+      always() &&
+      !contains(needs.*.result, 'failure') &&
+      needs.generate-matrix.outputs.should-build == 'true'
 
     strategy:
-      matrix:
-        service: [backend, frontend]
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
 
     steps:
       - name: 📎 Get LEGO Instructions (Checkout)
@@ -130,13 +222,7 @@ jobs:
           echo "📅 Year/Month tag: ${YEAR_MONTH_TAG}"
           echo "🔢 Run number: ${PATCH_VERSION}"
 
-      - name: 🔧 Prepare LEGO Pieces (Backend Dependencies)
-        if: matrix.service == 'backend'
-        run: |
-          pip install --upgrade pip
-          pip install -r backend/requirements.txt
-
-      - name: 🏢 Build & Push Semantic Versioned LEGO Set
+      - name: 🏢 Build & Push Semantic Versioned LEGO Set with Attestations
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -149,3 +235,5 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
