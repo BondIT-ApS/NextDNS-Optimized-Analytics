@@ -163,12 +163,17 @@ describe('🧱 Stats Page', () => {
       ).toBeInTheDocument()
     })
 
-    it('should render loading state initially', () => {
+    it('should render loading state initially', async () => {
       render(<StatsWithRouter />)
 
       // Should show loading spinner
       const spinner = document.querySelector('.animate-spin')
       expect(spinner).toBeInTheDocument()
+
+      // Wait for all async updates to complete
+      await waitFor(() => {
+        expect(screen.getByText('Analytics Dashboard')).toBeInTheDocument()
+      })
     })
 
     it('should render time range selector', async () => {
