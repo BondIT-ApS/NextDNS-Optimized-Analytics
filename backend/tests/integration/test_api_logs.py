@@ -19,6 +19,7 @@ def test_get_logs_basic(test_client, populated_test_db, monkeypatch):
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/logs")
@@ -40,6 +41,7 @@ def test_get_logs_with_limit(test_client, populated_test_db, monkeypatch):
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/logs?limit=5")
@@ -57,6 +59,7 @@ def test_get_logs_with_offset(test_client, populated_test_db, monkeypatch):
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/logs?limit=5&offset=2")
@@ -73,6 +76,7 @@ def test_get_logs_with_search(test_client, populated_test_db, monkeypatch):
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/logs?search=test")
@@ -89,6 +93,7 @@ def test_get_logs_with_status_filter(test_client, populated_test_db, monkeypatch
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/logs?status_filter=blocked")
@@ -105,6 +110,7 @@ def test_get_logs_with_profile_filter(test_client, populated_test_db, monkeypatc
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/logs?profile=test-profile")
@@ -121,6 +127,7 @@ def test_get_logs_with_time_range(test_client, populated_test_db, monkeypatch):
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/logs?time_range=24h")
@@ -137,6 +144,7 @@ def test_get_logs_with_exclude_domains(test_client, populated_test_db, monkeypat
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/logs?exclude=test0.example.com&exclude=test1.example.com")
@@ -154,6 +162,7 @@ def test_get_logs_stats_basic(test_client, populated_test_db, monkeypatch):
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/logs/stats")
@@ -177,6 +186,7 @@ def test_get_logs_stats_with_profile(test_client, populated_test_db, monkeypatch
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/logs/stats?profile=test-profile")
@@ -194,6 +204,7 @@ def test_get_logs_stats_with_time_range(test_client, populated_test_db, monkeypa
 
     from main import app
     from fastapi.testclient import TestClient
+
     client = TestClient(app)
 
     response = client.get("/logs/stats?time_range=7d")
@@ -203,5 +214,3 @@ def test_get_logs_stats_with_time_range(test_client, populated_test_db, monkeypa
     assert "total" in data
     assert "blocked" in data
     assert "allowed" in data
-
-

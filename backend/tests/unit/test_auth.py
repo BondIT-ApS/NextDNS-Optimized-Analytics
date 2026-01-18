@@ -124,6 +124,7 @@ def test_authenticate_user_valid_plain_password(monkeypatch):
     # Need to reload auth module to pick up env changes
     import importlib
     import auth
+
     importlib.reload(auth)
 
     result = auth.authenticate_user("testuser", "plainpassword")
@@ -139,6 +140,7 @@ def test_authenticate_user_invalid_username(monkeypatch):
 
     import importlib
     import auth
+
     importlib.reload(auth)
 
     result = auth.authenticate_user("wronguser", "password")
@@ -154,6 +156,7 @@ def test_authenticate_user_invalid_password(monkeypatch):
 
     import importlib
     import auth
+
     importlib.reload(auth)
 
     result = auth.authenticate_user("testuser", "wrongpassword")
@@ -173,6 +176,7 @@ def test_authenticate_user_with_hashed_password(monkeypatch):
 
     import importlib
     import auth
+
     importlib.reload(auth)
 
     result = auth.authenticate_user("testuser", plain_password)
@@ -188,6 +192,7 @@ def test_token_expiration_set_correctly(monkeypatch):
 
     import importlib
     import auth
+
     importlib.reload(auth)
 
     data = {"sub": "testuser"}

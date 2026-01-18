@@ -15,6 +15,7 @@ from models import (
     extract_tld,
 )
 
+
 # Additional extract_tld tests focusing on query-specific scenarios
 @pytest.mark.unit
 def test_extract_tld_with_query_context():
@@ -32,7 +33,6 @@ def test_extract_tld_with_malformed_domains():
     assert extract_tld(".leadingdot.com") == "leadingdot.com"  # Leading dot removed
 
 
-
 def test_dns_log_with_explicit_tld(test_db):
     """Test that DNSLog accepts explicit TLD value."""
     log = DNSLog(
@@ -45,7 +45,7 @@ def test_dns_log_with_explicit_tld(test_db):
         blocked=False,
         profile_id="test",
         tld="icloud.com",  # Explicitly set TLD
-        data='{}',
+        data="{}",
     )
     test_db.add(log)
     test_db.commit()
@@ -67,7 +67,7 @@ def test_dns_log_created_at_auto_set(test_db):
         blocked=False,
         profile_id="test",
         tld="test.com",
-        data='{}',
+        data="{}",
     )
     test_db.add(log)
     test_db.commit()
@@ -92,7 +92,7 @@ def test_dns_log_unique_constraint_prevents_duplicates(test_db):
         blocked=False,
         profile_id="test",
         tld="test.com",
-        data='{}',
+        data="{}",
     )
     test_db.add(log1)
     test_db.commit()
@@ -108,12 +108,13 @@ def test_dns_log_unique_constraint_prevents_duplicates(test_db):
         blocked=False,
         profile_id="test",
         tld="test.com",
-        data='{}',
+        data="{}",
     )
     test_db.add(log2)
 
     # SQLAlchemy will raise IntegrityError
     from sqlalchemy.exc import IntegrityError
+
     with pytest.raises(IntegrityError):
         test_db.commit()
 
@@ -132,7 +133,7 @@ def test_dns_log_device_field_stores_json_string(test_db):
         blocked=False,
         profile_id="test",
         tld="test.com",
-        data='{}',
+        data="{}",
     )
     test_db.add(log)
     test_db.commit()
@@ -157,7 +158,7 @@ def test_dns_log_query_types(test_db):
             blocked=False,
             profile_id="test",
             tld="test.com",
-            data='{}',
+            data="{}",
         )
         test_db.add(log)
 
