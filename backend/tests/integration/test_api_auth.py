@@ -14,7 +14,7 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.mark.integration
-def test_auth_config_endpoint(test_client):
+def test_auth_config_endpoint(test_client: TestClient):
     """Test GET /auth/config returns correct config."""
     response = test_client.get("/auth/config")
 
@@ -27,7 +27,7 @@ def test_auth_config_endpoint(test_client):
 
 
 @pytest.mark.integration
-def test_logout_endpoint(test_client):
+def test_logout_endpoint(test_client: TestClient):
     """Test POST /auth/logout returns success message."""
     response = test_client.post("/auth/logout")
 
@@ -38,7 +38,7 @@ def test_logout_endpoint(test_client):
 
 
 @pytest.mark.integration
-def test_auth_status_without_token(test_client):
+def test_auth_status_without_token(test_client: TestClient):
     """Test GET /auth/status without token (works when auth is disabled)."""
     response = test_client.get("/auth/status")
 
@@ -53,7 +53,7 @@ def test_auth_status_without_token(test_client):
 
 
 @pytest.mark.integration
-def test_login_endpoint_structure(test_client):
+def test_login_endpoint_structure(test_client: TestClient):
     """Test POST /auth/login endpoint structure and response format."""
     # Test that the endpoint exists and returns proper error format
     response = test_client.post(
