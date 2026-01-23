@@ -1,12 +1,14 @@
 # file: backend/tests/unit/test_device_stats_exclusion.py
 """Unit tests for device statistics with domain exclusion."""
 
-import pytest
-from unittest.mock import patch, MagicMock
 from datetime import datetime, timezone
-from models import get_stats_devices, Base, DNSLog
+from unittest.mock import patch
+
+import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+from models import get_stats_devices, Base, DNSLog
 
 
 @pytest.fixture
@@ -14,8 +16,8 @@ def device_stats_db():
     """Create an in-memory database with device-specific test data."""
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
-    session = Session()
+    session_maker = sessionmaker(bind=engine)
+    session = session_maker()
 
     # Create test data with multiple devices and domains
     test_data = [
@@ -72,11 +74,11 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_stats_exclude_wildcard_domains(
-        self, mock_session_factory, device_stats_db
+        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
     ):
         """Test that device stats correctly exclude wildcard domain patterns."""
-        Session = sessionmaker(bind=device_stats_db)
-        mock_session_factory.return_value = Session()
+        session_maker = sessionmaker(bind=device_stats_db)
+        mock_session_factory.return_value = session_maker()
 
         # Exclude all Apple domains (*.apple.com, gateway.icloud.com)
         exclude_domains = ["*.apple.com", "gateway.icloud.com"]
@@ -106,11 +108,11 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_stats_exclude_tracking_domains(
-        self, mock_session_factory, device_stats_db
+        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
     ):
         """Test excluding tracking-related domains with wildcards."""
-        Session = sessionmaker(bind=device_stats_db)
-        mock_session_factory.return_value = Session()
+        session_maker = sessionmaker(bind=device_stats_db)
+        mock_session_factory.return_value = session_maker()
 
         # Exclude all tracking domains (*tracking*)
         exclude_domains = ["*tracking*"]
@@ -148,11 +150,11 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_stats_exact_domain_exclusion(
-        self, mock_session_factory, device_stats_db
+        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
     ):
         """Test exact domain match exclusion (no wildcards)."""
-        Session = sessionmaker(bind=device_stats_db)
-        mock_session_factory.return_value = Session()
+        session_maker = sessionmaker(bind=device_stats_db)
+        mock_session_factory.return_value = session_maker()
 
         # Exclude specific domains
         exclude_domains = ["facebook.com", "youtube.com", "amazon.com"]
@@ -181,11 +183,11 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_and_domain_exclusion_combined(
-        self, mock_session_factory, device_stats_db
+        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
     ):
         """Test combining device exclusion with domain exclusion."""
-        Session = sessionmaker(bind=device_stats_db)
-        mock_session_factory.return_value = Session()
+        session_maker = sessionmaker(bind=device_stats_db)
+        mock_session_factory.return_value = session_maker()
 
         # Exclude Router device AND tracking domains
         exclude_devices = ["Router"]
@@ -210,10 +212,12 @@ class TestDeviceStatsWithDomainExclusion:
         assert iphone_stats["total_queries"] == 8
 
     @patch("models.session_factory")
-    def test_device_stats_no_exclusions(self, mock_session_factory, device_stats_db):
+    def test_device_stats_no_exclusions(
+        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
+    ):
         """Test device stats without any exclusions (baseline)."""
-        Session = sessionmaker(bind=device_stats_db)
-        mock_session_factory.return_value = Session()
+        session_maker = sessionmaker(bind=device_stats_db)
+        mock_session_factory.return_value = session_maker()
 
         results = get_stats_devices(
             profile_filter="test_profile",
@@ -251,11 +255,11 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_stats_empty_domain_exclusion_list(
-        self, mock_session_factory, device_stats_db
+        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
     ):
         """Test that empty domain exclusion list returns all data."""
-        Session = sessionmaker(bind=device_stats_db)
-        mock_session_factory.return_value = Session()
+        session_maker = sessionmaker(bind=device_stats_db)
+        mock_session_factory.return_value = session_maker()
 
         # Empty list should be same as no exclusion
         results = get_stats_devices(
@@ -272,11 +276,11 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_stats_blocked_percentage_calculation(
-        self, mock_session_factory, device_stats_db
+        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
     ):
         """Test that blocked percentage is calculated correctly after exclusion."""
-        Session = sessionmaker(bind=device_stats_db)
-        mock_session_factory.return_value = Session()
+        session_maker = sessionmaker(bind=device_stats_db)
+        mock_session_factory.return_value = session_maker()
 
         # Exclude ads.example.com (blocked on all devices)
         exclude_domains = ["ads.example.com"]
@@ -300,11 +304,11 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_stats_multiple_wildcard_patterns(
-        self, mock_session_factory, device_stats_db
+        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
     ):
         """Test multiple wildcard patterns work together."""
-        Session = sessionmaker(bind=device_stats_db)
-        mock_session_factory.return_value = Session()
+        session_maker = sessionmaker(bind=device_stats_db)
+        mock_session_factory.return_value = session_maker()
 
         # Exclude multiple patterns
         exclude_domains = ["*.apple.com", "*tracking*", "ads.example.com"]
@@ -317,8 +321,10 @@ class TestDeviceStatsWithDomainExclusion:
         )
 
         # iPhone: 10 total - 1 apple - 2 tracking - 1 ads = 6 queries
-        # Excluded: www.apple.com, tracking.google.com, api.tracking.net, ads.example.com
-        # Remaining: gateway.icloud.com, facebook.com, analytics.facebook.com, youtube.com, google.com, amazon.com
+        # Excluded: www.apple.com, tracking.google.com, api.tracking.net,
+        # ads.example.com
+        # Remaining: gateway.icloud.com, facebook.com, analytics.facebook.com,
+        # youtube.com, google.com, amazon.com
         iphone_stats = next((d for d in results if d["device_name"] == "iPhone"), None)
         assert iphone_stats is not None
         assert iphone_stats["total_queries"] == 6
