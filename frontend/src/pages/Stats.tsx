@@ -381,6 +381,25 @@ export default function Stats() {
         </Card>
       </div>
 
+      {/* Domain Exclusion */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Domain Exclusion (Wildcards Supported)
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Exclude domains from all analytics using wildcards or exact matches
+          </p>
+        </CardHeader>
+        <CardContent>
+          <DomainExclusionInput
+            value={excludedDomains}
+            onChange={setExcludedDomains}
+          />
+        </CardContent>
+      </Card>
+
       {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center py-12">
