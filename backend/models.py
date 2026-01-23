@@ -62,6 +62,90 @@ def extract_tld(domain):
         return domain
 
 
+def build_domain_exclusion_filter(domain_column, exclude_domains):
+    """Build SQL filter conditions for domain exclusion with wildcard support.
+
+    Converts wildcard patterns to SQL LIKE patterns and combines with exact matches.
+    Supports patterns like:
+        - *.apple.com → Matches icloud.apple.com, www.apple.com
+        - apple.* → Matches apple.com, apple.net, apple.org
+        - *tracking* → Matches any domain containing 'tracking'
+
+    Args:
+        domain_column: SQLAlchemy column object (e.g., DNSLog.domain)
+        exclude_domains (list): List of domains/patterns to exclude
+
+    Returns:
+        SQLAlchemy filter condition (and_/or_ expression) or None if no exclusions
+
+    Examples:
+        >>> filter_cond = build_domain_exclusion_filter(DNSLog.domain, ['*.apple.com', 'google.com'])
+        >>> query = query.filter(filter_cond)
+    """
+    if not exclude_domains or len(exclude_domains) == 0:
+        return None
+
+    # Separate exact matches from wildcard patterns
+    exact_matches = []
+    wildcard_conditions = []
+
+    for pattern in exclude_domains:
+        if not pattern or not isinstance(pattern, str):
+            continue
+
+        pattern = pattern.strip()
+        if not pattern:
+            continue
+
+        # Check if pattern contains wildcard
+        if '*' in pattern:
+            # Validate pattern - reject overly broad patterns for performance
+            if pattern == '*' or pattern == '**' or pattern == '*.*':
+                logger.warning(
+                    f"⚠️ Rejecting overly broad wildcard pattern: '{pattern}'"
+                )
+                continue
+
+            # Convert wildcard pattern to SQL LIKE pattern
+            # Escape SQL LIKE special characters first
+            sql_pattern = pattern.replace('_', '\\_').replace('%', '\\%')
+            # Replace * with SQL LIKE %
+            sql_pattern = sql_pattern.replace('*', '%')
+
+            # Add condition for this pattern
+            wildcard_conditions.append(domain_column.like(sql_pattern))
+            logger.debug(f"🔍 Wildcard pattern: '{pattern}' → SQL LIKE '{sql_pattern}'")
+        else:
+            # Exact match
+            exact_matches.append(pattern)
+
+    # Build combined filter conditions
+    conditions = []
+
+    # Add exact match exclusion (using NOT IN for efficiency)
+    if exact_matches:
+        conditions.append(~domain_column.in_(exact_matches))
+        logger.debug(f"🚫 Excluding {len(exact_matches)} exact domain matches")
+
+    # Add wildcard exclusions (using NOT LIKE for each)
+    if wildcard_conditions:
+        # Combine all wildcard conditions with OR, then negate
+        # NOT (pattern1 OR pattern2) = domain doesn't match any pattern
+        combined_wildcards = or_(*wildcard_conditions)
+        conditions.append(~combined_wildcards)
+        logger.debug(f"🔍 Excluding {len(wildcard_conditions)} wildcard patterns")
+
+    # Combine all conditions with AND
+    if len(conditions) == 0:
+        return None
+    elif len(conditions) == 1:
+        return conditions[0]
+    else:
+        # Both exact and wildcard conditions exist
+        from sqlalchemy import and_
+        return and_(*conditions)
+
+
 # Custom Text type that forces TEXT without JSON casting
 class ForceText(TypeDecorator):  # pylint: disable=too-many-ancestors
     """Custom SQLAlchemy type that forces values to be stored as text."""
@@ -454,10 +538,11 @@ def get_logs(  # pylint: disable=too-many-positional-arguments,too-many-locals,t
     try:
         query = session.query(DNSLog).order_by(DNSLog.timestamp.desc())
 
-        # Apply domain exclusions
+        # Apply domain exclusions (with wildcard support)
         if exclude_domains:
-            query = query.filter(~DNSLog.domain.in_(exclude_domains))
-            logger.debug(f"🚫 Excluding {len(exclude_domains)} domains from results")
+            exclusion_filter = build_domain_exclusion_filter(DNSLog.domain, exclude_domains)
+            if exclusion_filter is not None:
+                query = query.filter(exclusion_filter)
 
         # Apply search filter on domain name
         if search_query.strip():
@@ -553,7 +638,7 @@ def get_logs(  # pylint: disable=too-many-positional-arguments,too-many-locals,t
 
 
 # Get total statistics for all logs in the database
-def get_logs_stats(profile_filter=None, time_range="all"):
+def get_logs_stats(profile_filter=None, time_range="all", exclude_domains=None):
     """Get statistics for DNS logs in the database, optionally filtered by profile and time range.
 
     Args:
@@ -562,6 +647,7 @@ def get_logs_stats(profile_filter=None, time_range="all"):
                          - 30m: Last 30 minutes (1-minute granularity)
                          - 6h: Last 6 hours (15-minute granularity)
                          - 3m: Last 3 months (weekly granularity)
+        exclude_domains (list): List of domains/patterns to exclude from statistics
 
     Returns:
         dict: Dictionary containing total, blocked, and allowed counts and percentages
@@ -569,6 +655,12 @@ def get_logs_stats(profile_filter=None, time_range="all"):
     session = session_factory()
     try:
         query = session.query(DNSLog)
+
+        # Apply domain exclusions (with wildcard support)
+        if exclude_domains:
+            exclusion_filter = build_domain_exclusion_filter(DNSLog.domain, exclude_domains)
+            if exclusion_filter is not None:
+                query = query.filter(exclusion_filter)
 
         # Apply profile filter if specified
         if profile_filter and profile_filter.strip():
@@ -686,7 +778,7 @@ def get_available_profiles():
 
 # Get real stats overview data from database
 def get_stats_overview(
-    profile_filter=None, time_range="24h"
+    profile_filter=None, time_range="24h", exclude_domains=None
 ):  # pylint: disable=too-many-locals,too-many-branches
     """Get overview statistics from the database.
 
@@ -696,6 +788,7 @@ def get_stats_overview(
                          - 30m: Last 30 minutes (1-minute granularity)
                          - 6h: Last 6 hours (15-minute granularity)
                          - 3m: Last 3 months (weekly granularity)
+        exclude_domains (list): List of domains/patterns to exclude from statistics
 
     Returns:
         dict: Statistics overview
@@ -704,6 +797,12 @@ def get_stats_overview(
     try:
         # Build base query
         query = session.query(DNSLog)
+
+        # Apply domain exclusions (with wildcard support)
+        if exclude_domains:
+            exclusion_filter = build_domain_exclusion_filter(DNSLog.domain, exclude_domains)
+            if exclusion_filter is not None:
+                query = query.filter(exclusion_filter)
 
         # Apply profile filter
         if profile_filter and profile_filter.strip() and profile_filter != "all":
@@ -1132,7 +1231,7 @@ def get_stats_timeseries(
 
 # Get top domains from database
 def get_top_domains(
-    profile_filter=None, time_range="24h", limit=10
+    profile_filter=None, time_range="24h", limit=10, exclude_domains=None
 ):  # pylint: disable=too-many-locals
     """Get top blocked and allowed domains from the database.
 
@@ -1143,6 +1242,7 @@ def get_top_domains(
                          - 6h: Last 6 hours (15-minute granularity)
                          - 3m: Last 3 months (weekly granularity)
         limit (int): Number of top domains to return
+        exclude_domains (list): List of domains/patterns to exclude from results
 
     Returns:
         dict: Contains blocked_domains and allowed_domains lists
@@ -1151,6 +1251,12 @@ def get_top_domains(
     try:
         # Build base query
         query = session.query(DNSLog)
+
+        # Apply domain exclusions (with wildcard support)
+        if exclude_domains:
+            exclusion_filter = build_domain_exclusion_filter(DNSLog.domain, exclude_domains)
+            if exclusion_filter is not None:
+                query = query.filter(exclusion_filter)
 
         # Apply profile filter
         if profile_filter and profile_filter.strip() and profile_filter != "all":
@@ -1263,7 +1369,7 @@ def get_top_domains(
 
 # Get top-level domains (TLD aggregation) from database
 def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
-    profile_filter=None, time_range="24h", limit=10
+    profile_filter=None, time_range="24h", limit=10, exclude_domains=None
 ):
     """Get top-level domain statistics aggregated from full domains.
 
@@ -1277,6 +1383,7 @@ def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
                          - 6h: Last 6 hours (15-minute granularity)
                          - 3m: Last 3 months (weekly granularity)
         limit (int): Number of top TLDs to return
+        exclude_domains (list): List of domains/patterns to exclude from results
 
     Returns:
         dict: Contains blocked_tlds and allowed_tlds lists
@@ -1285,6 +1392,12 @@ def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
     try:
         # Build base query
         query = session.query(DNSLog)
+
+        # Apply domain exclusions (with wildcard support)
+        if exclude_domains:
+            exclusion_filter = build_domain_exclusion_filter(DNSLog.domain, exclude_domains)
+            if exclusion_filter is not None:
+                query = query.filter(exclusion_filter)
 
         # Apply profile filter
         if profile_filter and profile_filter.strip() and profile_filter != "all":
