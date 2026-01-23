@@ -97,9 +97,15 @@ export const apiClient = {
     return response.data
   },
 
-  async getLogsStats(profile?: string): Promise<LogsStatsResponse> {
+  async getLogsStats(
+    profile?: string,
+    exclude?: string[]
+  ): Promise<LogsStatsResponse> {
     const params = new URLSearchParams()
     if (profile) params.append('profile', profile)
+    if (exclude && exclude.length > 0) {
+      exclude.forEach(domain => params.append('exclude', domain))
+    }
 
     const response = await api.get(`/logs/stats?${params.toString()}`)
     return response.data
