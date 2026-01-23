@@ -4,7 +4,6 @@
     // Python Backend (FastAPI + pytest)
     "ms-python.python",
     "ms-python.black-formatter",
-    "ms-python.flake8",
     "ms-python.pylint",
     
     // React 19 + TypeScript Frontend

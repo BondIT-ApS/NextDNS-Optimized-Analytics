@@ -76,6 +76,11 @@ services:
       # Local API Authentication
       LOCAL_API_KEY: YOUR_LOCAL_API_KEY_HERE
       
+      # CORS Allowed Origins - CRITICAL: Set to your actual domain(s)
+      # Development: ALLOWED_ORIGINS=http://localhost:5003
+      # Production: ALLOWED_ORIGINS=https://yourdomain.com,https://www.yourdomain.com
+      ALLOWED_ORIGINS: YOUR_DOMAIN_HERE
+      
       # Web Interface Authentication (Optional)
       # Set to true to require login for web interface
       AUTH_ENABLED: false
