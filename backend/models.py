@@ -112,9 +112,9 @@ def build_domain_exclusion_filter(domain_column, exclude_domains):
             # Replace * with SQL LIKE %
             sql_pattern = sql_pattern.replace('*', '%')
 
-            # Add condition for this pattern
-            wildcard_conditions.append(domain_column.like(sql_pattern))
-            logger.debug(f"🔍 Wildcard pattern: '{pattern}' → SQL LIKE '{sql_pattern}'")
+            # Add condition for this pattern (case-insensitive)
+            wildcard_conditions.append(domain_column.ilike(sql_pattern))
+            logger.debug(f"🔍 Wildcard pattern: '{pattern}' → SQL ILIKE '{sql_pattern}'")
         else:
             # Exact match
             exact_matches.append(pattern)
@@ -122,10 +122,12 @@ def build_domain_exclusion_filter(domain_column, exclude_domains):
     # Build combined filter conditions
     conditions = []
 
-    # Add exact match exclusion (using NOT IN for efficiency)
+    # Add exact match exclusion (case-insensitive using lowercase comparison)
     if exact_matches:
-        conditions.append(~domain_column.in_(exact_matches))
-        logger.debug(f"🚫 Excluding {len(exact_matches)} exact domain matches")
+        # Convert patterns to lowercase for case-insensitive matching
+        lowercase_patterns = [p.lower() for p in exact_matches]
+        conditions.append(~func.lower(domain_column).in_(lowercase_patterns))
+        logger.debug(f"🚫 Excluding {len(exact_matches)} exact domain matches (case-insensitive)")
 
     # Add wildcard exclusions (using NOT LIKE for each)
     if wildcard_conditions:
