@@ -731,13 +731,19 @@ async def get_logs_statistics(
     time_range: str = Query(
         default="all", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
+    exclude: Optional[List[str]] = Query(
+        default=None,
+        description="Domains/patterns to exclude from statistics (supports wildcards: *.apple.com, tracking.*)",
+    ),
     current_user: str = Depends(get_current_user),
 ):
     """Get statistics for DNS logs in the database, optionally filtered by profile and time range."""
     logger.debug(
-        f"📊 API request for logs statistics (profile: '{profile}', time_range: '{time_range}')"
+        f"📊 API request for logs statistics (profile: '{profile}', time_range: '{time_range}', exclude: {exclude})"
     )
-    stats = get_logs_stats(profile_filter=profile, time_range=time_range)
+    stats = get_logs_stats(
+        profile_filter=profile, time_range=time_range, exclude_domains=exclude
+    )
     logger.info(f"📊 Returning stats: {stats}")
     return LogsStatsResponse(**stats)
 
@@ -745,7 +751,8 @@ async def get_logs_statistics(
 @app.get("/logs", response_model=LogsResponse, tags=["Logs"])
 async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
     exclude: Optional[List[str]] = Query(
-        default=None, description="Domains to exclude from results"
+        default=None,
+        description="Domains/patterns to exclude from results (supports wildcards: *.apple.com, tracking.*)",
     ),
     search: Optional[str] = Query(
         default="", description="Search query for domain names"
@@ -861,15 +868,21 @@ async def get_stats_overview(
     time_range: str = Query(
         default="24h", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
+    exclude: Optional[List[str]] = Query(
+        default=None,
+        description="Domains/patterns to exclude from statistics (supports wildcards: *.apple.com, tracking.*)",
+    ),
     current_user: str = Depends(get_current_user),
 ):
     """Get overview statistics for the dashboard."""
     logger.debug(
-        f"📊 Stats overview request: profile={profile}, time_range={time_range}"
+        f"📊 Stats overview request: profile={profile}, time_range={time_range}, exclude={exclude}"
     )
 
     # Get real data from database
-    stats = get_db_stats_overview(profile_filter=profile, time_range=time_range)
+    stats = get_db_stats_overview(
+        profile_filter=profile, time_range=time_range, exclude_domains=exclude
+    )
     return StatsOverviewResponse(**stats)
 
 
@@ -957,16 +970,23 @@ async def get_top_domains(
     limit: int = Query(
         default=10, ge=5, le=50, description="Number of top domains to return"
     ),
+    exclude: Optional[List[str]] = Query(
+        default=None,
+        description="Domains/patterns to exclude from results (supports wildcards: *.apple.com, tracking.*)",
+    ),
     current_user: str = Depends(get_current_user),
 ):
     """Get top blocked and allowed domains."""
     logger.debug(
-        f"📊 Top domains request: profile={profile}, time_range={time_range}, limit={limit}"
+        f"📊 Top domains request: profile={profile}, time_range={time_range}, limit={limit}, exclude={exclude}"
     )
 
     # Get real domains data from database
     domains_data = get_db_top_domains(
-        profile_filter=profile, time_range=time_range, limit=limit
+        profile_filter=profile,
+        time_range=time_range,
+        limit=limit,
+        exclude_domains=exclude,
     )
 
     # Convert to TopDomainsItem objects
@@ -993,6 +1013,10 @@ async def get_top_tlds(
     limit: int = Query(
         default=10, ge=5, le=50, description="Number of top TLDs to return"
     ),
+    exclude: Optional[List[str]] = Query(
+        default=None,
+        description="Domains/patterns to exclude from results (supports wildcards: *.apple.com, tracking.*)",
+    ),
     current_user: str = Depends(get_current_user),
 ):
     """Get top-level domain statistics (TLD aggregation).
@@ -1003,12 +1027,15 @@ async def get_top_tlds(
     - www.google.com → google.com
     """
     logger.debug(
-        f"📊 Top TLDs request: profile={profile}, time_range={time_range}, limit={limit}"
+        f"📊 Top TLDs request: profile={profile}, time_range={time_range}, limit={limit}, exclude={exclude}"
     )
 
     # Get TLD aggregation data from database
     tlds_data = get_stats_tlds(
-        profile_filter=profile, time_range=time_range, limit=limit
+        profile_filter=profile,
+        time_range=time_range,
+        limit=limit,
+        exclude_domains=exclude,
     )
 
     # Convert to TopDomainsItem objects (reusing same structure)
@@ -1064,6 +1091,10 @@ async def get_device_stats(
         default=None,
         description="Device names to exclude from results (e.g. 'Unidentified Device')",
     ),
+    exclude_domains: Optional[List[str]] = Query(
+        default=None,
+        description="Domains/patterns to exclude from results (supports wildcards: *.apple.com, tracking.*)",
+    ),
     current_user: str = Depends(get_current_user),
 ):
     """Get device usage statistics showing DNS query activity by device.
@@ -1073,7 +1104,7 @@ async def get_device_stats(
     """
     logger.debug(
         f"📱 Device stats request: profile={profile}, time_range={time_range}, "
-        f"limit={limit}, exclude={exclude}"
+        f"limit={limit}, exclude_devices={exclude}, exclude_domains={exclude_domains}"
     )
 
     # Get device statistics from database
@@ -1082,6 +1113,7 @@ async def get_device_stats(
         time_range=time_range,
         limit=limit,
         exclude_devices=exclude,
+        exclude_domains=exclude_domains,
     )
 
     # Convert to DeviceUsageItem objects
