@@ -74,7 +74,9 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_stats_exclude_wildcard_domains(
-        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
+        self,
+        mock_session_factory,
+        device_stats_db,  # pylint: disable=redefined-outer-name
     ):
         """Test that device stats correctly exclude wildcard domain patterns."""
         session_maker = sessionmaker(bind=device_stats_db)
@@ -108,7 +110,9 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_stats_exclude_tracking_domains(
-        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
+        self,
+        mock_session_factory,
+        device_stats_db,  # pylint: disable=redefined-outer-name
     ):
         """Test excluding tracking-related domains with wildcards."""
         session_maker = sessionmaker(bind=device_stats_db)
@@ -150,7 +154,9 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_stats_exact_domain_exclusion(
-        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
+        self,
+        mock_session_factory,
+        device_stats_db,  # pylint: disable=redefined-outer-name
     ):
         """Test exact domain match exclusion (no wildcards)."""
         session_maker = sessionmaker(bind=device_stats_db)
@@ -183,7 +189,9 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_and_domain_exclusion_combined(
-        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
+        self,
+        mock_session_factory,
+        device_stats_db,  # pylint: disable=redefined-outer-name
     ):
         """Test combining device exclusion with domain exclusion."""
         session_maker = sessionmaker(bind=device_stats_db)
@@ -213,7 +221,9 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_stats_no_exclusions(
-        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
+        self,
+        mock_session_factory,
+        device_stats_db,  # pylint: disable=redefined-outer-name
     ):
         """Test device stats without any exclusions (baseline)."""
         session_maker = sessionmaker(bind=device_stats_db)
@@ -255,7 +265,9 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_stats_empty_domain_exclusion_list(
-        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
+        self,
+        mock_session_factory,
+        device_stats_db,  # pylint: disable=redefined-outer-name
     ):
         """Test that empty domain exclusion list returns all data."""
         session_maker = sessionmaker(bind=device_stats_db)
@@ -276,7 +288,9 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_stats_blocked_percentage_calculation(
-        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
+        self,
+        mock_session_factory,
+        device_stats_db,  # pylint: disable=redefined-outer-name
     ):
         """Test that blocked percentage is calculated correctly after exclusion."""
         session_maker = sessionmaker(bind=device_stats_db)
@@ -304,7 +318,9 @@ class TestDeviceStatsWithDomainExclusion:
 
     @patch("models.session_factory")
     def test_device_stats_multiple_wildcard_patterns(
-        self, mock_session_factory, device_stats_db  # pylint: disable=redefined-outer-name
+        self,
+        mock_session_factory,
+        device_stats_db,  # pylint: disable=redefined-outer-name
     ):
         """Test multiple wildcard patterns work together."""
         session_maker = sessionmaker(bind=device_stats_db)
@@ -328,5 +344,9 @@ class TestDeviceStatsWithDomainExclusion:
         iphone_stats = next((d for d in results if d["device_name"] == "iPhone"), None)
         assert iphone_stats is not None
         assert iphone_stats["total_queries"] == 6
-        assert iphone_stats["blocked_queries"] == 2  # analytics.facebook.com, amazon.com
-        assert iphone_stats["allowed_queries"] == 4  # gateway.icloud, facebook, youtube, google
+        assert (
+            iphone_stats["blocked_queries"] == 2
+        )  # analytics.facebook.com, amazon.com
+        assert (
+            iphone_stats["allowed_queries"] == 4
+        )  # gateway.icloud, facebook, youtube, google

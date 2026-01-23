@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ErrorBoundary, ApiErrorBoundary } from '../ErrorBoundary'
@@ -111,9 +111,7 @@ describe('ErrorBoundary', () => {
       )
 
       expect(screen.getByText(/Error: Test error/)).toBeInTheDocument()
-      expect(
-        screen.getByRole('button', { name: /reset/i })
-      ).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /reset/i })).toBeInTheDocument()
     })
   })
 
@@ -245,9 +243,7 @@ describe('ApiErrorBoundary', () => {
         </ApiErrorBoundary>
       )
 
-      expect(
-        screen.getByRole('button', { name: /retry/i })
-      ).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
     })
 
     it('should show LEGO-themed message', () => {

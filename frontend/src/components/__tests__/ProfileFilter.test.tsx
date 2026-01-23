@@ -27,12 +27,7 @@ describe('ProfileFilter', () => {
 
   describe('No Profiles State', () => {
     it('should show disabled state when no profiles available', () => {
-      render(
-        <ProfileFilter
-          {...defaultProps}
-          availableProfiles={[]}
-        />
-      )
+      render(<ProfileFilter {...defaultProps} availableProfiles={[]} />)
 
       expect(screen.getByText('Profile Filter')).toBeInTheDocument()
       expect(
@@ -44,7 +39,7 @@ describe('ProfileFilter', () => {
       render(
         <ProfileFilter
           {...defaultProps}
-          availableProfiles={undefined as any}
+          availableProfiles={undefined as unknown as string[]}
         />
       )
 
@@ -143,12 +138,7 @@ describe('ProfileFilter', () => {
     })
 
     it('should fallback to profile ID when name not provided', async () => {
-      render(
-        <ProfileFilter
-          {...defaultProps}
-          profileNames={{}}
-        />
-      )
+      render(<ProfileFilter {...defaultProps} profileNames={{}} />)
 
       // Expand filter
       await userEvent.click(screen.getByRole('button', { name: /expand/i }))
@@ -173,18 +163,16 @@ describe('ProfileFilter', () => {
 
     it('should apply colors to selected profile badges', () => {
       const { container } = render(
-        <ProfileFilter
-          {...defaultProps}
-          selectedProfiles={['profile1']}
-        />
+        <ProfileFilter {...defaultProps} selectedProfiles={['profile1']} />
       )
 
       // Find elements with inline styles that contain color values
       // The color dots have inline backgroundColor styles
       const styledElements = container.querySelectorAll('[style]')
       const hasColorStyle = Array.from(styledElements).some(
-        el => el.getAttribute('style')?.includes('background-color') ||
-              el.getAttribute('style')?.includes('border-color')
+        el =>
+          el.getAttribute('style')?.includes('background-color') ||
+          el.getAttribute('style')?.includes('border-color')
       )
 
       expect(hasColorStyle).toBe(true)
@@ -211,12 +199,7 @@ describe('ProfileFilter', () => {
     })
 
     it('should search by profile ID when name not available', async () => {
-      render(
-        <ProfileFilter
-          {...defaultProps}
-          profileNames={{}}
-        />
-      )
+      render(<ProfileFilter {...defaultProps} profileNames={{}} />)
 
       // Expand filter
       await userEvent.click(screen.getByRole('button', { name: /expand/i }))
@@ -416,10 +399,7 @@ describe('ProfileFilter', () => {
   describe('Empty State', () => {
     it('should show message when no profiles found (no search)', async () => {
       render(
-        <ProfileFilter
-          {...defaultProps}
-          availableProfiles={['profile1']}
-        />
+        <ProfileFilter {...defaultProps} availableProfiles={['profile1']} />
       )
 
       // Expand filter
@@ -429,7 +409,9 @@ describe('ProfileFilter', () => {
       const searchInput = screen.getByPlaceholderText('Search profiles...')
       await userEvent.type(searchInput, 'xxx')
 
-      expect(screen.getByText('No profiles match your search.')).toBeInTheDocument()
+      expect(
+        screen.getByText('No profiles match your search.')
+      ).toBeInTheDocument()
     })
   })
 })

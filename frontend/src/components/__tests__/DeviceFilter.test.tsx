@@ -9,6 +9,42 @@ vi.mock('@/hooks/useDevices', () => ({
   useDeviceNames: vi.fn(),
 }))
 
+// Helper to create a complete mock return value for TanStack Query
+const createMockQueryResult = (
+  overrides: Record<string, unknown> = {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): any => ({
+  deviceNames: [],
+  devicesData: undefined,
+  isLoading: false,
+  isError: false,
+  error: null,
+  data: undefined,
+  isPending: false,
+  isSuccess: true,
+  status: 'success' as const,
+  fetchStatus: 'idle' as const,
+  isRefetching: false,
+  isLoadingError: false,
+  isRefetchError: false,
+  isPlaceholderData: false,
+  dataUpdatedAt: 0,
+  errorUpdatedAt: 0,
+  failureCount: 0,
+  failureReason: null,
+  errorUpdateCount: 0,
+  isFetched: true,
+  isFetchedAfterMount: true,
+  isFetching: false,
+  isInitialLoading: false,
+  isStale: false,
+  isPaused: false,
+  isEnabled: true,
+  promise: Promise.resolve(undefined),
+  refetch: vi.fn(),
+  ...overrides,
+})
+
 describe('DeviceFilter', () => {
   const mockOnDeviceSelectionChange = vi.fn()
   const defaultProps = {
@@ -24,11 +60,9 @@ describe('DeviceFilter', () => {
 
   describe('No Profile Selected State', () => {
     it('should show disabled state when no profile is selected', () => {
-      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue({
-        deviceNames: [],
-        isLoading: false,
-        error: null,
-      })
+      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue(
+        createMockQueryResult({ deviceNames: [] })
+      )
 
       render(<DeviceFilter {...defaultProps} selectedProfile={undefined} />)
 
@@ -41,11 +75,15 @@ describe('DeviceFilter', () => {
 
   describe('Loading State', () => {
     it('should show loading skeleton when fetching devices', async () => {
-      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue({
-        deviceNames: [],
-        isLoading: true,
-        error: null,
-      })
+      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue(
+        createMockQueryResult({
+          deviceNames: [],
+          isLoading: true,
+          isPending: true,
+          isSuccess: false,
+          status: 'pending',
+        })
+      )
 
       render(<DeviceFilter {...defaultProps} />)
 
@@ -61,11 +99,16 @@ describe('DeviceFilter', () => {
 
   describe('Error State', () => {
     it('should show error message when device fetch fails', async () => {
-      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue({
-        deviceNames: [],
-        isLoading: false,
-        error: new Error('Failed to fetch'),
-      })
+      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue(
+        createMockQueryResult({
+          deviceNames: [],
+          isLoading: false,
+          isError: true,
+          error: new Error('Failed to fetch'),
+          isSuccess: false,
+          status: 'error',
+        })
+      )
 
       render(<DeviceFilter {...defaultProps} />)
 
@@ -73,19 +116,15 @@ describe('DeviceFilter', () => {
       const expandButton = screen.getByRole('button', { name: /expand/i })
       await userEvent.click(expandButton)
 
-      expect(
-        screen.getByText(/Failed to load devices/i)
-      ).toBeInTheDocument()
+      expect(screen.getByText(/Failed to load devices/i)).toBeInTheDocument()
     })
   })
 
   describe('Device Selection', () => {
     beforeEach(() => {
-      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue({
-        deviceNames: ['iPhone', 'MacBook', 'iPad'],
-        isLoading: false,
-        error: null,
-      })
+      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue(
+        createMockQueryResult({ deviceNames: ['iPhone', 'MacBook', 'iPad'] })
+      )
     })
 
     it('should display selected device count in badge', () => {
@@ -109,9 +148,7 @@ describe('DeviceFilter', () => {
     })
 
     it('should deselect device when clicked again', async () => {
-      render(
-        <DeviceFilter {...defaultProps} selectedDevices={['iPhone']} />
-      )
+      render(<DeviceFilter {...defaultProps} selectedDevices={['iPhone']} />)
 
       // Expand filter
       await userEvent.click(screen.getByRole('button', { name: /expand/i }))
@@ -152,11 +189,11 @@ describe('DeviceFilter', () => {
 
   describe('Search Functionality', () => {
     beforeEach(() => {
-      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue({
-        deviceNames: ['iPhone', 'MacBook', 'iPad', 'Android Phone'],
-        isLoading: false,
-        error: null,
-      })
+      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue(
+        createMockQueryResult({
+          deviceNames: ['iPhone', 'MacBook', 'iPad', 'Android Phone'],
+        })
+      )
     })
 
     it('should filter devices based on search query', async () => {
@@ -197,11 +234,9 @@ describe('DeviceFilter', () => {
 
   describe('Select All/Clear All', () => {
     beforeEach(() => {
-      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue({
-        deviceNames: ['iPhone', 'MacBook', 'iPad'],
-        isLoading: false,
-        error: null,
-      })
+      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue(
+        createMockQueryResult({ deviceNames: ['iPhone', 'MacBook', 'iPad'] })
+      )
     })
 
     it('should select all devices when Select All clicked', async () => {
@@ -264,18 +299,20 @@ describe('DeviceFilter', () => {
 
   describe('Expand/Collapse', () => {
     beforeEach(() => {
-      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue({
-        deviceNames: ['iPhone', 'MacBook'],
-        isLoading: false,
-        error: null,
-      })
+      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue(
+        createMockQueryResult({ deviceNames: ['iPhone', 'MacBook'] })
+      )
     })
 
     it('should start collapsed', () => {
       render(<DeviceFilter {...defaultProps} />)
 
-      expect(screen.getByRole('button', { name: /expand/i })).toBeInTheDocument()
-      expect(screen.queryByPlaceholderText('Search devices...')).not.toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: /expand/i })
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByPlaceholderText('Search devices...')
+      ).not.toBeInTheDocument()
     })
 
     it('should expand when Expand button clicked', async () => {
@@ -283,8 +320,12 @@ describe('DeviceFilter', () => {
 
       await userEvent.click(screen.getByRole('button', { name: /expand/i }))
 
-      expect(screen.getByRole('button', { name: /collapse/i })).toBeInTheDocument()
-      expect(screen.getByPlaceholderText('Search devices...')).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: /collapse/i })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByPlaceholderText('Search devices...')
+      ).toBeInTheDocument()
     })
 
     it('should collapse when Collapse button clicked', async () => {
@@ -292,21 +333,23 @@ describe('DeviceFilter', () => {
 
       // Expand first
       await userEvent.click(screen.getByRole('button', { name: /expand/i }))
-      expect(screen.getByPlaceholderText('Search devices...')).toBeInTheDocument()
+      expect(
+        screen.getByPlaceholderText('Search devices...')
+      ).toBeInTheDocument()
 
       // Then collapse
       await userEvent.click(screen.getByRole('button', { name: /collapse/i }))
-      expect(screen.queryByPlaceholderText('Search devices...')).not.toBeInTheDocument()
+      expect(
+        screen.queryByPlaceholderText('Search devices...')
+      ).not.toBeInTheDocument()
     })
   })
 
   describe('Empty State', () => {
     it('should show message when no devices found', async () => {
-      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue({
-        deviceNames: [],
-        isLoading: false,
-        error: null,
-      })
+      vi.mocked(useDevicesHook.useDeviceNames).mockReturnValue(
+        createMockQueryResult({ deviceNames: [] })
+      )
 
       render(<DeviceFilter {...defaultProps} />)
 
