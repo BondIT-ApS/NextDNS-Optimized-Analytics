@@ -1515,7 +1515,7 @@ def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
 
 # Get device usage statistics from database
 def get_stats_devices(  # pylint: disable=too-many-locals,too-many-branches
-    profile_filter=None, time_range="24h", limit=10, exclude_devices=None
+    profile_filter=None, time_range="24h", limit=10, exclude_devices=None, exclude_domains=None
 ):
     """Get device usage statistics showing DNS query activity by device.
 
@@ -1527,6 +1527,7 @@ def get_stats_devices(  # pylint: disable=too-many-locals,too-many-branches
                          - 3m: Last 3 months (weekly granularity)
         limit (int): Number of top devices to return
         exclude_devices (list): List of device names to exclude from results
+        exclude_domains (list): List of domain patterns to exclude (supports wildcards)
 
     Returns:
         list: List of device statistics with usage information
@@ -1539,6 +1540,11 @@ def get_stats_devices(  # pylint: disable=too-many-locals,too-many-branches
         # Apply profile filter
         if profile_filter and profile_filter.strip() and profile_filter != "all":
             query = query.filter(DNSLog.profile_id == profile_filter)
+
+        # Apply domain exclusion filter
+        domain_filter = build_domain_exclusion_filter(DNSLog.domain, exclude_domains)
+        if domain_filter is not None:
+            query = query.filter(domain_filter)
 
         # Apply time range filter
         if time_range != "all":
