@@ -527,6 +527,7 @@ export default function Stats() {
                   selectedProfile === 'all' ? undefined : selectedProfile
                 }
                 timeRange={timeRange}
+                excludedDomains={excludedDomains}
               />
             </TabsContent>
 
