@@ -16,6 +16,8 @@ export function useLogs(params: LogsParams = {}) {
     profile: params.profile || undefined,
     devices:
       params.devices && params.devices.length > 0 ? params.devices : undefined,
+    exclude:
+      params.exclude && params.exclude.length > 0 ? params.exclude : undefined,
   }
 
   // Remove undefined values to create cleaner query key
@@ -45,10 +47,10 @@ export function useLogs(params: LogsParams = {}) {
   })
 }
 
-export function useLogsStats(profile?: string) {
+export function useLogsStats(profile?: string, exclude?: string[]) {
   return useQuery({
-    queryKey: ['logs-stats', profile],
-    queryFn: () => apiClient.getLogsStats(profile),
+    queryKey: ['logs-stats', profile, exclude],
+    queryFn: () => apiClient.getLogsStats(profile, exclude),
     staleTime: 60000, // 60 seconds
     refetchInterval: 120000, // Refetch every 2 minutes
   })

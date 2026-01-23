@@ -97,9 +97,15 @@ export const apiClient = {
     return response.data
   },
 
-  async getLogsStats(profile?: string): Promise<LogsStatsResponse> {
+  async getLogsStats(
+    profile?: string,
+    exclude?: string[]
+  ): Promise<LogsStatsResponse> {
     const params = new URLSearchParams()
     if (profile) params.append('profile', profile)
+    if (exclude && exclude.length > 0) {
+      exclude.forEach(domain => params.append('exclude', domain))
+    }
 
     const response = await api.get(`/logs/stats?${params.toString()}`)
     return response.data
@@ -139,7 +145,8 @@ export const apiClient = {
     profile?: string,
     timeRange: string = '24h',
     limit: number = 10,
-    exclude: string[] = []
+    exclude: string[] = [],
+    excludeDomains: string[] = []
   ): Promise<DeviceStatsResponse> {
     const params = new URLSearchParams()
     if (profile) params.append('profile', profile)
@@ -147,6 +154,9 @@ export const apiClient = {
     params.append('limit', limit.toString())
     if (exclude.length > 0) {
       exclude.forEach(device => params.append('exclude', device))
+    }
+    if (excludeDomains.length > 0) {
+      excludeDomains.forEach(domain => params.append('exclude_domains', domain))
     }
 
     const response = await api.get(`/stats/devices?${params.toString()}`)

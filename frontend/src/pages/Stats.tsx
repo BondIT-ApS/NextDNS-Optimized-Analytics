@@ -19,6 +19,7 @@ import { ChartJsOverview } from '../components/charts/ChartJsOverview'
 import { ChartJsDomains } from '../components/charts/ChartJsDomains'
 import { ChartJsTlds } from '../components/charts/ChartJsTlds'
 import { DeviceAnalytics } from '../components/analytics/DeviceAnalytics'
+import { DomainExclusionInput } from '../components/DomainExclusionInput'
 
 // Profile data interface
 interface Profile {
@@ -95,6 +96,7 @@ export default function Stats() {
   const [selectedProfile, setSelectedProfile] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<string>('24h')
   const [activeTab, setActiveTab] = useState<string>('overview')
+  const [excludedDomains, setExcludedDomains] = useState<string[]>([])
 
   // Data state
   const [overview, setOverview] = useState<StatsOverview | null>(null)
@@ -113,10 +115,19 @@ export default function Stats() {
     const savedProfile = localStorage.getItem('stats_selected_profile')
     const savedTimeRange = localStorage.getItem('stats_time_range')
     const savedTab = localStorage.getItem('stats_active_tab')
+    const savedExcludedDomains = localStorage.getItem('stats_excluded_domains')
 
     if (savedProfile) setSelectedProfile(savedProfile)
     if (savedTimeRange) setTimeRange(savedTimeRange)
     if (savedTab) setActiveTab(savedTab)
+    if (savedExcludedDomains) {
+      try {
+        const parsed = JSON.parse(savedExcludedDomains)
+        if (Array.isArray(parsed)) setExcludedDomains(parsed)
+      } catch (e) {
+        console.error('Failed to parse excluded domains from localStorage:', e)
+      }
+    }
 
     // Also check URL params
     const profileParam = searchParams.get('profile')
@@ -133,6 +144,10 @@ export default function Stats() {
     localStorage.setItem('stats_selected_profile', selectedProfile)
     localStorage.setItem('stats_time_range', timeRange)
     localStorage.setItem('stats_active_tab', activeTab)
+    localStorage.setItem(
+      'stats_excluded_domains',
+      JSON.stringify(excludedDomains)
+    )
 
     // Update URL params
     const params = new URLSearchParams()
@@ -141,7 +156,7 @@ export default function Stats() {
     if (activeTab !== 'overview') params.set('tab', activeTab)
 
     setSearchParams(params, { replace: true })
-  }, [selectedProfile, timeRange, activeTab, setSearchParams])
+  }, [selectedProfile, timeRange, activeTab, excludedDomains, setSearchParams])
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -154,6 +169,11 @@ export default function Stats() {
       if (selectedProfile !== 'all') params.set('profile', selectedProfile)
       params.set('time_range', timeRange)
       params.set('group_by', 'profile') // Use profile grouping for chart
+
+      // Add excluded domains to params
+      excludedDomains.forEach(domain => {
+        params.append('exclude', domain)
+      })
 
       console.log('Fetching stats data with params:', params.toString())
 
@@ -239,7 +259,7 @@ export default function Stats() {
     } finally {
       setLoading(false)
     }
-  }, [selectedProfile, timeRange])
+  }, [selectedProfile, timeRange, excludedDomains])
 
   // Fetch profiles on component mount
   useEffect(() => {
@@ -363,6 +383,25 @@ export default function Stats() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Domain Exclusion */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Domain Exclusion (Wildcards Supported)
+          </CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Exclude domains from all analytics using wildcards or exact matches
+          </p>
+        </CardHeader>
+        <CardContent>
+          <DomainExclusionInput
+            value={excludedDomains}
+            onChange={setExcludedDomains}
+          />
+        </CardContent>
+      </Card>
 
       {/* Loading State */}
       {loading && (
@@ -488,6 +527,7 @@ export default function Stats() {
                   selectedProfile === 'all' ? undefined : selectedProfile
                 }
                 timeRange={timeRange}
+                excludedDomains={excludedDomains}
               />
             </TabsContent>
 
