@@ -264,6 +264,22 @@ export function Logs() {
               />
             </div>
           </div>
+
+          {/* Domain Exclusion */}
+          <div className="p-4 border rounded-lg bg-card">
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">
+                Domain Exclusion (Wildcards Supported)
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Exclude domains from logs using wildcards or exact matches
+              </p>
+              <DomainExclusionInput
+                value={excludedDomains}
+                onChange={setExcludedDomains}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Logs Table */}
