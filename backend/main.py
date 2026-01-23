@@ -1093,7 +1093,7 @@ async def get_device_stats(
     ),
     exclude_domains: Optional[List[str]] = Query(
         default=None,
-        description="Domains/patterns to exclude from results (supports wildcards: *.apple.com, tracking.*)"
+        description="Domains/patterns to exclude from results (supports wildcards: *.apple.com, tracking.*)",
     ),
     current_user: str = Depends(get_current_user),
 ):

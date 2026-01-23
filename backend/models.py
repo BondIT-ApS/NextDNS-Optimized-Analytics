@@ -1515,7 +1515,11 @@ def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
 
 # Get device usage statistics from database
 def get_stats_devices(  # pylint: disable=too-many-locals,too-many-branches
-    profile_filter=None, time_range="24h", limit=10, exclude_devices=None, exclude_domains=None
+    profile_filter=None,
+    time_range="24h",
+    limit=10,
+    exclude_devices=None,
+    exclude_domains=None,
 ):
     """Get device usage statistics showing DNS query activity by device.
 
