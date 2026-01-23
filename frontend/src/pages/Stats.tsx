@@ -144,7 +144,10 @@ export default function Stats() {
     localStorage.setItem('stats_selected_profile', selectedProfile)
     localStorage.setItem('stats_time_range', timeRange)
     localStorage.setItem('stats_active_tab', activeTab)
-    localStorage.setItem('stats_excluded_domains', JSON.stringify(excludedDomains))
+    localStorage.setItem(
+      'stats_excluded_domains',
+      JSON.stringify(excludedDomains)
+    )
 
     // Update URL params
     const params = new URLSearchParams()

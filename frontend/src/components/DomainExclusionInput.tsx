@@ -12,7 +12,9 @@ interface DomainExclusionInputProps {
 }
 
 // Validate wildcard pattern
-const validatePattern = (pattern: string): {
+const validatePattern = (
+  pattern: string
+): {
   valid: boolean
   error?: string
 } => {
@@ -85,7 +87,7 @@ export const DomainExclusionInput: React.FC<DomainExclusionInputProps> = ({
 
   const handleRemove = useCallback(
     (pattern: string) => {
-      onChange(value.filter((p) => p !== pattern))
+      onChange(value.filter(p => p !== pattern))
     },
     [value, onChange]
   )
@@ -186,7 +188,7 @@ export const DomainExclusionInput: React.FC<DomainExclusionInputProps> = ({
 
       {value.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {value.map((pattern) => (
+          {value.map(pattern => (
             <Badge
               key={pattern}
               variant="secondary"

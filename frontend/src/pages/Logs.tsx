@@ -61,7 +61,10 @@ export function Logs() {
 
   // Persist excluded domains
   useEffect(() => {
-    localStorage.setItem('logs_excluded_domains', JSON.stringify(excludedDomains))
+    localStorage.setItem(
+      'logs_excluded_domains',
+      JSON.stringify(excludedDomains)
+    )
   }, [excludedDomains])
 
   // Memoize the query parameters to prevent unnecessary re-renders
