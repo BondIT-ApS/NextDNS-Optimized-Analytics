@@ -7,6 +7,7 @@ Tests complex query functions like get_logs, get_stats_overview, etc.
 
 from datetime import datetime, timezone, timedelta
 import pytest
+from sqlalchemy.exc import IntegrityError
 from models import (
     DNSLog,
     get_logs,
@@ -113,8 +114,6 @@ def test_dns_log_unique_constraint_prevents_duplicates(test_db):
     test_db.add(log2)
 
     # SQLAlchemy will raise IntegrityError
-    from sqlalchemy.exc import IntegrityError
-
     with pytest.raises(IntegrityError):
         test_db.commit()
 
