@@ -93,7 +93,13 @@ export function DeviceAnalytics({
 
   useEffect(() => {
     fetchDeviceData()
-  }, [selectedProfile, timeRange, excludedDevices, excludedDomains, fetchDeviceData])
+  }, [
+    selectedProfile,
+    timeRange,
+    excludedDevices,
+    excludedDomains,
+    fetchDeviceData,
+  ])
 
   // Filter and sort devices
   const filteredAndSortedDevices = useMemo(() => {
