@@ -1091,6 +1091,10 @@ async def get_device_stats(
         default=None,
         description="Device names to exclude from results (e.g. 'Unidentified Device')",
     ),
+    exclude_domains: Optional[List[str]] = Query(
+        default=None,
+        description="Domains/patterns to exclude from results (supports wildcards: *.apple.com, tracking.*)",
+    ),
     current_user: str = Depends(get_current_user),
 ):
     """Get device usage statistics showing DNS query activity by device.
@@ -1100,7 +1104,7 @@ async def get_device_stats(
     """
     logger.debug(
         f"📱 Device stats request: profile={profile}, time_range={time_range}, "
-        f"limit={limit}, exclude={exclude}"
+        f"limit={limit}, exclude_devices={exclude}, exclude_domains={exclude_domains}"
     )
 
     # Get device statistics from database
@@ -1109,6 +1113,7 @@ async def get_device_stats(
         time_range=time_range,
         limit=limit,
         exclude_devices=exclude,
+        exclude_domains=exclude_domains,
     )
 
     # Convert to DeviceUsageItem objects

@@ -28,6 +28,7 @@ import { LoadingState, ErrorState } from '@/components/LoadingSkeletons'
 interface DeviceAnalyticsProps {
   selectedProfile?: string
   timeRange?: string
+  excludedDomains?: string[]
   className?: string
 }
 
@@ -41,6 +42,7 @@ type SortOrder = 'asc' | 'desc'
 export function DeviceAnalytics({
   selectedProfile,
   timeRange = '24h',
+  excludedDomains = [],
   className = '',
 }: DeviceAnalyticsProps) {
   const navigate = useNavigate()
@@ -74,7 +76,8 @@ export function DeviceAnalytics({
         filters.profile,
         filters.time_range,
         filters.limit,
-        filters.exclude
+        filters.exclude,
+        excludedDomains
       )
 
       setDevices(response.devices)
@@ -86,11 +89,17 @@ export function DeviceAnalytics({
     } finally {
       setLoading(false)
     }
-  }, [selectedProfile, timeRange, excludedDevices])
+  }, [selectedProfile, timeRange, excludedDevices, excludedDomains])
 
   useEffect(() => {
     fetchDeviceData()
-  }, [selectedProfile, timeRange, excludedDevices, fetchDeviceData])
+  }, [
+    selectedProfile,
+    timeRange,
+    excludedDevices,
+    excludedDomains,
+    fetchDeviceData,
+  ])
 
   // Filter and sort devices
   const filteredAndSortedDevices = useMemo(() => {
