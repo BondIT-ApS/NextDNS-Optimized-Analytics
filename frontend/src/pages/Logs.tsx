@@ -8,6 +8,7 @@ import { FilterPanel } from '@/components/FilterPanel'
 import { LogsTable } from '@/components/LogsTable'
 import { ProfileSelector } from '@/components/ProfileSelector'
 import { DeviceFilter } from '@/components/DeviceFilter'
+import { DomainExclusionInput } from '@/components/DomainExclusionInput'
 import { useState, useMemo, useEffect, useCallback, useTransition } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
@@ -33,6 +34,18 @@ export function Logs() {
     const deviceParam = searchParams.get('device')
     return deviceParam ? [deviceParam] : []
   })
+  const [excludedDomains, setExcludedDomains] = useState<string[]>(() => {
+    const saved = localStorage.getItem('logs_excluded_domains')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        return Array.isArray(parsed) ? parsed : []
+      } catch (e) {
+        console.error('Failed to parse excluded domains from localStorage:', e)
+      }
+    }
+    return []
+  })
   const [, startTransition] = useTransition()
 
   // Debounce search query with transition for non-blocking updates
@@ -46,6 +59,11 @@ export function Logs() {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
+  // Persist excluded domains
+  useEffect(() => {
+    localStorage.setItem('logs_excluded_domains', JSON.stringify(excludedDomains))
+  }, [excludedDomains])
+
   // Memoize the query parameters to prevent unnecessary re-renders
   const queryParams = useMemo(
     () => ({
@@ -54,15 +72,24 @@ export function Logs() {
       status: statusFilter,
       profile: selectedProfile,
       devices: selectedDevices.length > 0 ? selectedDevices : undefined,
+      exclude: excludedDomains.length > 0 ? excludedDomains : undefined,
     }),
-    [debouncedSearchQuery, statusFilter, selectedProfile, selectedDevices]
+    [
+      debouncedSearchQuery,
+      statusFilter,
+      selectedProfile,
+      selectedDevices,
+      excludedDomains,
+    ]
   )
 
   const { data: logsResponse, isLoading, error, refetch } = useLogs(queryParams)
 
   // Get total stats from entire database (or filtered by profile)
-  const { data: totalStats, isLoading: statsLoading } =
-    useLogsStats(selectedProfile)
+  const { data: totalStats, isLoading: statsLoading } = useLogsStats(
+    selectedProfile,
+    excludedDomains.length > 0 ? excludedDomains : undefined
+  )
 
   // Since filtering is now done on the backend, use the response data directly
   const filteredLogs = useMemo(() => {
