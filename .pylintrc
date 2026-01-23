@@ -10,16 +10,16 @@ disable=
     C0114,  # missing-module-docstring (too noisy for small modules)
     C0116,  # missing-function-docstring (we have good function names)
     C0302,  # too-many-lines (large API files are acceptable)
+    C0415,  # import-outside-toplevel (common pattern in pytest test functions)
     E0401,  # import-error (packages installed in Docker, not in local pylint env)
     R0903,  # too-few-public-methods (Pydantic models, data classes)
     R0913,  # too-many-arguments (API endpoints, database functions)
     W0613,  # unused-argument (FastAPI dependency injection patterns)
     W1203,  # logging-fstring-interpolation (we prefer f-strings in logs)
     # Keep these enabled for better code quality:
-    # C0413 import-outside-toplevel - should be avoided
     # C0115 missing-class-docstring - classes should have docstrings
     # R0914 too-many-locals - indicates function complexity
-    # R0915 too-many-statements - indicates function complexity 
+    # R0915 too-many-statements - indicates function complexity
     # R0912 too-many-branches - indicates function complexity
     # R0917 too-many-positional-arguments - encourages better API design
     # W0718 catching-too-general-exception - should be specific
