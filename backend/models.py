@@ -98,9 +98,9 @@ def build_domain_exclusion_filter(domain_column, exclude_domains):
             continue
 
         # Check if pattern contains wildcard
-        if '*' in pattern:
+        if "*" in pattern:
             # Validate pattern - reject overly broad patterns for performance
-            if pattern == '*' or pattern == '**' or pattern == '*.*':
+            if pattern == "*" or pattern == "**" or pattern == "*.*":
                 logger.warning(
                     f"⚠️ Rejecting overly broad wildcard pattern: '{pattern}'"
                 )
@@ -108,13 +108,15 @@ def build_domain_exclusion_filter(domain_column, exclude_domains):
 
             # Convert wildcard pattern to SQL LIKE pattern
             # Escape SQL LIKE special characters first
-            sql_pattern = pattern.replace('_', '\\_').replace('%', '\\%')
+            sql_pattern = pattern.replace("_", "\\_").replace("%", "\\%")
             # Replace * with SQL LIKE %
-            sql_pattern = sql_pattern.replace('*', '%')
+            sql_pattern = sql_pattern.replace("*", "%")
 
             # Add condition for this pattern (case-insensitive)
             wildcard_conditions.append(domain_column.ilike(sql_pattern))
-            logger.debug(f"🔍 Wildcard pattern: '{pattern}' → SQL ILIKE '{sql_pattern}'")
+            logger.debug(
+                f"🔍 Wildcard pattern: '{pattern}' → SQL ILIKE '{sql_pattern}'"
+            )
         else:
             # Exact match
             exact_matches.append(pattern)
@@ -127,7 +129,9 @@ def build_domain_exclusion_filter(domain_column, exclude_domains):
         # Convert patterns to lowercase for case-insensitive matching
         lowercase_patterns = [p.lower() for p in exact_matches]
         conditions.append(~func.lower(domain_column).in_(lowercase_patterns))
-        logger.debug(f"🚫 Excluding {len(exact_matches)} exact domain matches (case-insensitive)")
+        logger.debug(
+            f"🚫 Excluding {len(exact_matches)} exact domain matches (case-insensitive)"
+        )
 
     # Add wildcard exclusions (using NOT LIKE for each)
     if wildcard_conditions:
@@ -145,6 +149,7 @@ def build_domain_exclusion_filter(domain_column, exclude_domains):
     else:
         # Both exact and wildcard conditions exist
         from sqlalchemy import and_
+
         return and_(*conditions)
 
 
@@ -542,7 +547,9 @@ def get_logs(  # pylint: disable=too-many-positional-arguments,too-many-locals,t
 
         # Apply domain exclusions (with wildcard support)
         if exclude_domains:
-            exclusion_filter = build_domain_exclusion_filter(DNSLog.domain, exclude_domains)
+            exclusion_filter = build_domain_exclusion_filter(
+                DNSLog.domain, exclude_domains
+            )
             if exclusion_filter is not None:
                 query = query.filter(exclusion_filter)
 
@@ -660,7 +667,9 @@ def get_logs_stats(profile_filter=None, time_range="all", exclude_domains=None):
 
         # Apply domain exclusions (with wildcard support)
         if exclude_domains:
-            exclusion_filter = build_domain_exclusion_filter(DNSLog.domain, exclude_domains)
+            exclusion_filter = build_domain_exclusion_filter(
+                DNSLog.domain, exclude_domains
+            )
             if exclusion_filter is not None:
                 query = query.filter(exclusion_filter)
 
@@ -802,7 +811,9 @@ def get_stats_overview(
 
         # Apply domain exclusions (with wildcard support)
         if exclude_domains:
-            exclusion_filter = build_domain_exclusion_filter(DNSLog.domain, exclude_domains)
+            exclusion_filter = build_domain_exclusion_filter(
+                DNSLog.domain, exclude_domains
+            )
             if exclusion_filter is not None:
                 query = query.filter(exclusion_filter)
 
@@ -1256,7 +1267,9 @@ def get_top_domains(
 
         # Apply domain exclusions (with wildcard support)
         if exclude_domains:
-            exclusion_filter = build_domain_exclusion_filter(DNSLog.domain, exclude_domains)
+            exclusion_filter = build_domain_exclusion_filter(
+                DNSLog.domain, exclude_domains
+            )
             if exclusion_filter is not None:
                 query = query.filter(exclusion_filter)
 
@@ -1397,7 +1410,9 @@ def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
 
         # Apply domain exclusions (with wildcard support)
         if exclude_domains:
-            exclusion_filter = build_domain_exclusion_filter(DNSLog.domain, exclude_domains)
+            exclusion_filter = build_domain_exclusion_filter(
+                DNSLog.domain, exclude_domains
+            )
             if exclusion_filter is not None:
                 query = query.filter(exclusion_filter)
 

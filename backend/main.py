@@ -732,7 +732,8 @@ async def get_logs_statistics(
         default="all", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
     exclude: Optional[List[str]] = Query(
-        default=None, description="Domains/patterns to exclude from statistics (supports wildcards: *.apple.com, tracking.*)"
+        default=None,
+        description="Domains/patterns to exclude from statistics (supports wildcards: *.apple.com, tracking.*)",
     ),
     current_user: str = Depends(get_current_user),
 ):
@@ -740,7 +741,9 @@ async def get_logs_statistics(
     logger.debug(
         f"📊 API request for logs statistics (profile: '{profile}', time_range: '{time_range}', exclude: {exclude})"
     )
-    stats = get_logs_stats(profile_filter=profile, time_range=time_range, exclude_domains=exclude)
+    stats = get_logs_stats(
+        profile_filter=profile, time_range=time_range, exclude_domains=exclude
+    )
     logger.info(f"📊 Returning stats: {stats}")
     return LogsStatsResponse(**stats)
 
@@ -748,7 +751,8 @@ async def get_logs_statistics(
 @app.get("/logs", response_model=LogsResponse, tags=["Logs"])
 async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
     exclude: Optional[List[str]] = Query(
-        default=None, description="Domains/patterns to exclude from results (supports wildcards: *.apple.com, tracking.*)"
+        default=None,
+        description="Domains/patterns to exclude from results (supports wildcards: *.apple.com, tracking.*)",
     ),
     search: Optional[str] = Query(
         default="", description="Search query for domain names"
@@ -865,7 +869,8 @@ async def get_stats_overview(
         default="24h", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
     exclude: Optional[List[str]] = Query(
-        default=None, description="Domains/patterns to exclude from statistics (supports wildcards: *.apple.com, tracking.*)"
+        default=None,
+        description="Domains/patterns to exclude from statistics (supports wildcards: *.apple.com, tracking.*)",
     ),
     current_user: str = Depends(get_current_user),
 ):
@@ -875,7 +880,9 @@ async def get_stats_overview(
     )
 
     # Get real data from database
-    stats = get_db_stats_overview(profile_filter=profile, time_range=time_range, exclude_domains=exclude)
+    stats = get_db_stats_overview(
+        profile_filter=profile, time_range=time_range, exclude_domains=exclude
+    )
     return StatsOverviewResponse(**stats)
 
 
@@ -964,7 +971,8 @@ async def get_top_domains(
         default=10, ge=5, le=50, description="Number of top domains to return"
     ),
     exclude: Optional[List[str]] = Query(
-        default=None, description="Domains/patterns to exclude from results (supports wildcards: *.apple.com, tracking.*)"
+        default=None,
+        description="Domains/patterns to exclude from results (supports wildcards: *.apple.com, tracking.*)",
     ),
     current_user: str = Depends(get_current_user),
 ):
@@ -975,7 +983,10 @@ async def get_top_domains(
 
     # Get real domains data from database
     domains_data = get_db_top_domains(
-        profile_filter=profile, time_range=time_range, limit=limit, exclude_domains=exclude
+        profile_filter=profile,
+        time_range=time_range,
+        limit=limit,
+        exclude_domains=exclude,
     )
 
     # Convert to TopDomainsItem objects
@@ -1003,7 +1014,8 @@ async def get_top_tlds(
         default=10, ge=5, le=50, description="Number of top TLDs to return"
     ),
     exclude: Optional[List[str]] = Query(
-        default=None, description="Domains/patterns to exclude from results (supports wildcards: *.apple.com, tracking.*)"
+        default=None,
+        description="Domains/patterns to exclude from results (supports wildcards: *.apple.com, tracking.*)",
     ),
     current_user: str = Depends(get_current_user),
 ):
@@ -1020,7 +1032,10 @@ async def get_top_tlds(
 
     # Get TLD aggregation data from database
     tlds_data = get_stats_tlds(
-        profile_filter=profile, time_range=time_range, limit=limit, exclude_domains=exclude
+        profile_filter=profile,
+        time_range=time_range,
+        limit=limit,
+        exclude_domains=exclude,
     )
 
     # Convert to TopDomainsItem objects (reusing same structure)
