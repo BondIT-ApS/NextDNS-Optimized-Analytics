@@ -139,12 +139,12 @@ class TestDeviceStatsWithDomainExclusion:
         assert macbook_stats["blocked_queries"] == 1  # 3 - 2 tracking
         assert macbook_stats["allowed_queries"] == 5
 
-        # Router should have 3 queries (5 - 2 tracking)
+        # Router should have 4 queries (5 - 1 tracking.google.com)
         router_stats = next((d for d in results if d["device_name"] == "Router"), None)
         assert router_stats is not None
-        assert router_stats["total_queries"] == 3
-        assert router_stats["blocked_queries"] == 1  # 2 - 1 tracking
-        assert router_stats["allowed_queries"] == 2
+        assert router_stats["total_queries"] == 4
+        assert router_stats["blocked_queries"] == 1  # 2 - 1 tracking.google.com
+        assert router_stats["allowed_queries"] == 3
 
     @patch("models.session_factory")
     def test_device_stats_exact_domain_exclusion(
@@ -176,7 +176,8 @@ class TestDeviceStatsWithDomainExclusion:
         router_stats = next((d for d in results if d["device_name"] == "Router"), None)
         assert router_stats is not None
         assert router_stats["total_queries"] == 4
-        assert router_stats["allowed_queries"] == 3  # 3 - 0
+        assert router_stats["blocked_queries"] == 2  # ads.example, tracking.google
+        assert router_stats["allowed_queries"] == 2  # dns.google, cloudflare
 
     @patch("models.session_factory")
     def test_device_and_domain_exclusion_combined(
@@ -315,10 +316,11 @@ class TestDeviceStatsWithDomainExclusion:
             exclude_domains=exclude_domains,
         )
 
-        # iPhone: 10 total - 2 apple - 2 tracking - 1 ads = 5 queries
+        # iPhone: 10 total - 1 apple - 2 tracking - 1 ads = 6 queries
+        # Excluded: www.apple.com, tracking.google.com, api.tracking.net, ads.example.com
+        # Remaining: gateway.icloud.com, facebook.com, analytics.facebook.com, youtube.com, google.com, amazon.com
         iphone_stats = next((d for d in results if d["device_name"] == "iPhone"), None)
         assert iphone_stats is not None
-        assert iphone_stats["total_queries"] == 5
-        # Remaining: facebook, youtube, google (allowed), analytics.facebook, amazon (blocked)
-        assert iphone_stats["blocked_queries"] == 2
-        assert iphone_stats["allowed_queries"] == 3
+        assert iphone_stats["total_queries"] == 6
+        assert iphone_stats["blocked_queries"] == 2  # analytics.facebook.com, amazon.com
+        assert iphone_stats["allowed_queries"] == 4  # gateway.icloud, facebook, youtube, google
