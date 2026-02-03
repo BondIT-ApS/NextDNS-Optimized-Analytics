@@ -20,7 +20,7 @@ psutil==7.2.1
 
 # Authentication and security
 passlib[bcrypt]==1.7.4
-PyJWT[crypto]==2.10.1  # Replaced python-jose to avoid ecdsa vulnerabilities (CVE-2024-64396, CVE-2024-64459)
+PyJWT[crypto]==2.11.0  # Replaced python-jose to avoid ecdsa vulnerabilities (CVE-2024-64396, CVE-2024-64459)
 slowapi==0.1.9
 
 # Security: Pin transitive dependencies to fix CVE vulnerabilities
