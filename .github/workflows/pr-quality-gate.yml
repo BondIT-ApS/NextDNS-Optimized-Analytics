@@ -107,7 +107,6 @@ jobs:
             
             - 🔍 **Linting**: Checking code formatting and style
             - ✨ **Quality**: Running comprehensive code analysis
-            - 🤖 **AI Code Review**: Claude reviews for best practices and potential issues
             - 🛡️ **Security**: Deep vulnerability scanning with Safety Action
             - 🐳 **Build Test**: Verifying Docker containers build successfully
             
@@ -119,46 +118,6 @@ jobs:
               repo: context.repo.repo,
               body: comment
             });
-
-  # 🤖 Claude AI Code Review (parallel)
-  claude-code-review:
-    name: 🤖 Claude AI Code Review
-    runs-on: ubuntu-latest
-    needs: discover-changes
-    # Only review human-authored PRs with actual code changes (not just workflows/docs)
-    if: |
-      github.event.pull_request.user.type != 'Bot' &&
-      (needs.discover-changes.outputs.frontend-changed == 'true' ||
-       needs.discover-changes.outputs.backend-changed == 'true')
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: read
-      id-token: write
-
-    steps:
-      - name: 📎 Checkout LEGO Instructions
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 1
-
-      - name: 🤖 Run Claude AI Code Review
-        id: claude-review
-        uses: anthropics/claude-code-action@v1
-        with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          prompt: |
-            Please review this pull request for code quality issues, security vulnerabilities, and best practices.
-            Post your findings as a comment on the PR at ${{ github.repository }}/pull/${{ github.event.pull_request.number }}.
-            
-            Focus on:
-            - Security vulnerabilities (SQL injection, hardcoded secrets, unsafe eval, etc.)
-            - Code quality (duplication, complexity, error handling, dead code)
-            - Best practices violations (missing type hints, improper exception handling, global state)
-            - Performance concerns
-            - Missing tests or low test coverage
-            
-            Be constructive and provide specific suggestions for improvement.
 
   # 🔍 Frontend Linting (parallel)
   lint-frontend:
@@ -538,7 +497,7 @@ jobs:
   quality-gate-summary:
     name: 📊 LEGO Quality Gate Summary
     runs-on: ubuntu-latest
-    needs: [discover-changes, lint-frontend, lint-backend, lint-workflows, quality-frontend, quality-backend, safety-security-check, claude-code-review, codecov-upload-frontend, codecov-upload-backend, build-test-backend, build-test-frontend]
+    needs: [discover-changes, lint-frontend, lint-backend, lint-workflows, quality-frontend, quality-backend, safety-security-check, codecov-upload-frontend, codecov-upload-backend, build-test-backend, build-test-frontend]
     if: always()
 
     steps:
@@ -564,7 +523,6 @@ jobs:
                 'quality-frontend': '✨ Frontend Quality',
                 'quality-backend': '✨ Backend Quality',
                 'safety-security-check': '🛡️ Safety Security Scan',
-                'claude-code-review': '🤖 Claude AI Code Review',
                 'codecov-upload-frontend': '📊 Frontend Code Coverage',
                 'codecov-upload-backend': '📊 Backend Code Coverage',
                 'build-test-backend': '🐳 Backend Docker Build',

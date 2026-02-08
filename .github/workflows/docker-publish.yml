@@ -247,6 +247,8 @@ jobs:
             maboni82/nextdns-optimized-analytics-${{ matrix.service }}:latest
             maboni82/nextdns-optimized-analytics-${{ matrix.service }}:${{ needs.calculate-version.outputs.version }}
             maboni82/nextdns-optimized-analytics-${{ matrix.service }}:${{ needs.calculate-version.outputs.year_month }}
+          build-args: |
+            APP_VERSION=${{ needs.calculate-version.outputs.version }}
           builder: ${{ steps.buildx.outputs.name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
