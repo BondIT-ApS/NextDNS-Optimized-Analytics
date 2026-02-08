@@ -462,12 +462,11 @@ class DetailedHealthResponse(BaseModel):
 async def root():
     """Root endpoint for health check."""
     try:
-        total_records = check_database_health()
+        check_database_health()
         return {
             "message": "NextDNS Optimized Analytics API",
             "version": "2.0.0",
             "status": "running",
-            "total_dns_records": total_records,
         }
     except (SQLAlchemyError, ValueError, TypeError) as e:
         logger.error(f"❌ Root health check failed - database offline: {e}")
@@ -559,11 +558,14 @@ def _get_database_metrics() -> Optional[DatabaseMetrics]:
 async def detailed_health_check():
     """Detailed health check with comprehensive system information."""
     try:
-        # Database and basic health checks
-        total_records = check_database_health()
+        # Database connectivity check (lightweight SELECT 1)
+        check_database_health()
         db_healthy = True  # If we get here, database is accessible
         api_healthy = True  # API is responding if we get here
         overall_healthy = db_healthy and api_healthy
+
+        # Get estimated record count (uses pg_class, no table scan)
+        total_records = get_total_record_count()
 
         # Calculate uptime
         uptime_seconds = (datetime.now(timezone.utc) - app_start_time).total_seconds()
