@@ -47,9 +47,12 @@ export function useExcludedDomains() {
     return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
-  const setExcludedDomains = useCallback((domains: string[] | ((prev: string[]) => string[])) => {
-    setExcludedDomainsState(domains)
-  }, [])
+  const setExcludedDomains = useCallback(
+    (domains: string[] | ((prev: string[]) => string[])) => {
+      setExcludedDomainsState(domains)
+    },
+    []
+  )
 
   return [excludedDomains, setExcludedDomains] as const
 }

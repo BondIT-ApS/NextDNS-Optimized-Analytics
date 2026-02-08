@@ -64,7 +64,12 @@ const COMPANY_PRESETS: { name: string; emoji: string; patterns: string[] }[] = [
   {
     name: 'Snapchat',
     emoji: '👻',
-    patterns: ['*.snapchat.com', '*.sc-gw.com', '*.snap-dev.net', '*.snapkit.co'],
+    patterns: [
+      '*.snapchat.com',
+      '*.sc-gw.com',
+      '*.snap-dev.net',
+      '*.snapkit.co',
+    ],
   },
   {
     name: 'Amazon',
@@ -79,7 +84,12 @@ const COMPANY_PRESETS: { name: string; emoji: string; patterns: string[] }[] = [
   {
     name: 'Netflix',
     emoji: '🎬',
-    patterns: ['*.netflix.com', '*.nflxvideo.net', '*.nflxso.net', '*.nflxext.com'],
+    patterns: [
+      '*.netflix.com',
+      '*.nflxvideo.net',
+      '*.nflxso.net',
+      '*.nflxext.com',
+    ],
   },
   {
     name: 'TikTok',
@@ -329,7 +339,13 @@ export const DomainExclusionInput: React.FC<DomainExclusionInputProps> = ({
                 <Button
                   key={preset.name}
                   size="sm"
-                  variant={fullyActive ? 'default' : partiallyActive ? 'secondary' : 'outline'}
+                  variant={
+                    fullyActive
+                      ? 'default'
+                      : partiallyActive
+                        ? 'secondary'
+                        : 'outline'
+                  }
                   onClick={() =>
                     fullyActive
                       ? handleRemovePreset(preset)
