@@ -253,8 +253,8 @@ export const useGlobalConnectionStatus = () => {
   // Determine overall connection status
   const isConnected = Boolean(
     (health.data || detailedHealth.data) &&
-      !health.error &&
-      !detailedHealth.error
+    !health.error &&
+    !detailedHealth.error
   )
 
   const isLoading = health.isLoading || detailedHealth.isLoading

@@ -2,7 +2,110 @@ import React, { useState, useCallback } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { X, PlusCircle, AlertCircle, HelpCircle } from 'lucide-react'
+import { X, PlusCircle, AlertCircle, HelpCircle, Building2 } from 'lucide-react'
+
+// Company domain presets for quick exclusion
+export const COMPANY_PRESETS: {
+  name: string
+  emoji: string
+  patterns: string[]
+}[] = [
+  {
+    name: 'Apple',
+    emoji: '🍎',
+    patterns: [
+      '*.apple.com',
+      '*.icloud.com',
+      '*.apple-dns.net',
+      '*.push-apple.com.akadns.net',
+      '*.mzstatic.com',
+      '*.apple.map.fastly.net',
+    ],
+  },
+  {
+    name: 'Google',
+    emoji: '🔍',
+    patterns: [
+      '*.google.com',
+      '*.googleapis.com',
+      '*.gstatic.com',
+      '*.google-analytics.com',
+      '*.googleusercontent.com',
+      '*.googlevideo.com',
+      '*.gvt1.com',
+      '*.gvt2.com',
+    ],
+  },
+  {
+    name: 'Microsoft',
+    emoji: '🪟',
+    patterns: [
+      '*.microsoft.com',
+      '*.microsoftonline.com',
+      '*.msftconnecttest.com',
+      '*.windows.com',
+      '*.windows.net',
+      '*.office.com',
+      '*.office365.com',
+      '*.live.com',
+      '*.msedge.net',
+      '*.msidentity.com',
+    ],
+  },
+  {
+    name: 'Meta',
+    emoji: '👤',
+    patterns: [
+      '*.facebook.com',
+      '*.fbcdn.net',
+      '*.instagram.com',
+      '*.whatsapp.com',
+      '*.whatsapp.net',
+      '*.meta.com',
+      '*.fbsbx.com',
+    ],
+  },
+  {
+    name: 'Snapchat',
+    emoji: '👻',
+    patterns: [
+      '*.snapchat.com',
+      '*.sc-gw.com',
+      '*.snap-dev.net',
+      '*.snapkit.co',
+    ],
+  },
+  {
+    name: 'Amazon',
+    emoji: '📦',
+    patterns: [
+      '*.amazonaws.com',
+      '*.amazon.com',
+      '*.cloudfront.net',
+      '*.amazonwebservices.com',
+    ],
+  },
+  {
+    name: 'Netflix',
+    emoji: '🎬',
+    patterns: [
+      '*.netflix.com',
+      '*.nflxvideo.net',
+      '*.nflxso.net',
+      '*.nflxext.com',
+    ],
+  },
+  {
+    name: 'TikTok',
+    emoji: '🎵',
+    patterns: [
+      '*.tiktok.com',
+      '*.tiktokcdn.com',
+      '*.musical.ly',
+      '*.byteoversea.com',
+    ],
+  },
+]
 
 interface DomainExclusionInputProps {
   value: string[]
@@ -63,6 +166,37 @@ export const DomainExclusionInput: React.FC<DomainExclusionInputProps> = ({
   const [inputValue, setInputValue] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [showHelp, setShowHelp] = useState(false)
+  const [showPresets, setShowPresets] = useState(false)
+
+  const handleAddPreset = useCallback(
+    (preset: (typeof COMPANY_PRESETS)[0]) => {
+      const newPatterns = preset.patterns.filter(p => !value.includes(p))
+      if (newPatterns.length > 0) {
+        onChange([...value, ...newPatterns])
+      }
+    },
+    [value, onChange]
+  )
+
+  const isPresetFullyActive = useCallback(
+    (preset: (typeof COMPANY_PRESETS)[0]) =>
+      preset.patterns.every(p => value.includes(p)),
+    [value]
+  )
+
+  const isPresetPartiallyActive = useCallback(
+    (preset: (typeof COMPANY_PRESETS)[0]) =>
+      preset.patterns.some(p => value.includes(p)) &&
+      !preset.patterns.every(p => value.includes(p)),
+    [value]
+  )
+
+  const handleRemovePreset = useCallback(
+    (preset: (typeof COMPANY_PRESETS)[0]) => {
+      onChange(value.filter(p => !preset.patterns.includes(p)))
+    },
+    [value, onChange]
+  )
 
   const handleAdd = useCallback(() => {
     const validation = validatePattern(inputValue)
@@ -185,6 +319,61 @@ export const DomainExclusionInput: React.FC<DomainExclusionInputProps> = ({
           </p>
         </div>
       )}
+
+      {/* Quick Exclude Presets */}
+      <div className="space-y-2">
+        <Button
+          onClick={() => setShowPresets(!showPresets)}
+          size="sm"
+          variant="ghost"
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
+          <Building2 className="h-3 w-3 mr-1" />
+          Quick Exclude Companies
+          <span className="ml-1">{showPresets ? '▲' : '▼'}</span>
+        </Button>
+
+        {showPresets && (
+          <div className="flex flex-wrap gap-2">
+            {COMPANY_PRESETS.map(preset => {
+              const fullyActive = isPresetFullyActive(preset)
+              const partiallyActive = isPresetPartiallyActive(preset)
+
+              return (
+                <Button
+                  key={preset.name}
+                  size="sm"
+                  variant={
+                    fullyActive
+                      ? 'default'
+                      : partiallyActive
+                        ? 'secondary'
+                        : 'outline'
+                  }
+                  onClick={() =>
+                    fullyActive
+                      ? handleRemovePreset(preset)
+                      : handleAddPreset(preset)
+                  }
+                  title={
+                    fullyActive
+                      ? `Remove ${preset.name} exclusions (${preset.patterns.length} patterns)`
+                      : `Exclude ${preset.name} domains (${preset.patterns.length} patterns). Click to add.`
+                  }
+                  className="text-xs"
+                >
+                  <span className="mr-1">{preset.emoji}</span>
+                  {preset.name}
+                  {fullyActive && <X className="h-3 w-3 ml-1" />}
+                  {partiallyActive && (
+                    <span className="ml-1 text-[10px] opacity-70">partial</span>
+                  )}
+                </Button>
+              )
+            })}
+          </div>
+        )}
+      </div>
 
       {value.length > 0 && (
         <div className="flex flex-wrap gap-2">
