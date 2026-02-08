@@ -279,33 +279,51 @@ class FetchStatus(Base):
 def check_database_health():
     """Check if database is accessible and healthy.
 
+    Uses a lightweight SELECT 1 query instead of COUNT(*) to avoid
+    expensive full table scans on large tables (8M+ rows).
+
     Returns:
-        int: Total number of records if successful
+        bool: True if database is accessible
 
     Raises:
         SQLAlchemyError: If database is not accessible
     """
     session = session_factory()
     try:
-        # Simple query to test database connectivity
-        count = session.query(DNSLog).count()
-        logger.debug(f"✅ Database health check passed: {count:,} records")
-        return count
+        # Lightweight connectivity check - no table scan
+        session.execute(text("SELECT 1"))
+        logger.debug("✅ Database health check passed (connectivity OK)")
+        return True
     finally:
         session.close()
 
 
-# Get total record count from database
+# Get total record count from database (estimated)
 def get_total_record_count():
-    """Get the total number of DNS log records in the database.
+    """Get the estimated number of DNS log records in the database.
+
+    Uses PostgreSQL's pg_class.reltuples for a fast estimated count
+    instead of COUNT(*) which requires a full table scan.
+    The estimate is updated by VACUUM and ANALYZE operations.
 
     Returns:
-        int: Total number of records, or 0 if error occurs
+        int: Estimated number of records, or 0 if error occurs
     """
     session = session_factory()
     try:
-        count = session.query(DNSLog).count()
-        logger.debug(f"📊 Database contains {count:,} total DNS log records")
+        result = session.execute(
+            text(
+                "SELECT COALESCE(reltuples, 0)::bigint "
+                "FROM pg_class WHERE relname = 'dns_logs'"
+            )
+        )
+        row = result.fetchone()
+        count = row[0] if row else 0
+        # reltuples can be -1 if stats haven't been collected yet
+        count = max(count, 0)
+        logger.debug(
+            f"📊 Database contains ~{count:,} total DNS log records (estimated)"
+        )
         return count
     except SQLAlchemyError as e:
         logger.error(f"❌ Error getting record count: {e}")
