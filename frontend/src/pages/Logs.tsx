@@ -9,6 +9,7 @@ import { LogsTable } from '@/components/LogsTable'
 import { ProfileSelector } from '@/components/ProfileSelector'
 import { DeviceFilter } from '@/components/DeviceFilter'
 import { DomainExclusionInput } from '@/components/DomainExclusionInput'
+import { useExcludedDomains } from '@/hooks/useExcludedDomains'
 import { useState, useMemo, useEffect, useCallback, useTransition } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
@@ -34,18 +35,7 @@ export function Logs() {
     const deviceParam = searchParams.get('device')
     return deviceParam ? [deviceParam] : []
   })
-  const [excludedDomains, setExcludedDomains] = useState<string[]>(() => {
-    const saved = localStorage.getItem('logs_excluded_domains')
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        return Array.isArray(parsed) ? parsed : []
-      } catch (e) {
-        console.error('Failed to parse excluded domains from localStorage:', e)
-      }
-    }
-    return []
-  })
+  const [excludedDomains, setExcludedDomains] = useExcludedDomains()
   const [, startTransition] = useTransition()
 
   // Debounce search query with transition for non-blocking updates
@@ -59,15 +49,7 @@ export function Logs() {
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // Persist excluded domains
-  useEffect(() => {
-    localStorage.setItem(
-      'logs_excluded_domains',
-      JSON.stringify(excludedDomains)
-    )
-  }, [excludedDomains])
-
-  // Memoize the query parameters to prevent unnecessary re-renders
+  // Memoize the query parameters
   const queryParams = useMemo(
     () => ({
       limit: 100,
