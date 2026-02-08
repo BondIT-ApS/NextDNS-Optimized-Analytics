@@ -5,7 +5,11 @@ import { Badge } from '@/components/ui/badge'
 import { X, PlusCircle, AlertCircle, HelpCircle, Building2 } from 'lucide-react'
 
 // Company domain presets for quick exclusion
-const COMPANY_PRESETS: { name: string; emoji: string; patterns: string[] }[] = [
+export const COMPANY_PRESETS: {
+  name: string
+  emoji: string
+  patterns: string[]
+}[] = [
   {
     name: 'Apple',
     emoji: '🍎',
