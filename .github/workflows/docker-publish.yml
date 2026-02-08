@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -132,6 +132,43 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  # 🏷️ Calculate Semantic Version
+  calculate-version:
+    name: 🏷️ Calculate Semantic Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      year_month: ${{ steps.version.outputs.year_month }}
+    steps:
+      - name: 📎 Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: 🏷️ Calculate version from existing tags
+        id: version
+        run: |
+          # Generate YY.M format from current date
+          YEAR_MONTH=$(date +'%y.%-m')
+          echo "year_month=${YEAR_MONTH}" >> "$GITHUB_OUTPUT"
+
+          # Find the highest patch number for the current month
+          LATEST_PATCH=$(git tag --list "${YEAR_MONTH}.*" | sed "s/${YEAR_MONTH}\.//" | sort -n | tail -1)
+
+          if [ -z "$LATEST_PATCH" ]; then
+            PATCH=1
+          else
+            PATCH=$((LATEST_PATCH + 1))
+          fi
+
+          VERSION="${YEAR_MONTH}.${PATCH}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          echo "🏷️ Semantic version: ${VERSION}"
+          echo "📅 Year/Month: ${YEAR_MONTH}"
+          echo "🔢 Patch: ${PATCH}"
+
   # 🎯 Generate Dynamic Build Matrix
   generate-matrix:
     name: 🎯 Generate Dynamic LEGO Build Matrix
@@ -174,7 +211,7 @@ jobs:
   production-build:
     name: 🏢 Build Production LEGO Set (${{ matrix.service }})
     runs-on: ubuntu-latest
-    needs: [detect-changes, generate-matrix, test-and-coverage-frontend, test-and-coverage-backend]
+    needs: [detect-changes, generate-matrix, calculate-version, test-and-coverage-frontend, test-and-coverage-backend]
     if: |
       always() &&
       !contains(needs.*.result, 'failure') &&
@@ -200,28 +237,6 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: 🏷️ Generate Semantic Version Tag
-        id: version
-        run: |
-          # Generate YY.M format from current date
-          YEAR_MONTH=$(date +'%y.%-m')
-          
-          # Use GitHub run number as patch version for simplicity
-          # This ensures each build gets an incrementing patch number
-          PATCH_VERSION="${{ github.run_number }}"
-          
-          # Create semantic version: YY.M.PATCH
-          VERSION="${YEAR_MONTH}.${PATCH_VERSION}"
-          YEAR_MONTH_TAG="${YEAR_MONTH}"
-          
-          # Set environment variables for use in subsequent steps
-          echo "version=${VERSION}" >> "$GITHUB_ENV"
-          echo "year_month=${YEAR_MONTH_TAG}" >> "$GITHUB_ENV"
-          
-          echo "🏷️ Building semantic version: ${VERSION}"
-          echo "📅 Year/Month tag: ${YEAR_MONTH_TAG}"
-          echo "🔢 Run number: ${PATCH_VERSION}"
-
       - name: 🏢 Build & Push Semantic Versioned LEGO Set with Attestations
         uses: docker/build-push-action@v6
         with:
@@ -230,10 +245,29 @@ jobs:
           push: true
           tags: |
             maboni82/nextdns-optimized-analytics-${{ matrix.service }}:latest
-            maboni82/nextdns-optimized-analytics-${{ matrix.service }}:${{ env.version }}
-            maboni82/nextdns-optimized-analytics-${{ matrix.service }}:${{ env.year_month }}
+            maboni82/nextdns-optimized-analytics-${{ matrix.service }}:${{ needs.calculate-version.outputs.version }}
+            maboni82/nextdns-optimized-analytics-${{ matrix.service }}:${{ needs.calculate-version.outputs.year_month }}
           builder: ${{ steps.buildx.outputs.name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: true
           sbom: true
+
+  # 🏷️ Push Version Tag
+  push-version-tag:
+    name: 🏷️ Push Version Tag
+    runs-on: ubuntu-latest
+    needs: [calculate-version, production-build]
+    if: success()
+    steps:
+      - name: 📎 Checkout code
+        uses: actions/checkout@v6
+
+      - name: 🏷️ Create and push version tag
+        run: |
+          VERSION="${{ needs.calculate-version.outputs.version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${VERSION}" -m "🧱 Build ${VERSION}"
+          git push origin "${VERSION}"
+          echo "🏷️ Pushed tag: ${VERSION}"

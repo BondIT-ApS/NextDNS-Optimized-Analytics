@@ -1,0 +1,57 @@
+name: 📦 LEGO Monthly Release
+
+on:
+  schedule:
+    # 01:00 UTC = 02:00 CET (Copenhagen winter time)
+    # Note: During CEST (summer), this runs at 03:00 local time.
+    # GitHub Actions cron only supports UTC.
+    - cron: '0 1 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  monthly-release:
+    name: 📦 Create Monthly LEGO Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📎 Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: 🏷️ Calculate release tag
+        id: release
+        run: |
+          # Generate YY.M format from current date
+          YEAR_MONTH=$(date +'%y.%-m')
+          echo "tag=${YEAR_MONTH}" >> "$GITHUB_OUTPUT"
+          echo "📦 Monthly release tag: ${YEAR_MONTH}"
+
+      - name: 📦 Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.release.outputs.tag }}"
+
+          # Check if release already exists
+          if gh release view "${TAG}" &>/dev/null; then
+            echo "⚠️ Release ${TAG} already exists, skipping"
+            exit 0
+          fi
+
+          # Create the tag
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${TAG}" -m "📦 Monthly release ${TAG}"
+          git push origin "${TAG}"
+
+          # Create GitHub release with auto-generated notes
+          gh release create "${TAG}" \
+            --title "🧱 Release ${TAG}" \
+            --generate-notes \
+            --latest
+
+          echo "✅ Created release: ${TAG}"
