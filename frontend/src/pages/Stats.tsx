@@ -20,6 +20,7 @@ import { ChartJsDomains } from '../components/charts/ChartJsDomains'
 import { ChartJsTlds } from '../components/charts/ChartJsTlds'
 import { DeviceAnalytics } from '../components/analytics/DeviceAnalytics'
 import { DomainExclusionInput } from '../components/DomainExclusionInput'
+import { useExcludedDomains } from '../hooks/useExcludedDomains'
 
 // Profile data interface
 interface Profile {
@@ -96,7 +97,7 @@ export default function Stats() {
   const [selectedProfile, setSelectedProfile] = useState<string>('all')
   const [timeRange, setTimeRange] = useState<string>('24h')
   const [activeTab, setActiveTab] = useState<string>('overview')
-  const [excludedDomains, setExcludedDomains] = useState<string[]>([])
+  const [excludedDomains, setExcludedDomains] = useExcludedDomains()
 
   // Data state
   const [overview, setOverview] = useState<StatsOverview | null>(null)
@@ -115,19 +116,10 @@ export default function Stats() {
     const savedProfile = localStorage.getItem('stats_selected_profile')
     const savedTimeRange = localStorage.getItem('stats_time_range')
     const savedTab = localStorage.getItem('stats_active_tab')
-    const savedExcludedDomains = localStorage.getItem('stats_excluded_domains')
 
     if (savedProfile) setSelectedProfile(savedProfile)
     if (savedTimeRange) setTimeRange(savedTimeRange)
     if (savedTab) setActiveTab(savedTab)
-    if (savedExcludedDomains) {
-      try {
-        const parsed = JSON.parse(savedExcludedDomains)
-        if (Array.isArray(parsed)) setExcludedDomains(parsed)
-      } catch (e) {
-        console.error('Failed to parse excluded domains from localStorage:', e)
-      }
-    }
 
     // Also check URL params
     const profileParam = searchParams.get('profile')
@@ -144,10 +136,6 @@ export default function Stats() {
     localStorage.setItem('stats_selected_profile', selectedProfile)
     localStorage.setItem('stats_time_range', timeRange)
     localStorage.setItem('stats_active_tab', activeTab)
-    localStorage.setItem(
-      'stats_excluded_domains',
-      JSON.stringify(excludedDomains)
-    )
 
     // Update URL params
     const params = new URLSearchParams()
@@ -156,7 +144,7 @@ export default function Stats() {
     if (activeTab !== 'overview') params.set('tab', activeTab)
 
     setSearchParams(params, { replace: true })
-  }, [selectedProfile, timeRange, activeTab, excludedDomains, setSearchParams])
+  }, [selectedProfile, timeRange, activeTab, setSearchParams])
 
   // Fetch data
   const fetchData = useCallback(async () => {
