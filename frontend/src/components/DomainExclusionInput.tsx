@@ -358,7 +358,7 @@ export const DomainExclusionInput: React.FC<DomainExclusionInputProps> = ({
                   title={
                     fullyActive
                       ? `Remove ${preset.name} exclusions (${preset.patterns.length} patterns)`
-                      : `Exclude ${preset.name} domains (${preset.patterns.join(', ')})`
+                      : `Exclude ${preset.name} domains (${preset.patterns.length} patterns). Click to add.`
                   }
                   className="text-xs"
                 >
