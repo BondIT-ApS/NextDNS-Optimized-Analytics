@@ -15,6 +15,7 @@ const COMPANY_PRESETS: { name: string; emoji: string; patterns: string[] }[] = [
       '*.apple-dns.net',
       '*.push-apple.com.akadns.net',
       '*.mzstatic.com',
+      '*.apple.map.fastly.net',
     ],
   },
   {
@@ -44,6 +45,7 @@ const COMPANY_PRESETS: { name: string; emoji: string; patterns: string[] }[] = [
       '*.office365.com',
       '*.live.com',
       '*.msedge.net',
+      '*.msidentity.com',
     ],
   },
   {
