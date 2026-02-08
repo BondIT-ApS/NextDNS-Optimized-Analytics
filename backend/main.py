@@ -63,6 +63,9 @@ limiter = Limiter(key_func=get_remote_address)
 # Track application start time for accurate uptime
 app_start_time = datetime.now(timezone.utc)
 
+# Version from Docker build arg / environment variable
+APP_VERSION = os.getenv("APP_VERSION", "dev")
+
 try:
     from scheduler import scheduler  # pylint: disable=unused-import,duplicate-code
 
@@ -99,7 +102,7 @@ app = FastAPI(
     
     The API key is configured via the `LOCAL_API_KEY` environment variable.
     """,
-    version="2.0.0",
+    version=APP_VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
@@ -465,7 +468,7 @@ async def root():
         check_database_health()
         return {
             "message": "NextDNS Optimized Analytics API",
-            "version": "2.0.0",
+            "version": APP_VERSION,
             "status": "running",
         }
     except (SQLAlchemyError, ValueError, TypeError) as e:
@@ -474,7 +477,7 @@ async def root():
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={
                 "message": "NextDNS Optimized Analytics API",
-                "version": "2.0.0",
+                "version": APP_VERSION,
                 "status": "unhealthy",
                 "error": "Database is offline or unreachable",
             },
