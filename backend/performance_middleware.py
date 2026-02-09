@@ -1,94 +1,129 @@
-# file: backend/performance_middleware.py
+"""
+Performance monitoring middleware for FastAPI.
+
+Tracks request durations and logs slow endpoints when LOG_LEVEL=DEBUG.
+Adds X-Response-Time header to all responses for monitoring.
+"""
+
+import logging
+import os
 import time
 from typing import Callable
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-from logging_config import get_logger
 
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class PerformanceMiddleware(BaseHTTPMiddleware):
     """
-    🧱 LEGO Performance Monitoring Brick
+    Middleware to track and log API request performance.
 
-    Tracks request execution times and logs them with color-coded emojis:
-    - ⚡ < 100ms (Fast - LEGO brick snaps right in!)
-    - ✅ 100-500ms (Good - Building smoothly)
-    - ⚠️ 500-2000ms (Slow - Assembly taking time)
-    - 🐌 > 2000ms (Very slow - Construction delay!)
-
-    Only active when LOG_LEVEL=DEBUG
-    Skips health check endpoints from detailed logging
-    Adds X-Response-Time header to all responses
+    Features:
+    - Adds X-Response-Time header to all responses
+    - Logs request durations with color-coded emojis (only in DEBUG mode)
+    - Skips health check endpoints from detailed logging
     """
 
+    def __init__(self, app, log_enabled: bool = None):
+        """
+        Initialize performance monitoring middleware.
+
+        Args:
+            app: FastAPI application instance
+            log_enabled: Whether to log performance metrics (defaults to LOG_LEVEL=DEBUG)
+        """
+        super().__init__(app)
+        if log_enabled is None:
+            log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+            log_enabled = log_level == "DEBUG"
+        self.log_enabled = log_enabled
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        """Process request and measure execution time."""
-        start_time = time.perf_counter()
+        """
+        Process request and track performance.
 
-        # Process the request
-        response = await call_next(request)
+        Args:
+            request: Incoming HTTP request
+            call_next: Next middleware/route handler
 
-        # Calculate execution time in milliseconds
-        execution_time_ms = (time.perf_counter() - start_time) * 1000
+        Returns:
+            Response with X-Response-Time header added
+        """
+        # Skip tracking for health check endpoints
+        skip_logging = request.url.path in ["/health", "/health/detailed"]
 
-        # Add response time header
-        response.headers["X-Response-Time"] = f"{execution_time_ms:.2f}ms"
+        start_time = time.time()
 
-        # Log request timing (only for non-health endpoints in DEBUG mode)
-        if not self._is_health_endpoint(request.url.path):
-            self._log_request_timing(
-                method=request.method,
-                path=request.url.path,
-                query_params=(
-                    dict(request.query_params) if request.query_params else None
-                ),
-                execution_time_ms=execution_time_ms,
-                status_code=response.status_code,
-            )
+        try:
+            # Process the request
+            response = await call_next(request)
+        except Exception as exc:
+            # Still log the timing even if request failed
+            duration_ms = (time.time() - start_time) * 1000
+            if self.log_enabled and not skip_logging:
+                logger.error(
+                    "🐌 Request failed: %s %s - %.2fms - Error: %s",
+                    request.method,
+                    request.url.path,
+                    duration_ms,
+                    str(exc),
+                )
+            raise
+
+        # Calculate duration
+        duration_ms = (time.time() - start_time) * 1000
+
+        # Add X-Response-Time header
+        response.headers["X-Response-Time"] = f"{duration_ms:.2f}ms"
+
+        # Log performance metrics (only in DEBUG mode and not for health checks)
+        if self.log_enabled and not skip_logging:
+            self._log_performance(request, duration_ms)
 
         return response
 
-    def _is_health_endpoint(self, path: str) -> bool:
-        """Check if path is a health check endpoint."""
-        health_paths = ["/", "/health", "/health/detailed"]
-        return path in health_paths
-
-    def _log_request_timing(
-        self,
-        method: str,
-        path: str,
-        query_params: dict | None,
-        execution_time_ms: float,
-        status_code: int,
-    ) -> None:
+    def _log_performance(self, request: Request, duration_ms: float) -> None:
         """
-        Log request timing with color-coded emoji indicators.
+        Log request performance with color-coded emoji indicators.
 
-        🧱 Building blocks of performance monitoring!
+        Performance levels:
+        - ⚡ Fast: < 100ms
+        - ✅ Good: 100-500ms
+        - ⚠️  Slow: 500-2000ms
+        - 🐌 Very slow: > 2000ms
+
+        Args:
+            request: The HTTP request
+            duration_ms: Request duration in milliseconds
         """
-        # Determine emoji based on execution time
-        if execution_time_ms < 100:
+        # Choose emoji based on duration
+        if duration_ms < 100:
             emoji = "⚡"
-            speed_label = "Fast"
-        elif execution_time_ms < 500:
+            level = "Fast"
+        elif duration_ms < 500:
             emoji = "✅"
-            speed_label = "Good"
-        elif execution_time_ms < 2000:
+            level = "Good"
+        elif duration_ms < 2000:
             emoji = "⚠️"
-            speed_label = "Slow"
+            level = "Slow"
         else:
             emoji = "🐌"
-            speed_label = "Very Slow"
+            level = "Very slow"
 
-        # Format query parameters if present
-        query_str = ""
-        if query_params:
-            query_str = f" | Query: {query_params}"
+        # Build query params string if present
+        query_params = ""
+        if request.query_params:
+            query_params = f" - Params: {dict(request.query_params)}"
 
-        # Log with detailed context
-        logger.debug(
-            f"{emoji} {speed_label} | {method} {path}{query_str} | "
-            f"{execution_time_ms:.2f}ms | Status: {status_code}"
+        # Log with appropriate level based on duration
+        log_message = (
+            f"{emoji} {level}: {request.method} {request.url.path} - "
+            f"{duration_ms:.2f}ms{query_params}"
         )
+
+        if duration_ms >= 2000:
+            logger.warning(log_message)
+        else:
+            logger.debug(log_message)

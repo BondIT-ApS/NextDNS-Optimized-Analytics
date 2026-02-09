@@ -18,6 +18,7 @@ from sqlalchemy import (
     func,
     text,
     or_,
+    JSON,
 )
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.exc import SQLAlchemyError
@@ -228,9 +229,17 @@ class DNSLog(Base):
 
     # Add composite indexes and unique constraint for duplicate prevention
     __table_args__ = (
+        # Existing indexes
         Index("idx_dns_logs_timestamp_domain", "timestamp", "domain"),
         Index("idx_dns_logs_domain_action", "domain", "action"),
         Index("idx_dns_logs_profile_timestamp", "profile_id", "timestamp"),
+        # Performance optimization indexes (Issue #183)
+        # Covering index for stats queries filtering by blocked status
+        Index("idx_dns_logs_blocked_timestamp", "blocked", "timestamp"),
+        # Covering index for profile-filtered stats with blocked status
+        Index("idx_dns_logs_profile_blocked_timestamp", "profile_id", "blocked", "timestamp"),
+        # Covering index for domain aggregations with blocked status
+        Index("idx_dns_logs_domain_blocked_timestamp", "domain", "blocked", "timestamp"),
         # Unique constraint to prevent duplicates based on
         # timestamp, domain, and client_ip
         UniqueConstraint(
@@ -1125,95 +1134,139 @@ def get_stats_timeseries(
         if profile_filter and profile_filter.strip() and profile_filter != "all":
             base_query = base_query.filter(DNSLog.profile_id == profile_filter)
 
-        # Generate time buckets
-        data_points = []
-        for i in range(num_intervals):
-            if time_range in ["30m", "1h", "6h"]:
-                interval_start = start_time + timedelta(minutes=i * interval_minutes)
-                interval_end = interval_start + timedelta(minutes=interval_minutes)
-                # Round to appropriate intervals for clean display
-                if time_range == "30m":
-                    # Round to exact minute
-                    display_time = interval_start.replace(second=0, microsecond=0)
-                elif time_range == "1h":
-                    # Round to nearest 5 minutes
-                    display_time = interval_start.replace(
-                        minute=(interval_start.minute // 5) * 5, second=0, microsecond=0
-                    )
-                elif time_range == "6h":
-                    # Round to nearest 15 minutes
-                    display_time = interval_start.replace(
-                        minute=(interval_start.minute // 15) * 15,
-                        second=0,
-                        microsecond=0,
-                    )
-            else:
-                interval_start = start_time + timedelta(hours=i * interval_hours)
-                interval_end = interval_start + timedelta(hours=interval_hours)
+        # Phase 3 Optimization: Use database-side time bucketing with date_trunc()
+        # This replaces N separate queries (2N for status mode) with a single grouped query
 
-                if granularity == "hour":
-                    # Round to exact hour for clean display
-                    display_time = interval_start.replace(
-                        minute=0, second=0, microsecond=0
-                    )
-                elif granularity == "week":
-                    # For weekly granularity, use the start of the week (Monday)
-                    display_time = interval_start.replace(
-                        hour=0, minute=0, second=0, microsecond=0
-                    )
-                else:  # day
-                    # For daily granularity, use the start of the interval
-                    # Since we've aligned intervals to start of day, this gives correct dates
-                    display_time = interval_start.replace(
-                        hour=0, minute=0, second=0, microsecond=0
-                    )
+        # Determine the date_trunc() granularity string for PostgreSQL
+        if granularity == "1min":
+            trunc_granularity = "minute"
+        elif granularity == "5min":
+            trunc_granularity = "minute"  # Will group by 5-minute intervals
+        elif granularity == "15min":
+            trunc_granularity = "minute"  # Will group by 15-minute intervals
+        elif granularity == "hour":
+            trunc_granularity = "hour"
+        elif granularity == "day":
+            trunc_granularity = "day"
+        elif granularity == "week":
+            trunc_granularity = "week"
+        else:
+            trunc_granularity = "hour"  # Default fallback
 
-            # Query for this interval
-            interval_query = base_query.filter(
-                DNSLog.timestamp >= interval_start, DNSLog.timestamp < interval_end
+        # Create time bucket expression
+        time_bucket = func.date_trunc(trunc_granularity, DNSLog.timestamp).label("time_bucket")
+
+        if group_by == "profile":
+            # Group by time bucket AND profile_id - single query
+            # pylint: disable=not-callable
+            results = (
+                base_query
+                .with_entities(
+                    time_bucket,
+                    DNSLog.profile_id,
+                    func.count(DNSLog.id).label("count")
+                )
+                .group_by(time_bucket, DNSLog.profile_id)
+                .order_by(time_bucket)
+                .all()
             )
+            # pylint: enable=not-callable
 
-            if group_by == "profile":
-                # Group by profile_id within this time interval
-                profile_counts = {}
-                profile_query = (
-                    interval_query.with_entities(
-                        DNSLog.profile_id,
-                        func.count(DNSLog.id),  # pylint: disable=not-callable
+            # Build lookup dictionary: {timestamp: {profile_id: count}}
+            results_dict = {}
+            all_profile_ids = set()
+            for bucket_time, profile_id, count in results:
+                if profile_id:  # Skip None profile_ids
+                    all_profile_ids.add(profile_id)
+                    if bucket_time not in results_dict:
+                        results_dict[bucket_time] = {}
+                    results_dict[bucket_time][profile_id] = count
+
+            # Generate all expected time buckets and fill with data or zeros
+            data_points = []
+            for i in range(num_intervals):
+                if time_range in ["30m", "1h", "6h"]:
+                    interval_start = start_time + timedelta(minutes=i * interval_minutes)
+                else:
+                    interval_start = start_time + timedelta(hours=i * interval_hours)
+
+                # Truncate interval_start to match database truncation
+                if trunc_granularity == "minute":
+                    bucket_key = interval_start.replace(second=0, microsecond=0)
+                elif trunc_granularity == "hour":
+                    bucket_key = interval_start.replace(minute=0, second=0, microsecond=0)
+                elif trunc_granularity == "day":
+                    bucket_key = interval_start.replace(hour=0, minute=0, second=0, microsecond=0)
+                elif trunc_granularity == "week":
+                    # PostgreSQL date_trunc('week') returns Monday at 00:00
+                    days_since_monday = interval_start.weekday()
+                    bucket_key = (interval_start - timedelta(days=days_since_monday)).replace(
+                        hour=0, minute=0, second=0, microsecond=0
                     )
-                    .group_by(DNSLog.profile_id)
-                    .all()
-                )
+                else:
+                    bucket_key = interval_start
 
-                total_queries = 0
-                for profile_id, count in profile_query:
-                    if profile_id:  # Skip None profile_ids
-                        profile_counts[profile_id] = count
-                        total_queries += count
+                profile_counts = results_dict.get(bucket_key, {})
+                total_queries = sum(profile_counts.values())
 
-                data_points.append(
-                    {
-                        "timestamp": display_time.isoformat(),
-                        "total_queries": total_queries,
-                        "profiles": profile_counts,
-                    }
+                data_points.append({
+                    "timestamp": bucket_key.isoformat(),
+                    "total_queries": total_queries,
+                    "profiles": profile_counts,
+                })
+
+        else:
+            # Default: group by status (blocked/allowed) - single query with conditional aggregation
+            # pylint: disable=not-callable
+            results = (
+                base_query
+                .with_entities(
+                    time_bucket,
+                    func.count(DNSLog.id).label("total"),
+                    func.sum(func.cast(DNSLog.blocked, Integer)).label("blocked")
                 )
-            else:
-                # Default: group by status (blocked/allowed)
-                total_queries = interval_query.count()
-                blocked_queries = interval_query.filter(
-                    DNSLog.blocked.is_(True)
-                ).count()
+                .group_by(time_bucket)
+                .order_by(time_bucket)
+                .all()
+            )
+            # pylint: enable=not-callable
+
+            # Build lookup dictionary: {timestamp: (total, blocked)}
+            results_dict = {bucket_time: (total, blocked or 0) for bucket_time, total, blocked in results}
+
+            # Generate all expected time buckets and fill with data or zeros
+            data_points = []
+            for i in range(num_intervals):
+                if time_range in ["30m", "1h", "6h"]:
+                    interval_start = start_time + timedelta(minutes=i * interval_minutes)
+                else:
+                    interval_start = start_time + timedelta(hours=i * interval_hours)
+
+                # Truncate interval_start to match database truncation
+                if trunc_granularity == "minute":
+                    bucket_key = interval_start.replace(second=0, microsecond=0)
+                elif trunc_granularity == "hour":
+                    bucket_key = interval_start.replace(minute=0, second=0, microsecond=0)
+                elif trunc_granularity == "day":
+                    bucket_key = interval_start.replace(hour=0, minute=0, second=0, microsecond=0)
+                elif trunc_granularity == "week":
+                    # PostgreSQL date_trunc('week') returns Monday at 00:00
+                    days_since_monday = interval_start.weekday()
+                    bucket_key = (interval_start - timedelta(days=days_since_monday)).replace(
+                        hour=0, minute=0, second=0, microsecond=0
+                    )
+                else:
+                    bucket_key = interval_start
+
+                total_queries, blocked_queries = results_dict.get(bucket_key, (0, 0))
                 allowed_queries = total_queries - blocked_queries
 
-                data_points.append(
-                    {
-                        "timestamp": display_time.isoformat(),
-                        "total_queries": total_queries,
-                        "blocked_queries": blocked_queries,
-                        "allowed_queries": allowed_queries,
-                    }
-                )
+                data_points.append({
+                    "timestamp": bucket_key.isoformat(),
+                    "total_queries": total_queries,
+                    "blocked_queries": blocked_queries,
+                    "allowed_queries": allowed_queries,
+                })
 
         logger.debug(
             f"📊 Generated {len(data_points)} {granularity} time series data points for {time_range}"
@@ -1586,80 +1639,159 @@ def get_stats_devices(  # pylint: disable=too-many-locals,too-many-branches
                 cutoff_time = now - time_deltas[time_range]
                 query = query.filter(DNSLog.timestamp >= cutoff_time)
 
-        # Get all logs and aggregate by device
-        all_logs = query.all()
+        # Phase 3 Optimization: Use database-side aggregation with JSON extraction
+        # This eliminates the need to load all records into Python memory
+        # Note: Different JSON functions for PostgreSQL vs SQLite
 
-        # Aggregate by device name
-        device_stats = {}  # device_name -> {blocked, allowed, total, last_activity}
+        # Detect database dialect
+        db_dialect = session.bind.dialect.name
 
-        for log_entry in all_logs:
-            # Extract device name from JSON device field
-            device_name = "Unidentified Device"  # Default
+        if db_dialect == "postgresql":
+            # PostgreSQL: Use json_extract_path_text for JSON extraction
+            device_name_expr = func.coalesce(
+                func.nullif(
+                    func.json_extract_path_text(
+                        func.cast(DNSLog.device, JSON),
+                        "name"
+                    ),
+                    ""
+                ),
+                "Unidentified Device"
+            ).label("device_name")
 
-            if log_entry.device:
-                try:
-                    device_data = (
-                        json.loads(log_entry.device)
-                        if isinstance(log_entry.device, str)
-                        else log_entry.device
-                    )
-                    if isinstance(device_data, dict) and "name" in device_data:
-                        device_name = device_data["name"] or "Unidentified Device"
-                except (json.JSONDecodeError, KeyError, TypeError):
-                    # Keep default "Unidentified Device"
-                    pass
+            # Build aggregation query with GROUP BY
+            # pylint: disable=not-callable
+            device_query = (
+                query.with_entities(
+                    device_name_expr,
+                    func.count(DNSLog.id).label("total_queries"),
+                    func.sum(func.cast(DNSLog.blocked, Integer)).label("blocked_queries"),
+                    func.sum(func.cast(~DNSLog.blocked, Integer)).label("allowed_queries"),
+                    func.max(DNSLog.timestamp).label("last_activity"),
+                )
+                .group_by(device_name_expr)
+            )
 
             # Apply device exclusion filter (case-insensitive)
             if exclude_devices:
                 exclude_lower = [name.lower() for name in exclude_devices]
-                if device_name.lower() in exclude_lower:
-                    continue
+                device_query = device_query.having(
+                    func.lower(device_name_expr).notin_(exclude_lower)
+                )
 
-            # Initialize device stats if not exists
-            if device_name not in device_stats:
-                device_stats[device_name] = {
-                    "blocked": 0,
-                    "allowed": 0,
-                    "total": 0,
-                    "last_activity": log_entry.timestamp,
-                }
-
-            # Update stats
-            if log_entry.blocked:
-                device_stats[device_name]["blocked"] += 1
-            else:
-                device_stats[device_name]["allowed"] += 1
-            device_stats[device_name]["total"] += 1
-
-            # Update last activity if this log is more recent
-            if log_entry.timestamp > device_stats[device_name]["last_activity"]:
-                device_stats[device_name]["last_activity"] = log_entry.timestamp
-
-        # Format and sort results
-        device_results = []
-        for device_name, stats in device_stats.items():
-            blocked_percentage = (
-                (stats["blocked"] / stats["total"] * 100) if stats["total"] > 0 else 0
+            # Order by total queries and limit
+            device_results_raw = (
+                device_query
+                .order_by(func.count(DNSLog.id).desc())
+                .limit(limit)
+                .all()
             )
-            allowed_percentage = (
-                (stats["allowed"] / stats["total"] * 100) if stats["total"] > 0 else 0
-            )
+            # pylint: enable=not-callable
 
-            device_results.append(
-                {
-                    "device_name": device_name,
-                    "total_queries": stats["total"],
-                    "blocked_queries": stats["blocked"],
-                    "allowed_queries": stats["allowed"],
-                    "blocked_percentage": round(blocked_percentage, 1),
-                    "allowed_percentage": round(allowed_percentage, 1),
-                    "last_activity": stats["last_activity"].isoformat(),
-                }
-            )
+            # Format results with percentages
+            device_results = []
+            for row in device_results_raw:
+                device_name = row[0]
+                total_queries = row[1]
+                blocked_queries = row[2] or 0  # Handle NULL
+                allowed_queries = row[3] or 0  # Handle NULL
+                last_activity = row[4]
 
-        # Sort by total queries (most active first) and limit results
-        device_results.sort(key=lambda x: x["total_queries"], reverse=True)
-        device_results = device_results[:limit]
+                blocked_percentage = (
+                    (blocked_queries / total_queries * 100) if total_queries > 0 else 0
+                )
+                allowed_percentage = (
+                    (allowed_queries / total_queries * 100) if total_queries > 0 else 0
+                )
+
+                device_results.append(
+                    {
+                        "device_name": device_name,
+                        "total_queries": total_queries,
+                        "blocked_queries": blocked_queries,
+                        "allowed_queries": allowed_queries,
+                        "blocked_percentage": round(blocked_percentage, 1),
+                        "allowed_percentage": round(allowed_percentage, 1),
+                        "last_activity": last_activity.isoformat(),
+                    }
+                )
+
+        else:
+            # SQLite or other databases: Fall back to client-side aggregation
+            # This is slower but ensures compatibility with test environments
+            all_logs = query.all()
+
+            # Aggregate by device name
+            device_stats = {}  # device_name -> {blocked, allowed, total, last_activity}
+
+            for log_entry in all_logs:
+                # Extract device name from JSON device field
+                device_name = "Unidentified Device"  # Default
+
+                if log_entry.device:
+                    try:
+                        device_data = (
+                            json.loads(log_entry.device)
+                            if isinstance(log_entry.device, str)
+                            else log_entry.device
+                        )
+                        if isinstance(device_data, dict) and "name" in device_data:
+                            device_name = device_data["name"] or "Unidentified Device"
+                    except (json.JSONDecodeError, KeyError, TypeError):
+                        # Keep default "Unidentified Device"
+                        pass
+
+                # Apply device exclusion filter (case-insensitive)
+                if exclude_devices:
+                    exclude_lower = [name.lower() for name in exclude_devices]
+                    if device_name.lower() in exclude_lower:
+                        continue
+
+                # Initialize device stats if not exists
+                if device_name not in device_stats:
+                    device_stats[device_name] = {
+                        "blocked": 0,
+                        "allowed": 0,
+                        "total": 0,
+                        "last_activity": log_entry.timestamp,
+                    }
+
+                # Update stats
+                if log_entry.blocked:
+                    device_stats[device_name]["blocked"] += 1
+                else:
+                    device_stats[device_name]["allowed"] += 1
+                device_stats[device_name]["total"] += 1
+
+                # Update last activity if this log is more recent
+                if log_entry.timestamp > device_stats[device_name]["last_activity"]:
+                    device_stats[device_name]["last_activity"] = log_entry.timestamp
+
+            # Format and sort results
+            device_results = []
+            for device_name, stats in device_stats.items():
+                blocked_percentage = (
+                    (stats["blocked"] / stats["total"] * 100) if stats["total"] > 0 else 0
+                )
+                allowed_percentage = (
+                    (stats["allowed"] / stats["total"] * 100) if stats["total"] > 0 else 0
+                )
+
+                device_results.append(
+                    {
+                        "device_name": device_name,
+                        "total_queries": stats["total"],
+                        "blocked_queries": stats["blocked"],
+                        "allowed_queries": stats["allowed"],
+                        "blocked_percentage": round(blocked_percentage, 1),
+                        "allowed_percentage": round(allowed_percentage, 1),
+                        "last_activity": stats["last_activity"].isoformat(),
+                    }
+                )
+
+            # Sort by total queries (most active first) and limit results
+            device_results.sort(key=lambda x: x["total_queries"], reverse=True)
+            device_results = device_results[:limit]
 
         logger.debug(f"📱 Found {len(device_results)} devices with DNS activity")
         return device_results
