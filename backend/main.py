@@ -66,13 +66,21 @@ app_start_time = datetime.now(timezone.utc)
 # Version from Docker build arg / environment variable
 APP_VERSION = os.getenv("APP_VERSION", "dev")
 
-try:
-    from scheduler import scheduler  # pylint: disable=unused-import,duplicate-code
+# Scheduler initialization (can be disabled for K8s multi-pod deployments)
+# Default: enabled (backward compatible with Docker Compose and single-pod deployments)
+DISABLE_SCHEDULER = os.getenv("DISABLE_SCHEDULER", "false").lower() == "true"
 
-    logger.info("🔄 NextDNS log scheduler started successfully")
-except ImportError as e:
-    logger.warning(f"⚠️  Could not start scheduler: {e}")
-    logger.info("🧱 App will work but won't automatically fetch NextDNS logs")
+if not DISABLE_SCHEDULER:
+    try:
+        from scheduler import scheduler  # pylint: disable=unused-import,duplicate-code
+
+        logger.info("🔄 NextDNS log scheduler started successfully")
+    except ImportError as e:
+        logger.warning(f"⚠️  Could not start scheduler: {e}")
+        logger.info("🧱 App will work but won't automatically fetch NextDNS logs")
+else:
+    logger.info("🔇 Scheduler disabled (DISABLE_SCHEDULER=true)")
+    logger.info("💡 Use separate worker pod for DNS log fetching in K8s multi-pod setup")
 
 
 @asynccontextmanager
