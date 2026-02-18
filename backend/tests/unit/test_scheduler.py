@@ -101,38 +101,36 @@ class TestSchedulerConfiguration:
 class TestSchedulerInitialization:
     """Test scheduler initialization logic."""
 
-    @patch.dict(os.environ, {"API_KEY": "", "PROFILE_IDS": ""}, clear=True)
-    def test_scheduler_not_created_without_credentials(self):
-        """Test that scheduler is not created when credentials are missing."""
-        # Reload to test initialization logic
-        import importlib
-        import scheduler
-
-        importlib.reload(scheduler)
-
-        # Scheduler should be None when credentials are missing
-        assert scheduler.scheduler is None
-
-    @patch.dict(os.environ, {"API_KEY": "test-key", "PROFILE_IDS": "test-profile"})
     @patch("scheduler.BackgroundScheduler")
-    @patch("scheduler.get_total_record_count", return_value=0)
-    @patch("scheduler.get_last_fetch_timestamp", return_value=None)
-    def test_scheduler_created_with_valid_credentials(
-        self, mock_timestamp, mock_count, mock_scheduler_class
-    ):
-        """Test that scheduler is created with valid credentials."""
-        mock_scheduler_instance = MagicMock()
-        mock_scheduler_class.return_value = mock_scheduler_instance
+    def test_scheduler_always_created(self, mock_scheduler_class):
+        """Scheduler is always created at startup; credential checks happen per-cycle.
 
-        # Reload scheduler module with mocked environment
+        The old design gated scheduler creation on env vars being present.
+        The new design always creates the scheduler and reads API key + profiles
+        from the DB on each fetch_logs() invocation, so pods don't need to
+        restart when credentials change.
+        """
         import importlib
         import scheduler
 
+        mock_instance = MagicMock()
+        mock_scheduler_class.return_value = mock_instance
         importlib.reload(scheduler)
 
-        # Scheduler should be initialized (not None)
-        # Note: This is tricky to test because scheduler is created at module import time
-        assert scheduler.API_KEY == "test-key"
+        assert scheduler.scheduler is not None
+
+    @patch("scheduler.get_nextdns_api_key", return_value=None)
+    @patch("scheduler.get_active_profile_ids", return_value=[])
+    @patch("scheduler.get_total_record_count", return_value=0)
+    def test_fetch_logs_skips_when_no_credentials(
+        self, mock_count, mock_profiles, mock_api_key
+    ):
+        """fetch_logs returns early without making any API calls when unconfigured."""
+        from scheduler import fetch_logs
+
+        with patch("scheduler.requests") as mock_requests:
+            fetch_logs()
+            mock_requests.get.assert_not_called()
 
 
 class TestEnvironmentConfiguration:

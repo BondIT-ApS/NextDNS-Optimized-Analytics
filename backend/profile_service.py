@@ -1,16 +1,16 @@
 # file: backend/profile_service.py
-import os
 from typing import Dict, List, Optional
 
 import requests
 from logging_config import get_logger
+from models import get_nextdns_api_key, get_active_profile_ids
 
 logger = get_logger(__name__)
 
-API_KEY = os.getenv("API_KEY")
 
-
-def _create_error_profile_info(profile_id: str, name_suffix: str, error: str) -> Dict:
+def _create_error_profile_info(
+    profile_id: str, name_suffix: str, error: str
+) -> Dict:
     """Helper function to create error profile information."""
     return {
         "id": profile_id,
@@ -23,7 +23,9 @@ def _handle_api_response(response: requests.Response, profile_id: str) -> Dict:
     """Helper function to handle API response based on status code."""
     if response.status_code == 200:
         profile_data = response.json().get("data", {})
-        logger.debug(f"✅ Profile {profile_id}: {profile_data.get('name', 'Unknown')}")
+        logger.debug(
+            f"✅ Profile {profile_id}: {profile_data.get('name', 'Unknown')}"
+        )
         return {
             "id": profile_id,
             "name": profile_data.get("name", f"Profile {profile_id}"),
@@ -62,13 +64,14 @@ def get_profile_info(profile_id: str) -> Optional[Dict]:
     Returns:
         dict: Profile information or None if error occurs
     """
-    if not API_KEY:
-        logger.warning("⚠️  No API_KEY available for profile fetching")
+    api_key = get_nextdns_api_key()
+    if not api_key:
+        logger.warning("⚠️  No API key available for profile fetching")
         return None
 
     try:
         url = f"https://api.nextdns.io/profiles/{profile_id}"
-        headers = {"X-Api-Key": API_KEY}
+        headers = {"X-Api-Key": api_key}
 
         logger.debug(f"🌐 Fetching profile info for: {profile_id}")
         response = requests.get(url, headers=headers, timeout=10)
@@ -110,15 +113,11 @@ def get_multiple_profiles_info(profile_ids: List[str]) -> Dict[str, Dict]:
 
 
 def get_configured_profile_ids() -> List[str]:
-    """Get the list of configured profile IDs from environment.
+    """Get the list of active profile IDs from the database.
 
     Returns:
-        list: List of configured profile IDs
+        list: List of active profile IDs
     """
-    profile_ids_env = os.getenv("PROFILE_IDS", "")
-    if not profile_ids_env:
-        return []
-
-    profile_ids = [pid.strip() for pid in profile_ids_env.split(",") if pid.strip()]
-    logger.debug(f"🧱 Configured profiles from env: {profile_ids}")
+    profile_ids = get_active_profile_ids()
+    logger.debug(f"🧱 Active profiles from DB: {profile_ids}")
     return profile_ids

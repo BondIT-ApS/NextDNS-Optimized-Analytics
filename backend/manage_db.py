@@ -35,7 +35,11 @@ def run_alembic_command(command_args):
         cmd = ["alembic"] + command_args
         logger.info(f"🧱 Running: {' '.join(cmd)}")
         result = subprocess.run(
-            cmd, cwd=Path(__file__).parent, check=True, capture_output=True, text=True
+            cmd,
+            cwd=Path(__file__).parent,
+            check=True,
+            capture_output=True,
+            text=True,
         )
         logger.info(result.stdout)
         if result.stderr:
@@ -53,7 +57,10 @@ def check_environment():
     # Database connection variables (required for migrations)
     db_vars = ["POSTGRES_USER", "POSTGRES_PASSWORD", "POSTGRES_DB", "POSTGRES_HOST"]
     # NextDNS API variables (optional for migrations, but needed for the app to work)
-    api_vars = ["API_KEY", "PROFILE_ID", "LOCAL_API_KEY"]
+    # Note: API_KEY and PROFILE_IDS are seeded into the database on first boot.
+    # They can also be managed dynamically via PUT /settings/nextdns/api-key
+    # and POST /settings/nextdns/profiles after startup.
+    api_vars = ["LOCAL_API_KEY"]
 
     missing_db_vars = []
     missing_api_vars = []

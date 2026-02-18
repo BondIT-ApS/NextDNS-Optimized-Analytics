@@ -178,7 +178,7 @@
     {
       "label": "Backend: Format (Black)",
       "type": "shell",
-      "command": "cd backend && . venv/bin/activate && black . --line-length=88 --exclude='(alembic|venv)'",
+      "command": "cd backend && . venv/bin/activate && black . --line-length=85 --exclude='(alembic|venv)'",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",
@@ -188,7 +188,7 @@
     {
       "label": "Backend: Check Formatting",
       "type": "shell",
-      "command": "cd backend && . venv/bin/activate && black . --check --line-length=88 --exclude='(alembic|venv)'",
+      "command": "cd backend && . venv/bin/activate && black . --check --line-length=85 --exclude='(alembic|venv)'",
       "problemMatcher": [],
       "presentation": {
         "reveal": "always",

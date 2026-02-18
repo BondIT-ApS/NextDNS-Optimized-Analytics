@@ -65,7 +65,8 @@ def test_auth_secret_key_validation_with_custom_key(monkeypatch):
         # Verify the custom key is being used
         assert auth.AUTH_ENABLED is True
         assert (
-            auth.AUTH_SECRET_KEY == "my-secure-custom-key-for-production-use-12345678"
+            auth.AUTH_SECRET_KEY
+            == "my-secure-custom-key-for-production-use-12345678"
         )
         assert (
             auth.AUTH_SECRET_KEY
