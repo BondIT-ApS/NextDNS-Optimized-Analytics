@@ -19,7 +19,9 @@ from logging_config import get_logger
 logger = get_logger(__name__)
 
 FETCH_INTERVAL = int(os.getenv("FETCH_INTERVAL", "60"))  # Default to 60 minutes
-FETCH_LIMIT = int(os.getenv("FETCH_LIMIT", "100"))  # Default to 100 records per request
+FETCH_LIMIT = int(
+    os.getenv("FETCH_LIMIT", "100")
+)  # Default to 100 records per request
 
 
 def fetch_logs():  # pylint: disable=too-many-locals,too-many-branches,too-many-statements,too-many-nested-blocks
@@ -94,7 +96,9 @@ def fetch_logs():  # pylint: disable=too-many-locals,too-many-branches,too-many-
                 logger.info(f"🔄 Profile {profile_id}: fetched {len(logs)} DNS logs")
 
                 if not logs:
-                    logger.info(f"✅ Profile {profile_id}: no new records to process")
+                    logger.info(
+                        f"✅ Profile {profile_id}: no new records to process"
+                    )
                     successful_profiles += 1
                     continue
 

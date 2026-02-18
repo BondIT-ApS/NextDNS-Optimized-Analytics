@@ -35,7 +35,11 @@ def run_alembic_command(command_args):
         cmd = ["alembic"] + command_args
         logger.info(f"🧱 Running: {' '.join(cmd)}")
         result = subprocess.run(
-            cmd, cwd=Path(__file__).parent, check=True, capture_output=True, text=True
+            cmd,
+            cwd=Path(__file__).parent,
+            check=True,
+            capture_output=True,
+            text=True,
         )
         logger.info(result.stdout)
         if result.stderr:

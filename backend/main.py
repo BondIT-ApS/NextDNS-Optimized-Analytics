@@ -80,7 +80,9 @@ DISABLE_SCHEDULER = os.getenv("DISABLE_SCHEDULER", "false").lower() == "true"
 
 if not DISABLE_SCHEDULER:
     try:
-        from scheduler import scheduler  # pylint: disable=unused-import,duplicate-code
+        from scheduler import (
+            scheduler,
+        )  # pylint: disable=unused-import,duplicate-code
 
         logger.info("🔄 NextDNS log scheduler started successfully")
     except ImportError as e:
@@ -191,7 +193,9 @@ def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)
 # Flexible authentication supporting both Bearer and X-API-Key
 def verify_api_key_flexible(
     x_api_key: str = Header(None),
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
+    credentials: HTTPAuthorizationCredentials = Depends(
+        HTTPBearer(auto_error=False)
+    ),
 ):
     """Authenticate user with API key via Bearer token or X-API-Key header."""
     api_key = None
@@ -591,7 +595,9 @@ async def detailed_health_check():
         total_records = get_total_record_count()
 
         # Calculate uptime
-        uptime_seconds = (datetime.now(timezone.utc) - app_start_time).total_seconds()
+        uptime_seconds = (
+            datetime.now(timezone.utc) - app_start_time
+        ).total_seconds()
 
         # Get environment configuration
         fetch_interval = int(os.getenv("FETCH_INTERVAL", "60"))
@@ -599,7 +605,9 @@ async def detailed_health_check():
 
         # Create metrics components
         backend_resources = _create_backend_resources(uptime_seconds)
-        backend_health = BackendHealth(status="healthy", uptime_seconds=uptime_seconds)
+        backend_health = BackendHealth(
+            status="healthy", uptime_seconds=uptime_seconds
+        )
         backend_metrics = BackendMetrics(
             resources=backend_resources, health=backend_health
         )
@@ -795,7 +803,10 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
         default="all", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
     limit: int = Query(
-        default=100, ge=1, le=10000, description="Maximum number of records to return"
+        default=100,
+        ge=1,
+        le=10000,
+        description="Maximum number of records to return",
     ),
     offset: int = Query(default=0, ge=0, description="Number of records to skip"),
     current_user: str = Depends(get_current_user),
@@ -862,11 +873,15 @@ async def get_profile_information(current_user: str = Depends(get_current_user))
     profile_info = get_multiple_profiles_info(configured_profiles)
     logger.info(f"🧱 Returning information for {len(profile_info)} profiles")
 
-    return ProfileInfoResponse(profiles=profile_info, total_profiles=len(profile_info))
+    return ProfileInfoResponse(
+        profiles=profile_info, total_profiles=len(profile_info)
+    )
 
 
 @app.get(
-    "/profiles/{profile_id}/info", response_model=NextDNSProfileInfo, tags=["Profiles"]
+    "/profiles/{profile_id}/info",
+    response_model=NextDNSProfileInfo,
+    tags=["Profiles"],
 )
 async def get_single_profile_info(
     profile_id: str, current_user: str = Depends(get_current_user)
@@ -885,7 +900,9 @@ async def get_single_profile_info(
     return NextDNSProfileInfo(**profile_info)
 
 
-@app.get("/stats/overview", response_model=StatsOverviewResponse, tags=["Statistics"])
+@app.get(
+    "/stats/overview", response_model=StatsOverviewResponse, tags=["Statistics"]
+)
 async def get_stats_overview(
     profile: Optional[str] = Query(
         default=None, description="Filter by specific profile ID"
