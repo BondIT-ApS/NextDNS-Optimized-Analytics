@@ -3,6 +3,7 @@ import json
 import os
 import re
 from datetime import datetime, timezone, timedelta
+from typing import Optional
 
 from sqlalchemy import (
     create_engine,
@@ -165,10 +166,14 @@ class ForceText(TypeDecorator):  # pylint: disable=too-many-ancestors
             return str(value)
         return value
 
-    def process_result_value(self, value, dialect):  # pylint: disable=unused-argument
+    def process_result_value(
+        self, value, dialect
+    ):  # pylint: disable=unused-argument
         return value
 
-    def process_literal_param(self, value, dialect):  # pylint: disable=unused-argument
+    def process_literal_param(
+        self, value, dialect
+    ):  # pylint: disable=unused-argument
         """Process literal parameter for SQL compilation."""
         return str(value) if value is not None else value
 
@@ -219,7 +224,9 @@ class DNSLog(Base):
     tld = Column(
         String(255), nullable=True
     )  # Computed TLD for fast aggregation (Phase 3)
-    data = Column(ForceText, nullable=False)  # Store original raw data as JSON string
+    data = Column(
+        ForceText, nullable=False
+    )  # Store original raw data as JSON string
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -382,7 +389,9 @@ def add_log(log):
         existing_log = (
             session.query(DNSLog)
             .filter_by(
-                timestamp=log_timestamp, domain=log.get("domain"), client_ip=client_ip
+                timestamp=log_timestamp,
+                domain=log.get("domain"),
+                client_ip=client_ip,
             )
             .first()
         )
@@ -1049,7 +1058,9 @@ def get_stats_timeseries(
         elif time_range == "7d":
             # For daily data, align to start of today and work backwards
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            start_time = today_start - timedelta(days=6)  # 6 days back + today = 7 days
+            start_time = today_start - timedelta(
+                days=6
+            )  # 6 days back + today = 7 days
             interval_hours = 24
             num_intervals = 7  # 7 x 1day = 7 days
             granularity = "day"
@@ -1138,7 +1149,9 @@ def get_stats_timeseries(
                 elif time_range == "1h":
                     # Round to nearest 5 minutes
                     display_time = interval_start.replace(
-                        minute=(interval_start.minute // 5) * 5, second=0, microsecond=0
+                        minute=(interval_start.minute // 5) * 5,
+                        second=0,
+                        microsecond=0,
                     )
                 elif time_range == "6h":
                     # Round to nearest 15 minutes
@@ -1233,7 +1246,9 @@ def get_stats_timeseries(
         # Return format depends on grouping mode
         if group_by == "profile":
             # Get list of all available profiles from the query
-            all_profiles = base_query.with_entities(DNSLog.profile_id).distinct().all()
+            all_profiles = (
+                base_query.with_entities(DNSLog.profile_id).distinct().all()
+            )
             available_profiles = [p[0] for p in all_profiles if p[0]]
 
             return {
@@ -1639,10 +1654,14 @@ def get_stats_devices(  # pylint: disable=too-many-locals,too-many-branches
         device_results = []
         for device_name, stats in device_stats.items():
             blocked_percentage = (
-                (stats["blocked"] / stats["total"] * 100) if stats["total"] > 0 else 0
+                (stats["blocked"] / stats["total"] * 100)
+                if stats["total"] > 0
+                else 0
             )
             allowed_percentage = (
-                (stats["allowed"] / stats["total"] * 100) if stats["total"] > 0 else 0
+                (stats["allowed"] / stats["total"] * 100)
+                if stats["total"] > 0
+                else 0
             )
 
             device_results.append(
@@ -1705,7 +1724,9 @@ def get_database_metrics():  # pylint: disable=too-many-branches,too-many-statem
                 text("SELECT count(*) as total_connections FROM pg_stat_activity")
             ).fetchone()
 
-            max_connections = session.execute(text("SHOW max_connections")).fetchone()
+            max_connections = session.execute(
+                text("SHOW max_connections")
+            ).fetchone()
 
             if connection_stats and total_connections and max_connections:
                 active = connection_stats[0]
@@ -1814,3 +1835,356 @@ def get_database_metrics():  # pylint: disable=too-many-branches,too-many-statem
         }
     finally:
         session.close()
+
+
+# ---------------------------------------------------------------------------
+# System Settings — generic key/value store (shared foundation with #115)
+# ---------------------------------------------------------------------------
+
+
+class SystemSetting(Base):
+    """Generic key/value settings table.
+
+    Used to store application-level configuration that previously lived in
+    environment variables.  The first key populated here is ``nextdns_api_key``;
+    additional keys will be added in issue #115 (general system settings).
+    """
+
+    __tablename__ = "system_settings"
+
+    key = Column(String(100), primary_key=True)
+    value = Column(Text, nullable=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
+# ---------------------------------------------------------------------------
+# NextDNS Profiles — managed profile list (replaces PROFILE_IDS env var)
+# ---------------------------------------------------------------------------
+
+
+class NextDNSProfile(Base):
+    """Stores the set of NextDNS profiles the scheduler should fetch.
+
+    Profiles are managed via the ``/settings/nextdns/profiles`` API rather
+    than the ``PROFILE_IDS`` environment variable.  The env var is still read
+    on first boot to seed this table (see ``migrate_config_from_env``).
+    """
+
+    __tablename__ = "nextdns_profiles"
+
+    profile_id = Column(String(50), primary_key=True)
+    enabled = Column(Boolean, default=True, nullable=False)
+    created_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Generic settings helpers
+# ---------------------------------------------------------------------------
+
+
+def get_setting(key: str) -> Optional[str]:
+    """Return the value for *key* from system_settings, or None."""
+    session = session_factory()
+    try:
+        row = session.query(SystemSetting).filter_by(key=key).first()
+        return row.value if row else None
+    except SQLAlchemyError as e:
+        logger.error(f"❌ Error reading setting '{key}': {e}")
+        return None
+    finally:
+        session.close()
+
+
+def set_setting(key: str, value: str) -> bool:
+    """Upsert *key* → *value* in system_settings."""
+    session = session_factory()
+    try:
+        row = session.query(SystemSetting).filter_by(key=key).first()
+        if row:
+            row.value = value
+            row.updated_at = datetime.now(timezone.utc)
+        else:
+            row = SystemSetting(key=key, value=value)
+            session.add(row)
+        session.commit()
+        logger.debug(f"✅ Setting '{key}' saved")
+        return True
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.error(f"❌ Error saving setting '{key}': {e}")
+        return False
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------------
+# NextDNS API key helpers
+# ---------------------------------------------------------------------------
+
+NEXTDNS_API_KEY_SETTING = "nextdns_api_key"
+
+
+def get_nextdns_api_key() -> Optional[str]:
+    """Return the stored NextDNS API key, or fall back to the env var."""
+    key = get_setting(NEXTDNS_API_KEY_SETTING)
+    if key:
+        return key
+    # Fallback: env var (used before first migration or in legacy setups)
+    return os.getenv("API_KEY")
+
+
+def set_nextdns_api_key(api_key: str) -> bool:
+    """Persist the NextDNS API key to the database."""
+    return set_setting(NEXTDNS_API_KEY_SETTING, api_key)
+
+
+# ---------------------------------------------------------------------------
+# NextDNS profile helpers
+# ---------------------------------------------------------------------------
+
+
+def get_active_profile_ids() -> list:
+    """Return profile_ids for all *enabled* profiles in the DB.
+
+    Falls back to env var ``PROFILE_IDS`` if the table is empty (e.g. before
+    the first ``migrate_config_from_env`` run).
+    """
+    session = session_factory()
+    try:
+        rows = (
+            session.query(NextDNSProfile)
+            .filter_by(enabled=True)
+            .order_by(NextDNSProfile.profile_id)
+            .all()
+        )
+        if rows:
+            return [r.profile_id for r in rows]
+    except SQLAlchemyError as e:
+        logger.error(f"❌ Error reading active profiles: {e}")
+    finally:
+        session.close()
+
+    # Fallback to env var
+    env_ids = os.getenv("PROFILE_IDS", "")
+    return [p.strip() for p in env_ids.split(",") if p.strip()]
+
+
+def get_all_profiles() -> list:
+    """Return all NextDNSProfile rows (enabled and disabled)."""
+    session = session_factory()
+    try:
+        return (
+            session.query(NextDNSProfile).order_by(NextDNSProfile.profile_id).all()
+        )
+    except SQLAlchemyError as e:
+        logger.error(f"❌ Error reading profiles: {e}")
+        return []
+    finally:
+        session.close()
+
+
+def get_profile(profile_id: str) -> Optional[object]:
+    """Return a single NextDNSProfile row or None."""
+    session = session_factory()
+    try:
+        return session.query(NextDNSProfile).filter_by(profile_id=profile_id).first()
+    except SQLAlchemyError as e:
+        logger.error(f"❌ Error reading profile '{profile_id}': {e}")
+        return None
+    finally:
+        session.close()
+
+
+def add_profile(profile_id: str) -> bool:
+    """Insert a new enabled profile.  Returns False if it already exists."""
+    session = session_factory()
+    try:
+        existing = (
+            session.query(NextDNSProfile).filter_by(profile_id=profile_id).first()
+        )
+        if existing:
+            logger.warning(f"⚠️  Profile '{profile_id}' already exists")
+            return False
+        session.add(NextDNSProfile(profile_id=profile_id, enabled=True))
+        session.commit()
+        logger.info(f"✅ Profile '{profile_id}' added")
+        return True
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.error(f"❌ Error adding profile '{profile_id}': {e}")
+        return False
+    finally:
+        session.close()
+
+
+def update_profile_enabled(profile_id: str, enabled: bool) -> bool:
+    """Enable or disable a profile.  Returns False if not found."""
+    session = session_factory()
+    try:
+        row = session.query(NextDNSProfile).filter_by(profile_id=profile_id).first()
+        if not row:
+            return False
+        row.enabled = enabled
+        row.updated_at = datetime.now(timezone.utc)
+        session.commit()
+        state = "enabled" if enabled else "disabled"
+        logger.info(f"✅ Profile '{profile_id}' {state}")
+        return True
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.error(f"❌ Error updating profile '{profile_id}': {e}")
+        return False
+    finally:
+        session.close()
+
+
+def delete_profile_data(profile_id: str) -> dict:
+    """Remove all DNS logs and fetch status for *profile_id*.
+
+    Returns a dict with counts of deleted rows per table.
+    """
+    session = session_factory()
+    try:
+        logs_deleted = (
+            session.query(DNSLog)
+            .filter(DNSLog.profile_id == profile_id)
+            .delete(synchronize_session=False)
+        )
+        fetch_deleted = (
+            session.query(FetchStatus)
+            .filter(FetchStatus.profile_id == profile_id)
+            .delete(synchronize_session=False)
+        )
+        session.commit()
+        logger.info(
+            f"🗑️  Profile '{profile_id}' data cleaned up: "
+            f"{logs_deleted} DNS logs, {fetch_deleted} fetch status rows deleted"
+        )
+        return {
+            "dns_logs_deleted": logs_deleted,
+            "fetch_status_deleted": fetch_deleted,
+        }
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.error(f"❌ Error deleting data for profile '{profile_id}': {e}")
+        return {"dns_logs_deleted": 0, "fetch_status_deleted": 0}
+    finally:
+        session.close()
+
+
+def delete_profile(profile_id: str, delete_data: bool = True) -> dict:
+    """Remove a profile from nextdns_profiles (and optionally its data).
+
+    Args:
+        profile_id: The profile to remove.
+        delete_data: If True (default), also delete DNS logs and fetch status.
+
+    Returns:
+        dict with keys ``deleted`` (bool) and cleanup counts.
+    """
+    cleanup = {"dns_logs_deleted": 0, "fetch_status_deleted": 0}
+    if delete_data:
+        cleanup = delete_profile_data(profile_id)
+
+    session = session_factory()
+    try:
+        deleted = (
+            session.query(NextDNSProfile)
+            .filter_by(profile_id=profile_id)
+            .delete(synchronize_session=False)
+        )
+        session.commit()
+        if deleted:
+            logger.info(f"🗑️  Profile '{profile_id}' removed from nextdns_profiles")
+            return {"deleted": True, **cleanup}
+        logger.warning(f"⚠️  Profile '{profile_id}' not found for deletion")
+        return {"deleted": False, **cleanup}
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.error(f"❌ Error deleting profile '{profile_id}': {e}")
+        return {"deleted": False, **cleanup}
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------------
+# One-time startup migration from environment variables
+# ---------------------------------------------------------------------------
+
+
+def migrate_config_from_env() -> bool:
+    """Seed system_settings and nextdns_profiles from env vars if both are empty.
+
+    This runs once on first boot after the migration adds the new tables.
+    Subsequent boots skip seeding because rows already exist.
+
+    Returns:
+        True if seeding was performed, False if tables already had data.
+    """
+    session = session_factory()
+    try:
+        has_settings = session.query(SystemSetting).first() is not None
+        has_profiles = session.query(NextDNSProfile).first() is not None
+    except SQLAlchemyError as e:
+        logger.error(f"❌ migrate_config_from_env: cannot query tables: {e}")
+        return False
+    finally:
+        session.close()
+
+    if has_settings and has_profiles:
+        logger.debug("🧱 Config tables already populated — skipping env migration")
+        return False
+
+    seeded = False
+
+    # Seed API key
+    if not has_settings:
+        api_key = os.getenv("API_KEY")
+        if api_key:
+            set_nextdns_api_key(api_key)
+            logger.info("🔑 Migrated NextDNS API key from env to system_settings")
+            seeded = True
+        else:
+            logger.warning(
+                "⚠️  API_KEY env var not set — NextDNS API key not migrated. "
+                "Set it via PUT /settings/nextdns/api-key after startup."
+            )
+
+    # Seed profiles
+    if not has_profiles:
+        env_ids = os.getenv("PROFILE_IDS", "")
+        profile_ids = [p.strip() for p in env_ids.split(",") if p.strip()]
+        if profile_ids:
+            for pid in profile_ids:
+                add_profile(pid)
+            logger.info(
+                f"🧱 Migrated {len(profile_ids)} profile(s) from PROFILE_IDS env to DB"
+            )
+            seeded = True
+        else:
+            logger.warning(
+                "⚠️  PROFILE_IDS env var not set — no profiles migrated. "
+                "Add profiles via POST /settings/nextdns/profiles after startup."
+            )
+
+    return seeded

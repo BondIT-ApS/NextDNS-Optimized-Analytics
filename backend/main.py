@@ -38,6 +38,14 @@ from models import (
     get_total_record_count,
     get_logs_stats,
     check_database_health,
+    get_nextdns_api_key,
+    set_nextdns_api_key,
+    get_all_profiles,
+    get_profile,
+    add_profile,
+    update_profile_enabled,
+    delete_profile,
+    migrate_config_from_env,
 )
 from models import get_available_profiles as get_profiles_from_db
 from models import (
@@ -72,7 +80,9 @@ DISABLE_SCHEDULER = os.getenv("DISABLE_SCHEDULER", "false").lower() == "true"
 
 if not DISABLE_SCHEDULER:
     try:
-        from scheduler import scheduler  # pylint: disable=unused-import,duplicate-code
+        from scheduler import (
+            scheduler,
+        )  # pylint: disable=unused-import,duplicate-code
 
         logger.info("🔄 NextDNS log scheduler started successfully")
     except ImportError as e:
@@ -92,6 +102,8 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting NextDNS Optimized Analytics FastAPI Backend")
     init_db()  # Ensure the database is initialized
     init_auth()  # Initialize authentication system
+    if migrate_config_from_env():
+        logger.info("🔑 NextDNS config seeded from environment variables")
     logger.info("✅ FastAPI application startup completed")
     yield
     # Shutdown (if needed in the future)
@@ -181,7 +193,9 @@ def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)
 # Flexible authentication supporting both Bearer and X-API-Key
 def verify_api_key_flexible(
     x_api_key: str = Header(None),
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
+    credentials: HTTPAuthorizationCredentials = Depends(
+        HTTPBearer(auto_error=False)
+    ),
 ):
     """Authenticate user with API key via Bearer token or X-API-Key header."""
     api_key = None
@@ -581,7 +595,9 @@ async def detailed_health_check():
         total_records = get_total_record_count()
 
         # Calculate uptime
-        uptime_seconds = (datetime.now(timezone.utc) - app_start_time).total_seconds()
+        uptime_seconds = (
+            datetime.now(timezone.utc) - app_start_time
+        ).total_seconds()
 
         # Get environment configuration
         fetch_interval = int(os.getenv("FETCH_INTERVAL", "60"))
@@ -589,7 +605,9 @@ async def detailed_health_check():
 
         # Create metrics components
         backend_resources = _create_backend_resources(uptime_seconds)
-        backend_health = BackendHealth(status="healthy", uptime_seconds=uptime_seconds)
+        backend_health = BackendHealth(
+            status="healthy", uptime_seconds=uptime_seconds
+        )
         backend_metrics = BackendMetrics(
             resources=backend_resources, health=backend_health
         )
@@ -785,7 +803,10 @@ async def get_dns_logs(  # pylint: disable=too-many-positional-arguments
         default="all", description="Time range: 30m, 1h, 6h, 24h, 7d, 30d, 3m, all"
     ),
     limit: int = Query(
-        default=100, ge=1, le=10000, description="Maximum number of records to return"
+        default=100,
+        ge=1,
+        le=10000,
+        description="Maximum number of records to return",
     ),
     offset: int = Query(default=0, ge=0, description="Number of records to skip"),
     current_user: str = Depends(get_current_user),
@@ -852,11 +873,15 @@ async def get_profile_information(current_user: str = Depends(get_current_user))
     profile_info = get_multiple_profiles_info(configured_profiles)
     logger.info(f"🧱 Returning information for {len(profile_info)} profiles")
 
-    return ProfileInfoResponse(profiles=profile_info, total_profiles=len(profile_info))
+    return ProfileInfoResponse(
+        profiles=profile_info, total_profiles=len(profile_info)
+    )
 
 
 @app.get(
-    "/profiles/{profile_id}/info", response_model=NextDNSProfileInfo, tags=["Profiles"]
+    "/profiles/{profile_id}/info",
+    response_model=NextDNSProfileInfo,
+    tags=["Profiles"],
 )
 async def get_single_profile_info(
     profile_id: str, current_user: str = Depends(get_current_user)
@@ -875,7 +900,9 @@ async def get_single_profile_info(
     return NextDNSProfileInfo(**profile_info)
 
 
-@app.get("/stats/overview", response_model=StatsOverviewResponse, tags=["Statistics"])
+@app.get(
+    "/stats/overview", response_model=StatsOverviewResponse, tags=["Statistics"]
+)
 async def get_stats_overview(
     profile: Optional[str] = Query(
         default=None, description="Filter by specific profile ID"
@@ -1135,6 +1162,246 @@ async def get_device_stats(
     devices = [DeviceUsageItem(**device) for device in device_results]
 
     return DeviceStatsResponse(devices=devices)
+
+
+# ---------------------------------------------------------------------------
+# Settings — NextDNS configuration (API key + profile management)
+# ---------------------------------------------------------------------------
+
+
+class ApiKeyResponse(BaseModel):
+    """Masked API key response."""
+
+    configured: bool
+    masked_key: Optional[str] = None  # e.g. "••••••••ab12"
+
+
+class ApiKeyUpdateRequest(BaseModel):
+    """Request body for updating the NextDNS API key."""
+
+    api_key: str
+
+
+class SettingsProfileItem(BaseModel):
+    """A single NextDNS profile entry from the settings table."""
+
+    profile_id: str
+    enabled: bool
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+class SettingsProfileListResponse(BaseModel):
+    """List of configured NextDNS profiles from the settings table."""
+
+    profiles: List[SettingsProfileItem]
+    total: int
+
+
+class AddProfileRequest(BaseModel):
+    """Request body for adding a new profile."""
+
+    profile_id: str
+
+
+class UpdateProfileRequest(BaseModel):
+    """Request body for enabling/disabling a profile."""
+
+    enabled: bool
+
+
+class DeleteProfileResponse(BaseModel):
+    """Response after deleting a profile."""
+
+    deleted: bool
+    profile_id: str
+    dns_logs_deleted: int
+    fetch_status_deleted: int
+
+
+def _mask_api_key(key: str) -> str:
+    """Return a masked version of *key* showing only the last 4 characters."""
+    if len(key) <= 4:
+        return "••••"
+    return "•" * (len(key) - 4) + key[-4:]
+
+
+def _validate_nextdns_api_key(api_key: str) -> bool:
+    """Check the key against the NextDNS API by listing profiles.
+
+    Returns True if the key is accepted (HTTP 200), False otherwise.
+    """
+    try:
+        response = __import__("requests").get(
+            "https://api.nextdns.io/profiles",
+            headers={"X-Api-Key": api_key},
+            timeout=10,
+        )
+        return response.status_code == 200
+    except Exception:  # pylint: disable=broad-exception-caught
+        return False
+
+
+@app.get(
+    "/settings/nextdns/api-key",
+    response_model=ApiKeyResponse,
+    tags=["Settings"],
+)
+async def get_api_key_setting(
+    current_user: str = Depends(get_current_user),
+):
+    """Return whether a NextDNS API key is configured and its masked value."""
+    key = get_nextdns_api_key()
+    if not key:
+        return ApiKeyResponse(configured=False)
+    return ApiKeyResponse(configured=True, masked_key=_mask_api_key(key))
+
+
+@app.put(
+    "/settings/nextdns/api-key",
+    response_model=ApiKeyResponse,
+    tags=["Settings"],
+)
+async def update_api_key_setting(
+    body: ApiKeyUpdateRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Validate the provided key against the NextDNS API and persist it."""
+    api_key = body.api_key.strip()
+    if not api_key:
+        raise HTTPException(status_code=400, detail="api_key must not be empty")
+
+    if not _validate_nextdns_api_key(api_key):
+        raise HTTPException(
+            status_code=422,
+            detail="API key rejected by NextDNS — check that it is valid",
+        )
+
+    if not set_nextdns_api_key(api_key):
+        raise HTTPException(status_code=500, detail="Failed to save API key")
+
+    logger.info("🔑 NextDNS API key updated via settings endpoint")
+    return ApiKeyResponse(configured=True, masked_key=_mask_api_key(api_key))
+
+
+@app.get(
+    "/settings/nextdns/profiles",
+    response_model=SettingsProfileListResponse,
+    tags=["Settings"],
+)
+async def list_settings_profiles(
+    current_user: str = Depends(get_current_user),
+):
+    """Return all configured NextDNS profiles (enabled and disabled)."""
+    rows = get_all_profiles()
+    items = [
+        SettingsProfileItem(
+            profile_id=r.profile_id,
+            enabled=r.enabled,
+            created_at=r.created_at.isoformat() if r.created_at else None,
+            updated_at=r.updated_at.isoformat() if r.updated_at else None,
+        )
+        for r in rows
+    ]
+    return SettingsProfileListResponse(profiles=items, total=len(items))
+
+
+@app.post(
+    "/settings/nextdns/profiles",
+    response_model=SettingsProfileItem,
+    status_code=status.HTTP_201_CREATED,
+    tags=["Settings"],
+)
+async def add_settings_profile(
+    body: AddProfileRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Add a new NextDNS profile after validating it exists on NextDNS."""
+    profile_id = body.profile_id.strip()
+    if not profile_id:
+        raise HTTPException(status_code=400, detail="profile_id must not be empty")
+
+    # Verify the profile exists on NextDNS
+    api_key = get_nextdns_api_key()
+    if not api_key:
+        raise HTTPException(
+            status_code=422,
+            detail="No NextDNS API key configured — set it via PUT /settings/nextdns/api-key first",
+        )
+
+    profile_info = get_profile_info(profile_id)
+    if not profile_info or profile_info.get("error"):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Profile '{profile_id}' not found or not accessible with the current API key",
+        )
+
+    if not add_profile(profile_id):
+        raise HTTPException(
+            status_code=409,
+            detail=f"Profile '{profile_id}' already exists",
+        )
+
+    row = get_profile(profile_id)
+    return SettingsProfileItem(
+        profile_id=row.profile_id,
+        enabled=row.enabled,
+        created_at=row.created_at.isoformat() if row.created_at else None,
+        updated_at=row.updated_at.isoformat() if row.updated_at else None,
+    )
+
+
+@app.put(
+    "/settings/nextdns/profiles/{profile_id}",
+    response_model=SettingsProfileItem,
+    tags=["Settings"],
+)
+async def update_settings_profile(
+    profile_id: str,
+    body: UpdateProfileRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Enable or disable a NextDNS profile."""
+    if not update_profile_enabled(profile_id, body.enabled):
+        raise HTTPException(
+            status_code=404,
+            detail=f"Profile '{profile_id}' not found",
+        )
+    row = get_profile(profile_id)
+    return SettingsProfileItem(
+        profile_id=row.profile_id,
+        enabled=row.enabled,
+        created_at=row.created_at.isoformat() if row.created_at else None,
+        updated_at=row.updated_at.isoformat() if row.updated_at else None,
+    )
+
+
+@app.delete(
+    "/settings/nextdns/profiles/{profile_id}",
+    response_model=DeleteProfileResponse,
+    tags=["Settings"],
+)
+async def delete_settings_profile(
+    profile_id: str,
+    purge_data: bool = Query(
+        default=True,
+        description="Also delete all DNS logs and fetch status for this profile",
+    ),
+    current_user: str = Depends(get_current_user),
+):
+    """Delete a profile and optionally purge all its DNS log data."""
+    result = delete_profile(profile_id, delete_data=purge_data)
+    if not result["deleted"]:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Profile '{profile_id}' not found",
+        )
+    return DeleteProfileResponse(
+        deleted=True,
+        profile_id=profile_id,
+        dns_logs_deleted=result["dns_logs_deleted"],
+        fetch_status_deleted=result["fetch_status_deleted"],
+    )
 
 
 if __name__ == "__main__":
