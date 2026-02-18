@@ -31,7 +31,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              head: 'dependabot'
+              per_page: 100
             });
             
             const dependabotPRs = pulls.filter(pr => pr.user.login === 'dependabot[bot]');
