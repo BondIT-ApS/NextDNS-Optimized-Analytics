@@ -82,9 +82,7 @@ def main():
             logger.warning(
                 "⚠️  Worker started but NextDNS API credentials not configured"
             )
-            logger.warning(
-                "⚠️  Scheduler will not fetch logs until credentials are set"
-            )
+            logger.warning("⚠️  Scheduler will not fetch logs until credentials are set")
 
     except ImportError as e:
         logger.error(f"❌ Failed to import scheduler: {e}")
