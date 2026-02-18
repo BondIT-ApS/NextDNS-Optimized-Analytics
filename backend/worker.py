@@ -83,9 +83,11 @@ def main():
 
         if not api_key_configured or not active_profiles:
             logger.warning(
-                "⚠️  Worker started but NextDNS API credentials " "not fully configured"
+                "⚠️  Worker started but NextDNS API credentials"
+                " not fully configured"
             )
-            logger.warning("⚠️  Scheduler will not fetch logs until credentials are set")
+            logger.warning("⚠️  Scheduler will not fetch logs until"
+                           " credentials are set")
             logger.warning(
                 "💡 Use PUT /settings/nextdns/api-key"
                 " and POST /settings/nextdns/profiles"
