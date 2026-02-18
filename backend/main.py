@@ -80,7 +80,9 @@ if not DISABLE_SCHEDULER:
         logger.info("🧱 App will work but won't automatically fetch NextDNS logs")
 else:
     logger.info("🔇 Scheduler disabled (DISABLE_SCHEDULER=true)")
-    logger.info("💡 Use separate worker pod for DNS log fetching in K8s multi-pod setup")
+    logger.info(
+        "💡 Use separate worker pod for DNS log fetching in K8s multi-pod setup"
+    )
 
 
 @asynccontextmanager
