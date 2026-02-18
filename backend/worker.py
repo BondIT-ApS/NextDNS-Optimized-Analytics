@@ -50,13 +50,15 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
-    # Initialize database connection
+    # Initialize database connection and seed config from env if needed
     logger.info("🗄️  Initializing database connection...")
     try:
-        from models import init_db
+        from models import init_db, migrate_config_from_env
 
         init_db()
         logger.info("✅ Database connection initialized")
+        if migrate_config_from_env():
+            logger.info("🔑 Config seeded from environment variables")
     except Exception as e:
         logger.error(f"❌ Failed to initialize database: {e}")
         sys.exit(1)
@@ -68,21 +70,25 @@ def main():
 
         logger.info("✅ Scheduler started successfully")
 
-        # Log scheduler configuration
+        # Log scheduler configuration (reads from DB)
+        from models import get_nextdns_api_key, get_active_profile_ids
+
         fetch_interval = int(os.getenv("FETCH_INTERVAL", "60"))
-        api_key_configured = bool(os.getenv("API_KEY"))
-        profile_ids = os.getenv("PROFILE_IDS", "")
-        profile_count = len(profile_ids.split(",")) if profile_ids else 0
+        api_key_configured = bool(get_nextdns_api_key())
+        active_profiles = get_active_profile_ids()
 
         logger.info(f"⏰ Fetch interval: {fetch_interval} minutes")
         logger.info(f"🔑 API Key configured: {api_key_configured}")
-        logger.info(f"📊 Monitoring {profile_count} profile(s)")
+        logger.info(f"📊 Monitoring {len(active_profiles)} active profile(s)")
 
-        if not api_key_configured or profile_count == 0:
+        if not api_key_configured or not active_profiles:
             logger.warning(
-                "⚠️  Worker started but NextDNS API credentials not configured"
+                "⚠️  Worker started but NextDNS API credentials not fully configured"
             )
             logger.warning("⚠️  Scheduler will not fetch logs until credentials are set")
+            logger.warning(
+                "💡 Use PUT /settings/nextdns/api-key and POST /settings/nextdns/profiles"
+            )
 
     except ImportError as e:
         logger.error(f"❌ Failed to import scheduler: {e}")
