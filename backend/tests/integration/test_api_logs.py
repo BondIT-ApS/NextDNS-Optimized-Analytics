@@ -147,9 +147,7 @@ def test_get_logs_with_exclude_domains(test_client, populated_test_db, monkeypat
 
     client = TestClient(app)
 
-    response = client.get(
-        "/logs?exclude=test0.example.com&exclude=test1.example.com"
-    )
+    response = client.get("/logs?exclude=test0.example.com&exclude=test1.example.com")
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()

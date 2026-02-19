@@ -142,6 +142,43 @@ export interface DetailedHealthResponse {
   timestamp: string
 }
 
+// Settings types
+export interface ApiKeyResponse {
+  api_key_masked: string
+  api_key_configured: boolean
+}
+
+export interface SettingsProfileItem {
+  profile_id: string
+  enabled: boolean
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface SettingsProfileListResponse {
+  profiles: SettingsProfileItem[]
+  total: number
+}
+
+export interface AddProfileResponse {
+  profile_id: string
+  enabled: boolean
+  message?: string
+}
+
+export interface DeleteProfileResponse {
+  deleted: boolean
+  profile_id: string
+  dns_logs_deleted: number
+  fetch_status_deleted: number
+}
+
+export interface SystemSettingsResponse {
+  fetch_interval: number
+  fetch_limit: number
+  log_level: string
+}
+
 // Authentication types
 export interface AuthCredentials {
   username: string

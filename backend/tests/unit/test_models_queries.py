@@ -23,9 +23,7 @@ def test_extract_tld_with_query_context():
     """Test TLD extraction in query processing context."""
     # Test cases that might come up in actual DNS log processing
     assert extract_tld("cdn.example.com") == "example.com"
-    assert (
-        extract_tld("api.service.domain.co.uk") == "co.uk"
-    )  # Complex TLD extraction
+    assert extract_tld("api.service.domain.co.uk") == "co.uk"  # Complex TLD extraction
     assert extract_tld("subdomain.long-domain-name.org") == "long-domain-name.org"
 
 

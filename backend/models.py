@@ -166,14 +166,10 @@ class ForceText(TypeDecorator):  # pylint: disable=too-many-ancestors
             return str(value)
         return value
 
-    def process_result_value(
-        self, value, dialect
-    ):  # pylint: disable=unused-argument
+    def process_result_value(self, value, dialect):  # pylint: disable=unused-argument
         return value
 
-    def process_literal_param(
-        self, value, dialect
-    ):  # pylint: disable=unused-argument
+    def process_literal_param(self, value, dialect):  # pylint: disable=unused-argument
         """Process literal parameter for SQL compilation."""
         return str(value) if value is not None else value
 
@@ -224,9 +220,7 @@ class DNSLog(Base):
     tld = Column(
         String(255), nullable=True
     )  # Computed TLD for fast aggregation (Phase 3)
-    data = Column(
-        ForceText, nullable=False
-    )  # Store original raw data as JSON string
+    data = Column(ForceText, nullable=False)  # Store original raw data as JSON string
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -1058,9 +1052,7 @@ def get_stats_timeseries(
         elif time_range == "7d":
             # For daily data, align to start of today and work backwards
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            start_time = today_start - timedelta(
-                days=6
-            )  # 6 days back + today = 7 days
+            start_time = today_start - timedelta(days=6)  # 6 days back + today = 7 days
             interval_hours = 24
             num_intervals = 7  # 7 x 1day = 7 days
             granularity = "day"
@@ -1246,9 +1238,7 @@ def get_stats_timeseries(
         # Return format depends on grouping mode
         if group_by == "profile":
             # Get list of all available profiles from the query
-            all_profiles = (
-                base_query.with_entities(DNSLog.profile_id).distinct().all()
-            )
+            all_profiles = base_query.with_entities(DNSLog.profile_id).distinct().all()
             available_profiles = [p[0] for p in all_profiles if p[0]]
 
             return {
@@ -1654,14 +1644,10 @@ def get_stats_devices(  # pylint: disable=too-many-locals,too-many-branches
         device_results = []
         for device_name, stats in device_stats.items():
             blocked_percentage = (
-                (stats["blocked"] / stats["total"] * 100)
-                if stats["total"] > 0
-                else 0
+                (stats["blocked"] / stats["total"] * 100) if stats["total"] > 0 else 0
             )
             allowed_percentage = (
-                (stats["allowed"] / stats["total"] * 100)
-                if stats["total"] > 0
-                else 0
+                (stats["allowed"] / stats["total"] * 100) if stats["total"] > 0 else 0
             )
 
             device_results.append(
@@ -1724,9 +1710,7 @@ def get_database_metrics():  # pylint: disable=too-many-branches,too-many-statem
                 text("SELECT count(*) as total_connections FROM pg_stat_activity")
             ).fetchone()
 
-            max_connections = session.execute(
-                text("SHOW max_connections")
-            ).fetchone()
+            max_connections = session.execute(text("SHOW max_connections")).fetchone()
 
             if connection_stats and total_connections and max_connections:
                 active = connection_stats[0]
@@ -1942,6 +1926,9 @@ def set_setting(key: str, value: str) -> bool:
 # ---------------------------------------------------------------------------
 
 NEXTDNS_API_KEY_SETTING = "nextdns_api_key"
+FETCH_INTERVAL_SETTING = "fetch_interval"
+FETCH_LIMIT_SETTING = "fetch_limit"
+LOG_LEVEL_SETTING = "log_level"
 
 
 def get_nextdns_api_key() -> Optional[str]:
@@ -1956,6 +1943,61 @@ def get_nextdns_api_key() -> Optional[str]:
 def set_nextdns_api_key(api_key: str) -> bool:
     """Persist the NextDNS API key to the database."""
     return set_setting(NEXTDNS_API_KEY_SETTING, api_key)
+
+
+# ---------------------------------------------------------------------------
+# Scheduler settings helpers
+# ---------------------------------------------------------------------------
+
+
+def get_fetch_interval() -> int:
+    """Return the fetch interval in minutes, falling back to the env var."""
+    val = get_setting(FETCH_INTERVAL_SETTING)
+    if val is not None:
+        try:
+            return int(val)
+        except ValueError:
+            pass
+    return int(os.getenv("FETCH_INTERVAL", "60"))
+
+
+def set_fetch_interval(minutes: int) -> bool:
+    """Persist the fetch interval (minutes) to the database."""
+    return set_setting(FETCH_INTERVAL_SETTING, str(minutes))
+
+
+def get_fetch_limit() -> int:
+    """Return the fetch limit (records per request), falling back to the env var."""
+    val = get_setting(FETCH_LIMIT_SETTING)
+    if val is not None:
+        try:
+            return int(val)
+        except ValueError:
+            pass
+    return int(os.getenv("FETCH_LIMIT", "100"))
+
+
+def set_fetch_limit(limit: int) -> bool:
+    """Persist the fetch limit to the database."""
+    return set_setting(FETCH_LIMIT_SETTING, str(limit))
+
+
+# ---------------------------------------------------------------------------
+# Application settings helpers
+# ---------------------------------------------------------------------------
+
+
+def get_log_level() -> str:
+    """Return the log level string, falling back to the env var."""
+    val = get_setting(LOG_LEVEL_SETTING)
+    if val:
+        return val.upper()
+    return os.getenv("LOG_LEVEL", "INFO").upper()
+
+
+def set_log_level(level: str) -> bool:
+    """Persist the log level to the database."""
+    return set_setting(LOG_LEVEL_SETTING, level.upper())
 
 
 # ---------------------------------------------------------------------------
@@ -1993,9 +2035,7 @@ def get_all_profiles() -> list:
     """Return all NextDNSProfile rows (enabled and disabled)."""
     session = session_factory()
     try:
-        return (
-            session.query(NextDNSProfile).order_by(NextDNSProfile.profile_id).all()
-        )
+        return session.query(NextDNSProfile).order_by(NextDNSProfile.profile_id).all()
     except SQLAlchemyError as e:
         logger.error(f"❌ Error reading profiles: {e}")
         return []
@@ -2157,7 +2197,7 @@ def migrate_config_from_env() -> bool:
 
     seeded = False
 
-    # Seed API key
+    # Seed API key + scheduler/app settings
     if not has_settings:
         api_key = os.getenv("API_KEY")
         if api_key:
@@ -2169,6 +2209,34 @@ def migrate_config_from_env() -> bool:
                 "⚠️  API_KEY env var not set — NextDNS API key not migrated. "
                 "Set it via PUT /settings/nextdns/api-key after startup."
             )
+
+        fetch_interval_env = os.getenv("FETCH_INTERVAL")
+        if fetch_interval_env:
+            try:
+                set_fetch_interval(int(fetch_interval_env))
+                logger.info(
+                    f"⏰ Migrated FETCH_INTERVAL={fetch_interval_env} to system_settings"
+                )
+                seeded = True
+            except ValueError:
+                pass
+
+        fetch_limit_env = os.getenv("FETCH_LIMIT")
+        if fetch_limit_env:
+            try:
+                set_fetch_limit(int(fetch_limit_env))
+                logger.info(
+                    f"📊 Migrated FETCH_LIMIT={fetch_limit_env} to system_settings"
+                )
+                seeded = True
+            except ValueError:
+                pass
+
+        log_level_env = os.getenv("LOG_LEVEL")
+        if log_level_env:
+            set_log_level(log_level_env)
+            logger.info(f"📋 Migrated LOG_LEVEL={log_level_env} to system_settings")
+            seeded = True
 
     # Seed profiles
     if not has_profiles:

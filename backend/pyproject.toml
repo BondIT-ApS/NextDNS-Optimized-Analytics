@@ -1,0 +1,9 @@
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+exclude = '''
+/(
+    alembic
+  | venv
+)/
+'''
