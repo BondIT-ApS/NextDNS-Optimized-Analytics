@@ -85,8 +85,8 @@ function ApiKeyCard() {
       const data = await apiClient.getNextDNSApiKey()
       setState(s => ({
         ...s,
-        masked: data.api_key_masked,
-        configured: data.api_key_configured,
+        masked: data.masked_key ?? '',
+        configured: data.configured,
         loading: false,
       }))
     } catch {
@@ -105,8 +105,8 @@ function ApiKeyCard() {
       const data = await apiClient.updateNextDNSApiKey(state.inputValue.trim())
       setState(s => ({
         ...s,
-        masked: data.api_key_masked,
-        configured: data.api_key_configured,
+        masked: data.masked_key ?? '',
+        configured: data.configured,
         saving: false,
         editing: false,
         inputValue: '',

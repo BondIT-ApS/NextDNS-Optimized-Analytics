@@ -144,8 +144,8 @@ export interface DetailedHealthResponse {
 
 // Settings types
 export interface ApiKeyResponse {
-  api_key_masked: string
-  api_key_configured: boolean
+  configured: boolean
+  masked_key: string | null
 }
 
 export interface SettingsProfileItem {

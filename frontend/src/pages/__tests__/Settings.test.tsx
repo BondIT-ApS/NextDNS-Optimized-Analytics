@@ -6,8 +6,8 @@ import { Settings } from '../Settings'
 vi.mock('@/services/api', () => ({
   apiClient: {
     getNextDNSApiKey: vi.fn().mockResolvedValue({
-      api_key_masked: '••••1234',
-      api_key_configured: true,
+      configured: true,
+      masked_key: '••••1234',
     }),
     getNextDNSProfiles: vi.fn().mockResolvedValue({
       profiles: [],
