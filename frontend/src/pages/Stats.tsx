@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs'
 import { Button } from '../components/ui/button'
 import {
-  BarChart3,
   TrendingUp,
   Shield,
   Zap,
@@ -290,19 +289,6 @@ export default function Stats() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <BarChart3 className="h-8 w-8 text-blue-600" />
-            Analytics Dashboard
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Comprehensive DNS analytics and insights for your NextDNS profiles
-          </p>
-        </div>
-      </div>
-
       {/* Controls */}
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Profile Selector */}

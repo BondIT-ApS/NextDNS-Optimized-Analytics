@@ -18,7 +18,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 # Set up logging first
-from logging_config import setup_logging, get_logger
+from logging_config import setup_logging, get_logger, apply_log_level
 from performance_middleware import PerformanceMiddleware
 from auth import (
     init_auth,
@@ -46,6 +46,12 @@ from models import (
     update_profile_enabled,
     delete_profile,
     migrate_config_from_env,
+    get_fetch_interval,
+    set_fetch_interval,
+    get_fetch_limit,
+    set_fetch_limit,
+    get_log_level,
+    set_log_level,
 )
 from models import get_available_profiles as get_profiles_from_db
 from models import (
@@ -78,12 +84,14 @@ APP_VERSION = os.getenv("APP_VERSION", "dev")
 # Default: enabled (backward compatible with Docker Compose and single-pod deployments)
 DISABLE_SCHEDULER = os.getenv("DISABLE_SCHEDULER", "false").lower() == "true"
 
+apscheduler_instance = None  # Holds the APScheduler instance when running
 if not DISABLE_SCHEDULER:
     try:
-        from scheduler import (
-            scheduler,
-        )  # pylint: disable=unused-import,duplicate-code
+        from scheduler import (  # pylint: disable=unused-import,duplicate-code
+            scheduler as _scheduler_module_scheduler,
+        )
 
+        apscheduler_instance = _scheduler_module_scheduler
         logger.info("🔄 NextDNS log scheduler started successfully")
     except ImportError as e:
         logger.warning(f"⚠️  Could not start scheduler: {e}")
@@ -1401,6 +1409,98 @@ async def delete_settings_profile(
         profile_id=profile_id,
         dns_logs_deleted=result["dns_logs_deleted"],
         fetch_status_deleted=result["fetch_status_deleted"],
+    )
+
+
+# ---------------------------------------------------------------------------
+# /settings/system — scheduler + application settings
+# ---------------------------------------------------------------------------
+
+VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+
+
+class SystemSettingsResponse(BaseModel):
+    """Current scheduler and application settings."""
+
+    fetch_interval: int
+    fetch_limit: int
+    log_level: str
+
+
+class SystemSettingsUpdateRequest(BaseModel):
+    """Partial update for scheduler / application settings."""
+
+    fetch_interval: Optional[int] = None
+    fetch_limit: Optional[int] = None
+    log_level: Optional[str] = None
+
+
+@app.get(
+    "/settings/system", response_model=SystemSettingsResponse, tags=["Settings"]
+)
+async def get_system_settings(
+    current_user: str = Depends(get_current_user),
+):
+    """Return current scheduler and application settings."""
+    return SystemSettingsResponse(
+        fetch_interval=get_fetch_interval(),
+        fetch_limit=get_fetch_limit(),
+        log_level=get_log_level(),
+    )
+
+
+@app.put(
+    "/settings/system", response_model=SystemSettingsResponse, tags=["Settings"]
+)
+async def update_system_settings(
+    body: SystemSettingsUpdateRequest,
+    current_user: str = Depends(get_current_user),
+):
+    """Update scheduler and/or application settings. Changes take effect immediately."""
+    if body.fetch_interval is not None:
+        if not 1 <= body.fetch_interval <= 1440:
+            raise HTTPException(
+                status_code=422,
+                detail="fetch_interval must be between 1 and 1440 minutes",
+            )
+        set_fetch_interval(body.fetch_interval)
+        if apscheduler_instance is not None:
+            try:
+                apscheduler_instance.reschedule_job(
+                    "fetch_logs",
+                    trigger="interval",
+                    minutes=body.fetch_interval,
+                )
+                logger.info(
+                    f"⏰ Scheduler rescheduled to {body.fetch_interval} minutes"
+                )
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                logger.warning(f"⚠️  Could not reschedule job: {e}")
+
+    if body.fetch_limit is not None:
+        if not 10 <= body.fetch_limit <= 1000:
+            raise HTTPException(
+                status_code=422,
+                detail="fetch_limit must be between 10 and 1000",
+            )
+        set_fetch_limit(body.fetch_limit)
+        logger.info(f"📊 Fetch limit updated to {body.fetch_limit}")
+
+    if body.log_level is not None:
+        level = body.log_level.upper()
+        if level not in VALID_LOG_LEVELS:
+            raise HTTPException(
+                status_code=422,
+                detail=f"log_level must be one of: {', '.join(sorted(VALID_LOG_LEVELS))}",
+            )
+        logger.info(f"📋 Log level changing to: {level}")
+        set_log_level(level)
+        apply_log_level(level)
+
+    return SystemSettingsResponse(
+        fetch_interval=get_fetch_interval(),
+        fetch_limit=get_fetch_limit(),
+        log_level=get_log_level(),
     )
 
 
