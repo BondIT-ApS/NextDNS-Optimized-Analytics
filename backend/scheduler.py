@@ -96,7 +96,9 @@ def fetch_logs():  # pylint: disable=too-many-locals,too-many-branches,too-many-
                 logger.info(f"🔄 Profile {profile_id}: fetched {len(logs)} DNS logs")
 
                 if not logs:
-                    logger.info(f"✅ Profile {profile_id}: no new records to process")
+                    logger.info(
+                        f"✅ Profile {profile_id}: no new records to process"
+                    )
                     successful_profiles += 1
                     continue
 
@@ -189,4 +191,6 @@ logger.info(
     f"🕰️ Fetch interval configured: {FETCH_INTERVAL} minutes ({FETCH_INTERVAL/60:.1f} hours)"
 )
 logger.info("📊 Fetch limit is read from DB on each fetch cycle")
-logger.info("🧱 API key, profiles and fetch limit are read from DB on each fetch cycle")
+logger.info(
+    "🧱 API key, profiles and fetch limit are read from DB on each fetch cycle"
+)
