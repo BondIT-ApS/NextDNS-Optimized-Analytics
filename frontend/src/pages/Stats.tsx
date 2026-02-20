@@ -289,7 +289,6 @@ export default function Stats() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-
       {/* Controls */}
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Profile Selector */}
