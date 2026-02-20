@@ -26,18 +26,6 @@ describe('🧱 Settings Page', () => {
     vi.clearAllMocks()
   })
 
-  it('should render the page title', () => {
-    render(<Settings />)
-    expect(screen.getByText('Settings')).toBeInTheDocument()
-  })
-
-  it('should render the page description', () => {
-    render(<Settings />)
-    expect(
-      screen.getByText(/Manage NextDNS configuration, profiles, and system behaviour/)
-    ).toBeInTheDocument()
-  })
-
   it('should render the NextDNS API Key card', () => {
     render(<Settings />)
     expect(screen.getByText('NextDNS API Key')).toBeInTheDocument()

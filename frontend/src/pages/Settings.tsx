@@ -42,6 +42,7 @@ interface ApiKeyState {
 
 interface ProfilesState {
   profiles: SettingsProfileItem[]
+  profileNames: Record<string, string>
   loading: boolean
   error: string | null
   addInput: string
@@ -257,6 +258,7 @@ function ApiKeyCard() {
 function ProfilesCard() {
   const [state, setState] = useState<ProfilesState>({
     profiles: [],
+    profileNames: {},
     loading: true,
     error: null,
     addInput: '',
@@ -267,8 +269,22 @@ function ProfilesCard() {
   const load = useCallback(async () => {
     setState(s => ({ ...s, loading: true, error: null }))
     try {
-      const data = await apiClient.getNextDNSProfiles()
-      setState(s => ({ ...s, profiles: data.profiles, loading: false }))
+      const [profilesData, infoData] = await Promise.all([
+        apiClient.getNextDNSProfiles(),
+        apiClient.getProfilesInfo().catch(() => null),
+      ])
+      const names: Record<string, string> = {}
+      if (infoData) {
+        Object.entries(infoData.profiles).forEach(([id, info]) => {
+          if (info.name) names[id] = info.name
+        })
+      }
+      setState(s => ({
+        ...s,
+        profiles: profilesData.profiles,
+        profileNames: names,
+        loading: false,
+      }))
     } catch {
       setState(s => ({
         ...s,
@@ -398,8 +414,10 @@ function ProfilesCard() {
                 className="flex items-center justify-between rounded-md border px-3 py-2"
               >
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm">
-                    {profile.profile_id}
+                  <span className="text-sm font-medium">
+                    {state.profileNames[profile.profile_id]
+                      ? `${state.profileNames[profile.profile_id]} (${profile.profile_id})`
+                      : profile.profile_id}
                   </span>
                   <Badge
                     variant={profile.enabled ? 'default' : 'secondary'}
@@ -723,13 +741,6 @@ function SystemSettingsCard() {
 export function Settings() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage NextDNS configuration, profiles, and system behaviour
-        </p>
-      </div>
-
       <ApiKeyCard />
       <ProfilesCard />
       <SystemSettingsCard />

@@ -72,6 +72,10 @@ def setup_logging():
         logging.getLogger("apscheduler").setLevel(logging.WARNING)
         logging.getLogger("werkzeug").setLevel(logging.WARNING)
 
+    # Align uvicorn loggers so HTTP access logs respect our level setting
+    for uvicorn_logger in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        logging.getLogger(uvicorn_logger).setLevel(log_level)
+
     return logger
 
 
@@ -101,8 +105,9 @@ def apply_log_level(level: str) -> None:
         logging.getLogger("apscheduler").setLevel(logging.WARNING)
         logging.getLogger("werkzeug").setLevel(logging.WARNING)
 
-    logger = logging.getLogger(__name__)
-    logger.info(f"📋 Log level changed to: {level.upper()}")
+    # Align uvicorn loggers so HTTP access logs respect our level setting
+    for uvicorn_logger in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        logging.getLogger(uvicorn_logger).setLevel(log_level)
 
 
 def get_logger(name):

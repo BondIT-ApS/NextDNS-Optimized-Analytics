@@ -1479,6 +1479,7 @@ async def update_system_settings(
                 status_code=422,
                 detail=f"log_level must be one of: {', '.join(sorted(VALID_LOG_LEVELS))}",
             )
+        logger.info(f"📋 Log level changing to: {level}")
         set_log_level(level)
         apply_log_level(level)
 
