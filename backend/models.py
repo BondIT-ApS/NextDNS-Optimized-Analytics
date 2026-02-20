@@ -1942,6 +1942,9 @@ def set_setting(key: str, value: str) -> bool:
 # ---------------------------------------------------------------------------
 
 NEXTDNS_API_KEY_SETTING = "nextdns_api_key"
+FETCH_INTERVAL_SETTING = "fetch_interval"
+FETCH_LIMIT_SETTING = "fetch_limit"
+LOG_LEVEL_SETTING = "log_level"
 
 
 def get_nextdns_api_key() -> Optional[str]:
@@ -1956,6 +1959,61 @@ def get_nextdns_api_key() -> Optional[str]:
 def set_nextdns_api_key(api_key: str) -> bool:
     """Persist the NextDNS API key to the database."""
     return set_setting(NEXTDNS_API_KEY_SETTING, api_key)
+
+
+# ---------------------------------------------------------------------------
+# Scheduler settings helpers
+# ---------------------------------------------------------------------------
+
+
+def get_fetch_interval() -> int:
+    """Return the fetch interval in minutes, falling back to the env var."""
+    val = get_setting(FETCH_INTERVAL_SETTING)
+    if val is not None:
+        try:
+            return int(val)
+        except ValueError:
+            pass
+    return int(os.getenv("FETCH_INTERVAL", "60"))
+
+
+def set_fetch_interval(minutes: int) -> bool:
+    """Persist the fetch interval (minutes) to the database."""
+    return set_setting(FETCH_INTERVAL_SETTING, str(minutes))
+
+
+def get_fetch_limit() -> int:
+    """Return the fetch limit (records per request), falling back to the env var."""
+    val = get_setting(FETCH_LIMIT_SETTING)
+    if val is not None:
+        try:
+            return int(val)
+        except ValueError:
+            pass
+    return int(os.getenv("FETCH_LIMIT", "100"))
+
+
+def set_fetch_limit(limit: int) -> bool:
+    """Persist the fetch limit to the database."""
+    return set_setting(FETCH_LIMIT_SETTING, str(limit))
+
+
+# ---------------------------------------------------------------------------
+# Application settings helpers
+# ---------------------------------------------------------------------------
+
+
+def get_log_level() -> str:
+    """Return the log level string, falling back to the env var."""
+    val = get_setting(LOG_LEVEL_SETTING)
+    if val:
+        return val.upper()
+    return os.getenv("LOG_LEVEL", "INFO").upper()
+
+
+def set_log_level(level: str) -> bool:
+    """Persist the log level to the database."""
+    return set_setting(LOG_LEVEL_SETTING, level.upper())
 
 
 # ---------------------------------------------------------------------------
@@ -2157,7 +2215,7 @@ def migrate_config_from_env() -> bool:
 
     seeded = False
 
-    # Seed API key
+    # Seed API key + scheduler/app settings
     if not has_settings:
         api_key = os.getenv("API_KEY")
         if api_key:
@@ -2169,6 +2227,34 @@ def migrate_config_from_env() -> bool:
                 "⚠️  API_KEY env var not set — NextDNS API key not migrated. "
                 "Set it via PUT /settings/nextdns/api-key after startup."
             )
+
+        fetch_interval_env = os.getenv("FETCH_INTERVAL")
+        if fetch_interval_env:
+            try:
+                set_fetch_interval(int(fetch_interval_env))
+                logger.info(
+                    f"⏰ Migrated FETCH_INTERVAL={fetch_interval_env} to system_settings"
+                )
+                seeded = True
+            except ValueError:
+                pass
+
+        fetch_limit_env = os.getenv("FETCH_LIMIT")
+        if fetch_limit_env:
+            try:
+                set_fetch_limit(int(fetch_limit_env))
+                logger.info(
+                    f"📊 Migrated FETCH_LIMIT={fetch_limit_env} to system_settings"
+                )
+                seeded = True
+            except ValueError:
+                pass
+
+        log_level_env = os.getenv("LOG_LEVEL")
+        if log_level_env:
+            set_log_level(log_level_env)
+            logger.info(f"📋 Migrated LOG_LEVEL={log_level_env} to system_settings")
+            seeded = True
 
     # Seed profiles
     if not has_profiles:

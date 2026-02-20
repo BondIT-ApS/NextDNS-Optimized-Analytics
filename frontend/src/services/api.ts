@@ -10,6 +10,12 @@ import type {
   NextDNSProfileInfo,
   DeviceStatsResponse,
   LogFilters,
+  ApiKeyResponse,
+  SettingsProfileItem,
+  SettingsProfileListResponse,
+  AddProfileResponse,
+  DeleteProfileResponse,
+  SystemSettingsResponse,
 } from '@/types/api'
 
 // Create axios instance
@@ -169,7 +175,63 @@ export const apiClient = {
     return response.data
   },
 
-  // No authentication needed - app is open
+  // NextDNS settings endpoints
+  async getNextDNSApiKey(): Promise<ApiKeyResponse> {
+    const response = await api.get('/settings/nextdns/api-key')
+    return response.data
+  },
+
+  async updateNextDNSApiKey(apiKey: string): Promise<ApiKeyResponse> {
+    const response = await api.put('/settings/nextdns/api-key', {
+      api_key: apiKey,
+    })
+    return response.data
+  },
+
+  async getNextDNSProfiles(): Promise<SettingsProfileListResponse> {
+    const response = await api.get('/settings/nextdns/profiles')
+    return response.data
+  },
+
+  async addNextDNSProfile(profileId: string): Promise<AddProfileResponse> {
+    const response = await api.post('/settings/nextdns/profiles', {
+      profile_id: profileId,
+    })
+    return response.data
+  },
+
+  async updateNextDNSProfile(
+    profileId: string,
+    enabled: boolean
+  ): Promise<SettingsProfileItem> {
+    const response = await api.put(`/settings/nextdns/profiles/${profileId}`, {
+      enabled,
+    })
+    return response.data
+  },
+
+  async deleteNextDNSProfile(
+    profileId: string,
+    purgeData = true
+  ): Promise<DeleteProfileResponse> {
+    const response = await api.delete(
+      `/settings/nextdns/profiles/${profileId}?purge_data=${purgeData}`
+    )
+    return response.data
+  },
+
+  // System settings endpoints
+  async getSystemSettings(): Promise<SystemSettingsResponse> {
+    const response = await api.get('/settings/system')
+    return response.data
+  },
+
+  async updateSystemSettings(
+    settings: Partial<SystemSettingsResponse>
+  ): Promise<SystemSettingsResponse> {
+    const response = await api.put('/settings/system', settings)
+    return response.data
+  },
 }
 
 export default api

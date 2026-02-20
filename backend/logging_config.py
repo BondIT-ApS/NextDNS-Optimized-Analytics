@@ -72,7 +72,42 @@ def setup_logging():
         logging.getLogger("apscheduler").setLevel(logging.WARNING)
         logging.getLogger("werkzeug").setLevel(logging.WARNING)
 
+    # Align uvicorn loggers so HTTP access logs respect our level setting
+    for uvicorn_logger in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        logging.getLogger(uvicorn_logger).setLevel(log_level)
+
     return logger
+
+
+def apply_log_level(level: str) -> None:
+    """Change the root logger level at runtime without full reconfiguration.
+
+    Args:
+        level: Log level string (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    """
+    log_levels = {
+        "DEBUG": logging.DEBUG,
+        "INFO": logging.INFO,
+        "WARNING": logging.WARNING,
+        "ERROR": logging.ERROR,
+        "CRITICAL": logging.CRITICAL,
+    }
+    log_level = log_levels.get(level.upper(), logging.INFO)
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    for handler in root_logger.handlers:
+        handler.setLevel(log_level)
+
+    # Re-apply third-party suppression when not in DEBUG
+    if log_level > logging.DEBUG:
+        logging.getLogger("urllib3").setLevel(logging.WARNING)
+        logging.getLogger("requests").setLevel(logging.WARNING)
+        logging.getLogger("apscheduler").setLevel(logging.WARNING)
+        logging.getLogger("werkzeug").setLevel(logging.WARNING)
+
+    # Align uvicorn loggers so HTTP access logs respect our level setting
+    for uvicorn_logger in ("uvicorn", "uvicorn.error", "uvicorn.access"):
+        logging.getLogger(uvicorn_logger).setLevel(log_level)
 
 
 def get_logger(name):

@@ -145,12 +145,6 @@ export function Logs() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">DNS Logs</h1>
-            <p className="text-muted-foreground">
-              Recent DNS queries and responses
-            </p>
-          </div>
           <Button variant="outline" disabled>
             <RefreshCw className="mr-2 h-4 w-4" />
             Loading...
@@ -166,12 +160,6 @@ export function Logs() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">DNS Logs</h1>
-            <p className="text-muted-foreground">
-              Recent DNS queries and responses
-            </p>
-          </div>
           <Button variant="outline" onClick={() => refetch()}>
             <RefreshCw className="mr-2 h-4 w-4" />
             Retry
@@ -191,12 +179,6 @@ export function Logs() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">DNS Logs</h1>
-            <p className="text-muted-foreground">
-              Recent DNS queries and responses
-            </p>
-          </div>
           <Button
             variant="outline"
             onClick={() => refetch()}

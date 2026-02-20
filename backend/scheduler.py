@@ -11,6 +11,7 @@ from models import (
     update_fetch_status,
     get_nextdns_api_key,
     get_active_profile_ids,
+    get_fetch_limit,
 )
 
 # Set up logging
@@ -19,9 +20,7 @@ from logging_config import get_logger
 logger = get_logger(__name__)
 
 FETCH_INTERVAL = int(os.getenv("FETCH_INTERVAL", "60"))  # Default to 60 minutes
-FETCH_LIMIT = int(
-    os.getenv("FETCH_LIMIT", "100")
-)  # Default to 100 records per request
+# FETCH_LIMIT is read from DB on each cycle via get_fetch_limit()
 
 
 def fetch_logs():  # pylint: disable=too-many-locals,too-many-branches,too-many-statements,too-many-nested-blocks
@@ -34,6 +33,7 @@ def fetch_logs():  # pylint: disable=too-many-locals,too-many-branches,too-many-
     # Re-read config from DB on every cycle (supports dynamic management)
     api_key = get_nextdns_api_key()
     profile_ids = get_active_profile_ids()
+    fetch_limit = get_fetch_limit()
 
     if not api_key or not profile_ids:
         logger.warning("⚠️  Missing NextDNS API credentials — skipping fetch cycle")
@@ -73,7 +73,7 @@ def fetch_logs():  # pylint: disable=too-many-locals,too-many-branches,too-many-
                     "from": from_time,
                     "to": "now",
                     "raw": "false",
-                    "limit": FETCH_LIMIT,
+                    "limit": fetch_limit,
                 }
                 logger.info(
                     f"📅 Profile {profile_id}: incremental fetch from {from_time}"
@@ -84,7 +84,7 @@ def fetch_logs():  # pylint: disable=too-many-locals,too-many-branches,too-many-
                     "from": "-1h",
                     "to": "now",
                     "raw": "false",
-                    "limit": FETCH_LIMIT,
+                    "limit": fetch_limit,
                 }
                 logger.info(f"📅 Profile {profile_id}: initial fetch from past hour")
 
@@ -182,7 +182,7 @@ def fetch_logs():  # pylint: disable=too-many-locals,too-many-branches,too-many-
 
 # Initialize and start scheduler
 scheduler = BackgroundScheduler()  # pylint: disable=invalid-name
-scheduler.add_job(fetch_logs, "interval", minutes=FETCH_INTERVAL)
+scheduler.add_job(fetch_logs, "interval", minutes=FETCH_INTERVAL, id="fetch_logs")
 scheduler.start()
 logger.info(
     f"🔄 NextDNS log fetching scheduler started (runs every {FETCH_INTERVAL} minutes)"
@@ -190,5 +190,7 @@ logger.info(
 logger.info(
     f"🕰️ Fetch interval configured: {FETCH_INTERVAL} minutes ({FETCH_INTERVAL/60:.1f} hours)"
 )
-logger.info(f"📊 Fetch limit configured: {FETCH_LIMIT} records per request")
-logger.info("🧱 API key and profiles are read from DB on each fetch cycle")
+logger.info("📊 Fetch limit is read from DB on each fetch cycle")
+logger.info(
+    "🧱 API key, profiles and fetch limit are read from DB on each fetch cycle"
+)

@@ -391,6 +391,9 @@ class TestMigrateConfigFromEnv:
 
         monkeypatch.delenv("API_KEY", raising=False)
         monkeypatch.delenv("PROFILE_IDS", raising=False)
+        monkeypatch.delenv("FETCH_INTERVAL", raising=False)
+        monkeypatch.delenv("FETCH_LIMIT", raising=False)
+        monkeypatch.delenv("LOG_LEVEL", raising=False)
 
         with _make_session_patcher(test_db):
             seeded = migrate_config_from_env()

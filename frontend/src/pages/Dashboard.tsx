@@ -64,12 +64,6 @@ export function Dashboard() {
       <div className="space-y-6">
         {/* Header with connection status */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground">
-              System overview and analytics
-            </p>
-          </div>
           <Button variant="outline" disabled>
             <RefreshCw className="mr-2 h-4 w-4" />
             Loading...
@@ -110,18 +104,12 @@ export function Dashboard() {
       {/* Enhanced Header with Connection Status */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <div className="flex items-center gap-4 mt-1">
-            <p className="text-muted-foreground">
-              System overview and analytics
-            </p>
-            {hasErrors && (
-              <div className="flex items-center gap-1 text-lego-orange text-sm">
-                <AlertTriangle className="h-4 w-4" />
-                <span>Some data may be outdated</span>
-              </div>
-            )}
-          </div>
+          {hasErrors && (
+            <div className="flex items-center gap-1 text-lego-orange text-sm">
+              <AlertTriangle className="h-4 w-4" />
+              <span>Some data may be outdated</span>
+            </div>
+          )}
         </div>
 
         {/* Refresh Button */}
