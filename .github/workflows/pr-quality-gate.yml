@@ -497,7 +497,7 @@ jobs:
   e2e-tests:
     name: 🎭 LEGO E2E Tests (Playwright)
     runs-on: ubuntu-latest
-    needs: [discover-changes, lint-frontend, lint-backend, quality-frontend, quality-backend]
+    needs: [discover-changes, build-test-backend, build-test-frontend]
     if: |
       always() &&
       !contains(needs.*.result, 'failure') &&
@@ -527,9 +527,9 @@ jobs:
 
       - name: Wait for backend to be healthy
         run: |
-          echo "⏳ Waiting for backend-test to become healthy..."
+          echo "⏳ Waiting for backend to become healthy..."
           for i in $(seq 1 30); do
-            CONTAINER=$(docker compose -f docker-compose.test.yml ps -q backend-test 2>/dev/null)
+            CONTAINER=$(docker compose -f docker-compose.test.yml ps -q backend 2>/dev/null)
             STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$CONTAINER" 2>/dev/null || echo "unknown")
             echo "  attempt $i: $STATUS"
             if [ "$STATUS" = "healthy" ]; then
@@ -538,7 +538,7 @@ jobs:
             fi
             if [ "$i" = "30" ]; then
               echo "❌ Backend never became healthy"
-              docker compose -f docker-compose.test.yml logs backend-test
+              docker compose -f docker-compose.test.yml logs backend
               exit 1
             fi
             sleep 10
@@ -546,7 +546,7 @@ jobs:
 
       - name: Wait for frontend to be ready
         run: |
-          echo "⏳ Waiting for frontend-test..."
+          echo "⏳ Waiting for frontend..."
           for i in $(seq 1 18); do
             if curl -sf http://localhost:5012/ > /dev/null 2>&1; then
               echo "✅ Frontend is ready"
@@ -555,7 +555,7 @@ jobs:
             echo "  attempt $i: not ready yet"
             if [ "$i" = "18" ]; then
               echo "❌ Frontend never became ready"
-              docker compose -f docker-compose.test.yml logs frontend-test
+              docker compose -f docker-compose.test.yml logs frontend
               exit 1
             fi
             sleep 5

@@ -2,6 +2,8 @@
 #
 # Isolated Docker Compose stack for Playwright E2E tests.
 # Uses a separate database and offset ports so it can run alongside the dev stack.
+# Service names match docker-compose.yml so nginx.conf resolves "backend" correctly
+# (Docker Compose networks are project-scoped, so there is no collision).
 #
 # Ports:
 #   Frontend:  http://localhost:5012  (dev uses 5002)
@@ -15,7 +17,7 @@
 #   docker-compose -f docker-compose.test.yml down -v
 
 services:
-  db-test:
+  db:
     image: postgres:15
     environment:
       POSTGRES_USER: nextdns_test
@@ -30,7 +32,7 @@ services:
       retries: 10
       start_period: 10s
 
-  backend-test:
+  backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
@@ -38,7 +40,7 @@ services:
       POSTGRES_USER: nextdns_test
       POSTGRES_PASSWORD: nextdns_test
       POSTGRES_DB: nextdns_test
-      POSTGRES_HOST: db-test
+      POSTGRES_HOST: db
       POSTGRES_PORT: 5432
       LOCAL_API_KEY: e2e-test-local-api-key
       AUTH_ENABLED: "false"
@@ -49,7 +51,7 @@ services:
     ports:
       - "5011:5000"
     depends_on:
-      db-test:
+      db:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
@@ -58,17 +60,16 @@ services:
       retries: 12
       start_period: 30s
 
-  frontend-test:
+  frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
     environment:
       LOCAL_API_KEY: e2e-test-local-api-key
-      BACKEND_API_URL: http://backend-test:5000/api
     ports:
       - "5012:8080"
     depends_on:
-      backend-test:
+      backend:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/ || exit 1"]
