@@ -181,6 +181,7 @@ def create_records(n: int) -> list[dict]:
                 "profile_id": profile_id,
                 "device": device_json,
                 "data": json.dumps({"dnssec": False, "protocol": "Do53"}),
+                "created_at": now,
             }
         )
 
@@ -212,9 +213,9 @@ def seed(engine) -> None:
             text(
                 """
                 INSERT INTO dns_logs
-                    (timestamp, domain, tld, blocked, action, profile_id, device, data)
+                    (timestamp, domain, tld, blocked, action, profile_id, device, data, created_at)
                 VALUES
-                    (:timestamp, :domain, :tld, :blocked, :action, :profile_id, :device, :data)
+                    (:timestamp, :domain, :tld, :blocked, :action, :profile_id, :device, :data, :created_at)
                 """
             ),
             records,
