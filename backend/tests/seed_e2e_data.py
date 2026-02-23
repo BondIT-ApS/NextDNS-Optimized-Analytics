@@ -3,19 +3,15 @@
 🧱 E2E Test Data Seeder
 
 Seeds the test database with realistic DNS log records for Playwright E2E tests.
-Connects directly to PostgreSQL using the same env vars as the backend.
+Reads the same env vars as the backend (POSTGRES_HOST, POSTGRES_PORT, etc.).
 
-Requirements:
-    pip install sqlalchemy psycopg2-binary
+In CI this script is run via `docker exec` inside the backend container so that
+it shares the container's network and environment — no separate pip install needed
+and no external port mapping required.
 
-Usage:
-    # Against docker-compose.test.yml
-    POSTGRES_HOST=localhost POSTGRES_PORT=5434 \\
-    POSTGRES_USER=nextdns_test POSTGRES_PASSWORD=nextdns_test \\
-    POSTGRES_DB=nextdns_test python backend/tests/seed_e2e_data.py
-
-    # Shorthand using defaults (matches docker-compose.test.yml)
-    python backend/tests/seed_e2e_data.py
+Local usage (from the repo root, with docker-compose.test.yml running):
+    docker compose -f docker-compose.test.yml exec backend \\
+        python /tmp/seed_e2e_data.py
 
 The script is idempotent — safe to run multiple times.
 """
@@ -33,8 +29,8 @@ from sqlalchemy.orm import sessionmaker
 # Configuration
 # ---------------------------------------------------------------------------
 
-POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5434")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "db")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
 POSTGRES_USER = os.getenv("POSTGRES_USER", "nextdns_test")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "nextdns_test")
 POSTGRES_DB = os.getenv("POSTGRES_DB", "nextdns_test")
@@ -181,6 +177,7 @@ def create_records(n: int) -> list[dict]:
                 "domain": domain,
                 "tld": tld,
                 "blocked": blocked,
+                "action": "blocked" if blocked else "allowed",
                 "profile_id": profile_id,
                 "device": device_json,
                 "data": json.dumps({"dnssec": False, "protocol": "Do53"}),
@@ -210,13 +207,14 @@ def seed(engine) -> None:
 
         records = create_records(TARGET_RECORDS)
 
-        # Bulk insert using parameterised query (avoids ORM overhead)
+        # Bulk insert — fresh test DB so no conflict handling needed
         session.execute(
             text(
                 """
-                INSERT INTO dns_logs (timestamp, domain, tld, blocked, profile_id, device, data)
-                VALUES (:timestamp, :domain, :tld, :blocked, :profile_id, :device, :data)
-                ON CONFLICT (timestamp, domain, profile_id, device) DO NOTHING
+                INSERT INTO dns_logs
+                    (timestamp, domain, tld, blocked, action, profile_id, device, data)
+                VALUES
+                    (:timestamp, :domain, :tld, :blocked, :action, :profile_id, :device, :data)
                 """
             ),
             records,

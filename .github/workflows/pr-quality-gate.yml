@@ -561,20 +561,11 @@ jobs:
             sleep 5
           done
 
-      - name: Setup Python for seeder
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.11'
-
-      - name: Install seeder dependencies
-        run: pip install sqlalchemy psycopg2-binary
-
       - name: Seed E2E test data
         run: |
-          POSTGRES_HOST=localhost POSTGRES_PORT=5434 \
-          POSTGRES_USER=nextdns_test POSTGRES_PASSWORD=nextdns_test \
-          POSTGRES_DB=nextdns_test \
-          python backend/tests/seed_e2e_data.py
+          CONTAINER=$(docker compose -f docker-compose.test.yml ps -q backend)
+          docker cp backend/tests/seed_e2e_data.py "$CONTAINER":/tmp/seed_e2e_data.py
+          docker exec "$CONTAINER" python /tmp/seed_e2e_data.py
 
       - name: Run Playwright E2E tests
         working-directory: frontend
