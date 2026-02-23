@@ -34,14 +34,19 @@ test.describe('Time Range Selection', () => {
     await page.waitForTimeout(2000)
 
     // Find a select element that contains time range options
-    const rangeSelect = page.locator('select').filter({ hasText: /24h|7d|30d/i })
+    const rangeSelect = page
+      .locator('select')
+      .filter({ hasText: /24h|7d|30d/i })
 
-    if (await rangeSelect.count() > 0) {
+    if ((await rangeSelect.count()) > 0) {
       for (const range of ['24h', '7d'] as const) {
         // Track outgoing API requests for this range
         const apiRequests: string[] = []
         const listener = (req: import('@playwright/test').Request) => {
-          if (req.url().includes('/stats') || req.url().includes('/timeseries')) {
+          if (
+            req.url().includes('/stats') ||
+            req.url().includes('/timeseries')
+          ) {
             apiRequests.push(req.url())
           }
         }
@@ -70,9 +75,11 @@ test.describe('Time Range Selection', () => {
   })
 
   test('each supported time range option is present', async ({ page }) => {
-    const rangeSelect = page.locator('select').filter({ hasText: /24h|7d|30d/i })
+    const rangeSelect = page
+      .locator('select')
+      .filter({ hasText: /24h|7d|30d/i })
 
-    if (await rangeSelect.count() > 0) {
+    if ((await rangeSelect.count()) > 0) {
       // Verify key options are selectable
       for (const range of TIME_RANGES) {
         const option = rangeSelect.locator(`option[value="${range}"]`)

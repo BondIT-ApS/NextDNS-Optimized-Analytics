@@ -21,7 +21,9 @@ test.describe('Profile Management', () => {
 
     // It's acceptable if the profile control is not visible when there's
     // only one profile — just verify the page loaded without errors
-    const hasProfileControl = await profileControl.isVisible().catch(() => false)
+    const hasProfileControl = await profileControl
+      .isVisible()
+      .catch(() => false)
 
     if (hasProfileControl) {
       await expect(profileControl).toBeVisible({ timeout: 10000 })

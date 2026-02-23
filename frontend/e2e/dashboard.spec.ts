@@ -39,7 +39,7 @@ test.describe('Dashboard', () => {
 
     // Intercept the health API call
     let healthCallCount = 0
-    page.on('request', (req) => {
+    page.on('request', req => {
       if (req.url().includes('/health')) healthCallCount++
     })
 
@@ -53,10 +53,16 @@ test.describe('Dashboard', () => {
 
   test('nav links are visible in the sidebar/header', async ({ page }) => {
     // The layout should render navigation to key routes
-    await expect(page.getByRole('link', { name: /stats/i }).first()).toBeVisible({
+    await expect(
+      page.getByRole('link', { name: /stats/i }).first()
+    ).toBeVisible({
       timeout: 10000,
     })
-    await expect(page.getByRole('link', { name: /logs/i }).first()).toBeVisible()
-    await expect(page.getByRole('link', { name: /settings/i }).first()).toBeVisible()
+    await expect(
+      page.getByRole('link', { name: /logs/i }).first()
+    ).toBeVisible()
+    await expect(
+      page.getByRole('link', { name: /settings/i }).first()
+    ).toBeVisible()
   })
 })

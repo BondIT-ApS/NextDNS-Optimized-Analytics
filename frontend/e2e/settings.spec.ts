@@ -36,7 +36,9 @@ test.describe('Settings Page', () => {
   test('shows the System Settings section', async ({ page }) => {
     // System settings section covers fetch interval, fetch limit, log level
     await expect(
-      page.getByText(/system|fetch interval|fetch limit/i, { exact: false }).first()
+      page
+        .getByText(/system|fetch interval|fetch limit/i, { exact: false })
+        .first()
     ).toBeVisible({ timeout: 15000 })
   })
 
@@ -48,7 +50,9 @@ test.describe('Settings Page', () => {
     await expect(addButton).toBeVisible({ timeout: 15000 })
   })
 
-  test('API key field shows a masked value or configure prompt', async ({ page }) => {
+  test('API key field shows a masked value or configure prompt', async ({
+    page,
+  }) => {
     // The API key section shows a masked key or a prompt to configure
     const apiKeyArea = page
       .getByText(/\*{4,}|not configured|configure/i, { exact: false })
@@ -58,10 +62,10 @@ test.describe('Settings Page', () => {
     await expect(apiKeyArea).toBeVisible({ timeout: 15000 })
   })
 
-  test('Save / Update buttons are present for system settings', async ({ page }) => {
-    const saveBtn = page
-      .getByRole('button', { name: /save|update/i })
-      .first()
+  test('Save / Update buttons are present for system settings', async ({
+    page,
+  }) => {
+    const saveBtn = page.getByRole('button', { name: /save|update/i }).first()
     await expect(saveBtn).toBeVisible({ timeout: 15000 })
   })
 })

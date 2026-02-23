@@ -227,7 +227,9 @@ def seed(engine) -> None:
             text("SELECT COUNT(*) FROM dns_logs WHERE profile_id = 'test-profile-1'")
         ).scalar()
 
-        print(f"✅ Seeded successfully. Total records for test-profile-1: {final_count}")
+        print(
+            f"✅ Seeded successfully. Total records for test-profile-1: {final_count}"
+        )
 
     except Exception as exc:
         session.rollback()

@@ -25,28 +25,37 @@ test.describe('Logs Page', () => {
 
   test('shows stat summary cards above the table', async ({ page }) => {
     // StatsCards renders Total / Blocked / Allowed counts
-    await expect(page.getByText(/total/i).first()).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText(/total/i).first()).toBeVisible({
+      timeout: 15000,
+    })
     await expect(page.getByText(/blocked/i).first()).toBeVisible()
     await expect(page.getByText(/allowed/i).first()).toBeVisible()
   })
 
-  test('status filter — Blocked shows only blocked entries', async ({ page }) => {
+  test('status filter — Blocked shows only blocked entries', async ({
+    page,
+  }) => {
     // Wait for table to load first
     await expect(page.getByRole('table')).toBeVisible({ timeout: 20000 })
 
     // Find the status filter (select or button group)
-    const blockedFilter = page.getByRole('option', { name: /blocked/i })
+    const blockedFilter = page
+      .getByRole('option', { name: /blocked/i })
       .or(page.getByRole('button', { name: /blocked/i }))
       .or(page.getByLabel(/status/i).locator('option[value="blocked"]'))
 
     // Use the select element directly — FilterPanel renders a <select>
-    const statusSelect = page.locator('select').filter({ hasText: /all|blocked|allowed/i })
-    if (await statusSelect.count() > 0) {
+    const statusSelect = page
+      .locator('select')
+      .filter({ hasText: /all|blocked|allowed/i })
+    if ((await statusSelect.count()) > 0) {
       await statusSelect.selectOption('blocked')
       await page.waitForLoadState('networkidle')
 
       // Every visible badge/pill in the Status column should indicate blocked
-      const statusBadges = page.locator('tbody td').filter({ hasText: /blocked/i })
+      const statusBadges = page
+        .locator('tbody td')
+        .filter({ hasText: /blocked/i })
       await expect(statusBadges.first()).toBeVisible({ timeout: 10000 })
     } else {
       // Fallback: just confirm the filter UI exists
@@ -58,7 +67,7 @@ test.describe('Logs Page', () => {
     await expect(page.getByRole('table')).toBeVisible({ timeout: 20000 })
 
     const searchInput = page.getByPlaceholder(/search|domain/i).first()
-    if (await searchInput.count() > 0) {
+    if ((await searchInput.count()) > 0) {
       await searchInput.fill('google')
       // Debounce is 500ms — wait for it
       await page.waitForTimeout(700)
@@ -77,8 +86,10 @@ test.describe('Logs Page', () => {
   test('allowed filter shows only allowed entries', async ({ page }) => {
     await expect(page.getByRole('table')).toBeVisible({ timeout: 20000 })
 
-    const statusSelect = page.locator('select').filter({ hasText: /all|blocked|allowed/i })
-    if (await statusSelect.count() > 0) {
+    const statusSelect = page
+      .locator('select')
+      .filter({ hasText: /all|blocked|allowed/i })
+    if ((await statusSelect.count()) > 0) {
       await statusSelect.selectOption('allowed')
       await page.waitForLoadState('networkidle')
 
