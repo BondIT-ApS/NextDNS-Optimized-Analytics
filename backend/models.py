@@ -1893,7 +1893,7 @@ def get_setting(key: str) -> Optional[str]:
         row = session.query(SystemSetting).filter_by(key=key).first()
         return row.value if row else None
     except SQLAlchemyError as e:
-        logger.error(f"❌ Error reading setting '{key}': {e}")
+        logger.error("❌ Error reading setting: %s", type(e).__name__)
         return None
     finally:
         session.close()
@@ -1911,11 +1911,11 @@ def set_setting(key: str, value: str) -> bool:
             row = SystemSetting(key=key, value=value)
             session.add(row)
         session.commit()
-        logger.debug(f"✅ Setting '{key}' saved")
+        logger.debug("✅ Setting saved successfully")
         return True
     except SQLAlchemyError as e:
         session.rollback()
-        logger.error(f"❌ Error saving setting '{key}': {e}")
+        logger.error("❌ Error saving setting: %s", type(e).__name__)
         return False
     finally:
         session.close()
