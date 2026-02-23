@@ -117,9 +117,7 @@ async def test_get_current_user_token_without_username(monkeypatch):
 
         # Create token without 'sub' field
         token = create_access_token({"role": "admin"})  # Missing 'sub'
-        credentials = HTTPAuthorizationCredentials(
-            scheme="Bearer", credentials=token
-        )
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
         # Should raise 401 when username (sub) is missing
         with pytest.raises(HTTPException) as exc_info:
@@ -231,9 +229,7 @@ async def test_get_current_user_optional_token_without_username(monkeypatch):
 
         # Create token without 'sub' field
         token = create_access_token({"role": "admin"})
-        credentials = HTTPAuthorizationCredentials(
-            scheme="Bearer", credentials=token
-        )
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
         # Should return None when username is missing
         result = await get_current_user_optional(credentials=credentials)
@@ -262,9 +258,7 @@ async def test_get_current_user_optional_valid_token(monkeypatch):
 
         # Create valid token
         token = create_access_token({"sub": "testuser"})
-        credentials = HTTPAuthorizationCredentials(
-            scheme="Bearer", credentials=token
-        )
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
         # Should return username
         result = await get_current_user_optional(credentials=credentials)
@@ -325,9 +319,7 @@ def test_init_auth_when_disabled(monkeypatch, caplog):
             init_auth()
 
         # Verify log message
-        assert (
-            "Authentication system DISABLED - all routes are public" in caplog.text
-        )
+        assert "Authentication system DISABLED - all routes are public" in caplog.text
     finally:
         # Clean up
         if "auth" in sys.modules:
