@@ -567,6 +567,20 @@ jobs:
           docker cp backend/tests/seed_e2e_data.py "$CONTAINER":/tmp/seed_e2e_data.py
           docker exec "$CONTAINER" python /tmp/seed_e2e_data.py
 
+      - name: Verify API returns data before tests
+        run: |
+          echo "🔍 Checking backend /logs endpoint..."
+          RESPONSE=$(curl -sf http://localhost:5011/logs?limit=5 2>&1 || echo "CURL_FAILED")
+          echo "Response: $RESPONSE"
+          if echo "$RESPONSE" | grep -q '"data"'; then
+            COUNT=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('total_records',0))" 2>/dev/null || echo "parse_error")
+            echo "✅ /logs returned data. total_records=$COUNT"
+          else
+            echo "❌ /logs returned unexpected response. Dumping backend logs:"
+            docker compose -f docker-compose.test.yml logs backend --tail=50
+            exit 1
+          fi
+
       - name: Run Playwright E2E tests
         working-directory: frontend
         env:

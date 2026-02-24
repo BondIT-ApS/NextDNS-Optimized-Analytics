@@ -16,12 +16,14 @@ test.describe('Time Range Selection', () => {
   })
 
   test('time range control is visible on the Stats page', async ({ page }) => {
-    // The Stats page renders a time-range selector (select, button group, or tabs)
+    // The Stats page renders a button-group time-range selector with
+    // labels like "1 Hour", "24 Hours", "7 Days", "30 Days", "All Data"
+    // and a CardTitle "Time Range"
     const rangeControl = page
-      .getByLabel(/time range|range/i)
-      .or(page.getByRole('combobox', { name: /time|range/i }))
-      .or(page.locator('select').filter({ hasText: /24h|7d|30d/ }))
-      .or(page.getByRole('button', { name: /24h|7d|30d/i }).first())
+      .getByText('Time Range')
+      .or(
+        page.getByRole('button', { name: /hour|hours|days|all data/i }).first()
+      )
       .first()
 
     await expect(rangeControl).toBeVisible({ timeout: 20000 })

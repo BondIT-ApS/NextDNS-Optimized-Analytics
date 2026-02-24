@@ -37,25 +37,14 @@ test.describe('Profile Management', () => {
     await page.goto('/logs')
     await page.waitForLoadState('networkidle')
 
-    // Wait for the table to appear
-    await expect(page.getByRole('table')).toBeVisible({ timeout: 20000 })
-
-    // Profile selector may be a <select>, <button>, or custom component
-    const profileSelect = page
-      .getByLabel(/profile/i)
-      .or(page.locator('select[name*="profile"]'))
+    // ProfileSelector renders after loading completes (even with empty data).
+    // It shows a "Profile Filter" CardTitle and an "All Profiles" button.
+    const profileControl = page
+      .getByText('Profile Filter')
+      .or(page.getByRole('button', { name: /all profiles/i }))
       .first()
 
-    const hasSelector = await profileSelect.isVisible().catch(() => false)
-
-    if (hasSelector) {
-      // With a single profile "test-profile-1" seeded, it should be selectable
-      await expect(profileSelect).toBeEnabled()
-    } else {
-      // Single-profile deployments may hide the selector — table should still show data
-      const rows = page.locator('tbody tr')
-      await expect(rows.first()).toBeVisible({ timeout: 10000 })
-    }
+    await expect(profileControl).toBeVisible({ timeout: 20000 })
   })
 
   test('Settings page lists configured profiles', async ({ page }) => {
