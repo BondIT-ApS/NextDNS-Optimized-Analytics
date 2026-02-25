@@ -56,7 +56,9 @@ def test_get_stats_overview_with_time_range(
 
 
 @pytest.mark.integration
-def test_get_stats_overview_with_profile(test_client, populated_test_db, monkeypatch):
+def test_get_stats_overview_with_profile(
+    test_client, populated_test_db, monkeypatch
+):
     """Test GET /stats/overview with profile filter."""
     monkeypatch.setenv("AUTH_ENABLED", "false")
 

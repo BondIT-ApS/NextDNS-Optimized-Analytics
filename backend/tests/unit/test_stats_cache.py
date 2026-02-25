@@ -88,24 +88,12 @@ def mock_stat_functions(request):
         patch(
             "stats_cache.get_active_profile_ids", return_value=active_profiles
         ) as m_profiles,
-        patch(
-            "stats_cache.get_stats_overview", return_value=_OVERVIEW
-        ) as m_ov,
-        patch(
-            "stats_cache.get_stats_timeseries", return_value=_TIMESERIES
-        ) as m_ts,
-        patch(
-            "stats_cache.get_top_domains", return_value=_DOMAINS
-        ) as m_dom,
-        patch(
-            "stats_cache.get_stats_tlds", return_value=_TLDS
-        ) as m_tld,
-        patch(
-            "stats_cache.get_stats_devices", return_value=_DEVICES
-        ) as m_dev,
-        patch(
-            "stats_cache.upsert_db_stats_cache", return_value=True
-        ) as m_upsert,
+        patch("stats_cache.get_stats_overview", return_value=_OVERVIEW) as m_ov,
+        patch("stats_cache.get_stats_timeseries", return_value=_TIMESERIES) as m_ts,
+        patch("stats_cache.get_top_domains", return_value=_DOMAINS) as m_dom,
+        patch("stats_cache.get_stats_tlds", return_value=_TLDS) as m_tld,
+        patch("stats_cache.get_stats_devices", return_value=_DEVICES) as m_dev,
+        patch("stats_cache.upsert_db_stats_cache", return_value=True) as m_upsert,
     ):
         yield {
             "profiles": m_profiles,
@@ -251,9 +239,7 @@ class TestGetCached:
 
     def test_l2_invalid_json_does_not_warm_l1(self):
         """Invalid DB payload must not be stored in the memory cache."""
-        with patch(
-            "stats_cache.get_db_stats_cache", return_value="bad json"
-        ):
+        with patch("stats_cache.get_db_stats_cache", return_value="bad json"):
             get_cached("corrupt:key")
 
         assert "corrupt:key" not in stats_cache._MEMORY_CACHE
@@ -349,9 +335,7 @@ class TestStoreCached:
 
     def test_l1_still_set_even_when_db_upsert_skipped(self):
         """L1 is written before the try/except, so it's set even if serialization fails."""
-        with patch(
-            "stats_cache.json.dumps", side_effect=TypeError("bad")
-        ):
+        with patch("stats_cache.json.dumps", side_effect=TypeError("bad")):
             with patch("stats_cache.upsert_db_stats_cache"):
                 store_cached("l1only:key", {"x": 1})
 
@@ -360,7 +344,9 @@ class TestStoreCached:
     def test_nested_structure_stored_correctly(self):
         """Complex nested dicts/lists are JSON round-tripped without loss."""
         value = {
-            "blocked_domains": [{"domain": "evil.com", "count": 10, "percentage": 5.0}],
+            "blocked_domains": [
+                {"domain": "evil.com", "count": 10, "percentage": 5.0}
+            ],
             "allowed_domains": [],
         }
         with patch("stats_cache.upsert_db_stats_cache") as mock_upsert:
@@ -503,9 +489,7 @@ class TestPrecomputeAllStats:
         """When there are no configured profiles, only None profile is computed."""
         with (
             patch("stats_cache.get_active_profile_ids", return_value=[]),
-            patch(
-                "stats_cache.get_stats_overview", return_value=_OVERVIEW
-            ) as m_ov,
+            patch("stats_cache.get_stats_overview", return_value=_OVERVIEW) as m_ov,
             patch("stats_cache.get_stats_timeseries", return_value=_TIMESERIES),
             patch("stats_cache.get_top_domains", return_value=_DOMAINS),
             patch("stats_cache.get_stats_tlds", return_value=_TLDS),
@@ -523,9 +507,7 @@ class TestPrecomputeAllStats:
             patch(
                 "stats_cache.get_active_profile_ids", return_value=["p1", "p2", "p3"]
             ),
-            patch(
-                "stats_cache.get_stats_overview", return_value=_OVERVIEW
-            ) as m_ov,
+            patch("stats_cache.get_stats_overview", return_value=_OVERVIEW) as m_ov,
             patch("stats_cache.get_stats_timeseries", return_value=_TIMESERIES),
             patch("stats_cache.get_top_domains", return_value=_DOMAINS),
             patch("stats_cache.get_stats_tlds", return_value=_TLDS),
@@ -546,11 +528,11 @@ class TestPrecomputeAllStats:
         precompute_all_stats()  # must not raise
 
         # Timeseries and others should have run fully
-        assert (
-            mock_stat_functions["timeseries"].call_count == 2 * len(PRECOMPUTE_RANGES)
+        assert mock_stat_functions["timeseries"].call_count == 2 * len(
+            PRECOMPUTE_RANGES
         )
-        assert (
-            mock_stat_functions["domains"].call_count == 2 * len(PRECOMPUTE_RANGES)
+        assert mock_stat_functions["domains"].call_count == 2 * len(
+            PRECOMPUTE_RANGES
         )
 
     def test_timeseries_error_does_not_abort_other_stat_types(
@@ -561,21 +543,23 @@ class TestPrecomputeAllStats:
 
         precompute_all_stats()
 
-        assert (
-            mock_stat_functions["overview"].call_count == 2 * len(PRECOMPUTE_RANGES)
+        assert mock_stat_functions["overview"].call_count == 2 * len(
+            PRECOMPUTE_RANGES
         )
-        assert mock_stat_functions["domains"].call_count == 2 * len(PRECOMPUTE_RANGES)
+        assert mock_stat_functions["domains"].call_count == 2 * len(
+            PRECOMPUTE_RANGES
+        )
 
-    def test_domains_error_does_not_abort_tlds_or_devices(
-        self, mock_stat_functions
-    ):
+    def test_domains_error_does_not_abort_tlds_or_devices(self, mock_stat_functions):
         """Domains failure is isolated; tlds and devices still run."""
         mock_stat_functions["domains"].side_effect = Exception("query error")
 
         precompute_all_stats()
 
         assert mock_stat_functions["tlds"].call_count == 2 * len(PRECOMPUTE_RANGES)
-        assert mock_stat_functions["devices"].call_count == 2 * len(PRECOMPUTE_RANGES)
+        assert mock_stat_functions["devices"].call_count == 2 * len(
+            PRECOMPUTE_RANGES
+        )
 
     def test_all_stats_fail_does_not_raise(self, mock_stat_functions):
         """Total failure across all stat types must not propagate to the caller."""
@@ -628,19 +612,28 @@ class TestPrecomputeAllStats:
         for time_range in PRECOMPUTE_RANGES:
             for profile in [None, "p1"]:
                 gran = _GRANULARITY_MAP.get(time_range, "hour")
-                assert make_cache_key("overview", profile, time_range) in stats_cache._MEMORY_CACHE
-                assert make_cache_key(
-                    "timeseries", profile, time_range, gran=gran, group="status"
-                ) in stats_cache._MEMORY_CACHE
-                assert make_cache_key(
-                    "domains", profile, time_range, limit=10
-                ) in stats_cache._MEMORY_CACHE
-                assert make_cache_key(
-                    "tlds", profile, time_range, limit=10
-                ) in stats_cache._MEMORY_CACHE
-                assert make_cache_key(
-                    "devices", profile, time_range, limit=10
-                ) in stats_cache._MEMORY_CACHE
+                assert (
+                    make_cache_key("overview", profile, time_range)
+                    in stats_cache._MEMORY_CACHE
+                )
+                assert (
+                    make_cache_key(
+                        "timeseries", profile, time_range, gran=gran, group="status"
+                    )
+                    in stats_cache._MEMORY_CACHE
+                )
+                assert (
+                    make_cache_key("domains", profile, time_range, limit=10)
+                    in stats_cache._MEMORY_CACHE
+                )
+                assert (
+                    make_cache_key("tlds", profile, time_range, limit=10)
+                    in stats_cache._MEMORY_CACHE
+                )
+                assert (
+                    make_cache_key("devices", profile, time_range, limit=10)
+                    in stats_cache._MEMORY_CACHE
+                )
 
     def test_overview_called_with_no_exclude_domains(self, mock_stat_functions):
         """Overview is always computed without domain exclusions."""

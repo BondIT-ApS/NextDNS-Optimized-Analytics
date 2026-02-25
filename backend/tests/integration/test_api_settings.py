@@ -101,7 +101,9 @@ class TestApiKeyEndpoints:
         response = test_client.get("/settings/nextdns/api-key")
         assert response.status_code in [200, 401, 403]
 
-        response = test_client.put("/settings/nextdns/api-key", json={"api_key": "x"})
+        response = test_client.put(
+            "/settings/nextdns/api-key", json={"api_key": "x"}
+        )
         assert response.status_code in [200, 400, 401, 403, 422, 500]
 
 

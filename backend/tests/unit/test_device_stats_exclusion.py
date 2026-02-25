@@ -93,7 +93,9 @@ class TestDeviceStatsWithDomainExclusion:
         )
 
         # iPhone should have 8 queries (10 total - 2 apple domains)
-        iphone_stats = next((d for d in results if d["device_name"] == "iPhone"), None)
+        iphone_stats = next(
+            (d for d in results if d["device_name"] == "iPhone"), None
+        )
         assert iphone_stats is not None
         assert iphone_stats["total_queries"] == 8
         assert iphone_stats["blocked_queries"] == 5  # No apple domains were blocked
@@ -129,7 +131,9 @@ class TestDeviceStatsWithDomainExclusion:
         )
 
         # iPhone should have 8 queries (10 - 2 tracking domains)
-        iphone_stats = next((d for d in results if d["device_name"] == "iPhone"), None)
+        iphone_stats = next(
+            (d for d in results if d["device_name"] == "iPhone"), None
+        )
         assert iphone_stats is not None
         assert iphone_stats["total_queries"] == 8
         # tracking.google.com (blocked) and api.tracking.net (blocked) excluded
@@ -146,7 +150,9 @@ class TestDeviceStatsWithDomainExclusion:
         assert macbook_stats["allowed_queries"] == 5
 
         # Router should have 4 queries (5 - 1 tracking.google.com)
-        router_stats = next((d for d in results if d["device_name"] == "Router"), None)
+        router_stats = next(
+            (d for d in results if d["device_name"] == "Router"), None
+        )
         assert router_stats is not None
         assert router_stats["total_queries"] == 4
         assert router_stats["blocked_queries"] == 1  # 2 - 1 tracking.google.com
@@ -173,7 +179,9 @@ class TestDeviceStatsWithDomainExclusion:
         )
 
         # iPhone should have 7 queries (10 - 3 excluded)
-        iphone_stats = next((d for d in results if d["device_name"] == "iPhone"), None)
+        iphone_stats = next(
+            (d for d in results if d["device_name"] == "iPhone"), None
+        )
         assert iphone_stats is not None
         assert iphone_stats["total_queries"] == 7
         # amazon.com was blocked, facebook/youtube were allowed
@@ -181,7 +189,9 @@ class TestDeviceStatsWithDomainExclusion:
         assert iphone_stats["allowed_queries"] == 3  # 5 - 2 (facebook, youtube)
 
         # Router should have 4 queries (5 - 1 amazon)
-        router_stats = next((d for d in results if d["device_name"] == "Router"), None)
+        router_stats = next(
+            (d for d in results if d["device_name"] == "Router"), None
+        )
         assert router_stats is not None
         assert router_stats["total_queries"] == 4
         assert router_stats["blocked_queries"] == 2  # ads.example, tracking.google
@@ -216,7 +226,9 @@ class TestDeviceStatsWithDomainExclusion:
         assert len(results) == 2
 
         # Verify iPhone stats (8 queries after domain exclusion)
-        iphone_stats = next((d for d in results if d["device_name"] == "iPhone"), None)
+        iphone_stats = next(
+            (d for d in results if d["device_name"] == "iPhone"), None
+        )
         assert iphone_stats["total_queries"] == 8
 
     @patch("models.session_factory")
@@ -241,7 +253,9 @@ class TestDeviceStatsWithDomainExclusion:
         assert len(results) == 3
 
         # iPhone: 10 total (5 blocked, 5 allowed)
-        iphone_stats = next((d for d in results if d["device_name"] == "iPhone"), None)
+        iphone_stats = next(
+            (d for d in results if d["device_name"] == "iPhone"), None
+        )
         assert iphone_stats["total_queries"] == 10
         assert iphone_stats["blocked_queries"] == 5
         assert iphone_stats["allowed_queries"] == 5
@@ -257,7 +271,9 @@ class TestDeviceStatsWithDomainExclusion:
         assert macbook_stats["blocked_percentage"] == pytest.approx(37.5, rel=0.1)
 
         # Router: 5 total (2 blocked, 3 allowed)
-        router_stats = next((d for d in results if d["device_name"] == "Router"), None)
+        router_stats = next(
+            (d for d in results if d["device_name"] == "Router"), None
+        )
         assert router_stats["total_queries"] == 5
         assert router_stats["blocked_queries"] == 2
         assert router_stats["allowed_queries"] == 3
@@ -283,7 +299,9 @@ class TestDeviceStatsWithDomainExclusion:
         )
 
         assert len(results) == 3
-        iphone_stats = next((d for d in results if d["device_name"] == "iPhone"), None)
+        iphone_stats = next(
+            (d for d in results if d["device_name"] == "iPhone"), None
+        )
         assert iphone_stats["total_queries"] == 10
 
     @patch("models.session_factory")
@@ -307,7 +325,9 @@ class TestDeviceStatsWithDomainExclusion:
         )
 
         # iPhone: 9 total (4 blocked, 5 allowed) after excluding ads.example.com
-        iphone_stats = next((d for d in results if d["device_name"] == "iPhone"), None)
+        iphone_stats = next(
+            (d for d in results if d["device_name"] == "iPhone"), None
+        )
         assert iphone_stats["total_queries"] == 9
         assert iphone_stats["blocked_queries"] == 4  # 5 - 1 (ads)
         assert iphone_stats["allowed_queries"] == 5
@@ -341,7 +361,9 @@ class TestDeviceStatsWithDomainExclusion:
         # ads.example.com
         # Remaining: gateway.icloud.com, facebook.com, analytics.facebook.com,
         # youtube.com, google.com, amazon.com
-        iphone_stats = next((d for d in results if d["device_name"] == "iPhone"), None)
+        iphone_stats = next(
+            (d for d in results if d["device_name"] == "iPhone"), None
+        )
         assert iphone_stats is not None
         assert iphone_stats["total_queries"] == 6
         assert (
