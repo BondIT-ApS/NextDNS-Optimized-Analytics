@@ -646,7 +646,7 @@ def get_logs(  # pylint: disable=too-many-positional-arguments,too-many-locals,t
                     else log.device
                 ),
                 "client_ip": log.client_ip,
-                "query_type": log.query_type,
+                "query_type": log.query_type if log.query_type is not None else "A",
                 "blocked": log.blocked,
                 "profile_id": log.profile_id,
                 "data": (
