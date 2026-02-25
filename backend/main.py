@@ -62,6 +62,7 @@ from models import (
     get_stats_devices,
     get_database_metrics,
 )
+from stats_cache import get_cached, make_cache_key, store_cached
 from profile_service import (
     get_profile_info,
     get_multiple_profiles_info,
@@ -919,10 +920,21 @@ async def get_stats_overview(
         f"📊 Stats overview request: profile={profile}, time_range={time_range}, exclude={exclude}"
     )
 
-    # Get real data from database
+    # Cache only unfiltered requests (no custom domain exclusions)
+    if not exclude:
+        cache_key = make_cache_key("overview", profile, time_range)
+        cached = get_cached(cache_key)
+        if cached is not None:
+            return StatsOverviewResponse(**cached)
+
+    # Cache miss or filtered request — compute live
     stats = get_db_stats_overview(
         profile_filter=profile, time_range=time_range, exclude_domains=exclude
     )
+
+    if not exclude:
+        store_cached(cache_key, stats)
+
     return StatsOverviewResponse(**stats)
 
 
@@ -967,7 +979,22 @@ async def get_stats_timeseries(
         }
         granularity = granularity_map.get(time_range, "hour")
 
-    # Get real time series data from database
+    # Cache only unfiltered status-mode requests
+    use_cache = group_by == "status"
+    if use_cache:
+        cache_key = make_cache_key(
+            "timeseries", profile, time_range, gran=granularity, group=group_by
+        )
+        cached = get_cached(cache_key)
+        if cached is not None:
+            time_series_data = [TimeSeriesDataPoint(**point) for point in cached]
+            return TimeSeriesResponse(
+                data=time_series_data,
+                granularity=granularity,
+                total_points=len(time_series_data),
+            )
+
+    # Cache miss or profile-grouping request — compute live
     result = get_db_stats_timeseries(
         profile_filter=profile,
         time_range=time_range,
@@ -990,6 +1017,9 @@ async def get_stats_timeseries(
         )
 
     # Legacy mode: result is a list of data points
+    if use_cache:
+        store_cached(cache_key, result)
+
     time_series_data = [TimeSeriesDataPoint(**point) for point in result]
 
     return TimeSeriesResponse(
@@ -1021,13 +1051,31 @@ async def get_top_domains(
         f"📊 Top domains request: profile={profile}, time_range={time_range}, limit={limit}, exclude={exclude}"
     )
 
-    # Get real domains data from database
+    # Cache only unfiltered requests with default limit
+    if not exclude and limit == 10:
+        cache_key = make_cache_key("domains", profile, time_range, limit=limit)
+        cached = get_cached(cache_key)
+        if cached is not None:
+            blocked_domains = [
+                TopDomainsItem(**item) for item in cached["blocked_domains"]
+            ]
+            allowed_domains = [
+                TopDomainsItem(**item) for item in cached["allowed_domains"]
+            ]
+            return TopDomainsResponse(
+                blocked_domains=blocked_domains, allowed_domains=allowed_domains
+            )
+
+    # Cache miss or filtered/custom-limit request — compute live
     domains_data = get_db_top_domains(
         profile_filter=profile,
         time_range=time_range,
         limit=limit,
         exclude_domains=exclude,
     )
+
+    if not exclude and limit == 10:
+        store_cached(cache_key, domains_data)
 
     # Convert to TopDomainsItem objects
     blocked_domains = [
@@ -1070,13 +1118,25 @@ async def get_top_tlds(
         f"📊 Top TLDs request: profile={profile}, time_range={time_range}, limit={limit}, exclude={exclude}"
     )
 
-    # Get TLD aggregation data from database
+    # Cache only unfiltered requests with default limit
+    if not exclude and limit == 10:
+        cache_key = make_cache_key("tlds", profile, time_range, limit=limit)
+        cached = get_cached(cache_key)
+        if cached is not None:
+            blocked_tlds = [TopDomainsItem(**item) for item in cached["blocked_tlds"]]
+            allowed_tlds = [TopDomainsItem(**item) for item in cached["allowed_tlds"]]
+            return TopTLDsResponse(blocked_tlds=blocked_tlds, allowed_tlds=allowed_tlds)
+
+    # Cache miss or filtered/custom-limit request — compute live
     tlds_data = get_stats_tlds(
         profile_filter=profile,
         time_range=time_range,
         limit=limit,
         exclude_domains=exclude,
     )
+
+    if not exclude and limit == 10:
+        store_cached(cache_key, tlds_data)
 
     # Convert to TopDomainsItem objects (reusing same structure)
     blocked_tlds = [TopDomainsItem(**item) for item in tlds_data["blocked_tlds"]]
@@ -1102,6 +1162,7 @@ async def get_devices(
     """
     logger.debug(f"📱 Devices request: profile={profile}, time_range={time_range}")
 
+    # Cache only the standard limit=10 request (dropdown needs up to 50, skip cache)
     # Get device statistics (reuse existing function but with higher limit)
     device_results = get_stats_devices(
         profile_filter=profile,
@@ -1147,7 +1208,15 @@ async def get_device_stats(
         f"limit={limit}, exclude_devices={exclude}, exclude_domains={exclude_domains}"
     )
 
-    # Get device statistics from database
+    # Cache only unfiltered requests with default limit
+    if not exclude and not exclude_domains and limit == 10:
+        cache_key = make_cache_key("devices", profile, time_range, limit=limit)
+        cached = get_cached(cache_key)
+        if cached is not None:
+            devices = [DeviceUsageItem(**device) for device in cached]
+            return DeviceStatsResponse(devices=devices)
+
+    # Cache miss or filtered/custom-limit request — compute live
     device_results = get_stats_devices(
         profile_filter=profile,
         time_range=time_range,
@@ -1155,6 +1224,9 @@ async def get_device_stats(
         exclude_devices=exclude,
         exclude_domains=exclude_domains,
     )
+
+    if not exclude and not exclude_domains and limit == 10:
+        store_cached(cache_key, device_results)
 
     # Convert to DeviceUsageItem objects
     devices = [DeviceUsageItem(**device) for device in device_results]

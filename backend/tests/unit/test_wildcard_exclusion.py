@@ -1,11 +1,13 @@
 # file: backend/tests/unit/test_wildcard_exclusion.py
 """Unit tests for wildcard domain exclusion functionality."""
 
+from datetime import datetime, timezone
+
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 from models import Base, DNSLog, build_domain_exclusion_filter
-from datetime import datetime, timezone
 
 
 @pytest.fixture

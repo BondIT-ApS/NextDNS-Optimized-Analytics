@@ -6,8 +6,9 @@ Testing the settings API LEGO bricks — /settings/nextdns/api-key and
 /settings/nextdns/profiles.
 """
 
-import pytest
 from unittest.mock import patch, MagicMock
+
+import pytest
 
 # Mark all tests in this module as integration tests
 pytestmark = pytest.mark.integration
