@@ -198,9 +198,7 @@ class TestGetCached:
     def test_l2_hit_deserializes_payload(self):
         """DB cache hit returns deserialized Python object."""
         payload = {"total_queries": 100, "blocked_queries": 10}
-        with patch(
-            "stats_cache.get_db_stats_cache", return_value=json.dumps(payload)
-        ):
+        with patch("stats_cache.get_db_stats_cache", return_value=json.dumps(payload)):
             result = get_cached("db:key")
 
         assert result == payload
@@ -208,9 +206,7 @@ class TestGetCached:
     def test_l2_hit_warms_l1_cache(self):
         """DB hit populates in-memory cache so next call skips the DB."""
         payload = {"val": 99}
-        with patch(
-            "stats_cache.get_db_stats_cache", return_value=json.dumps(payload)
-        ):
+        with patch("stats_cache.get_db_stats_cache", return_value=json.dumps(payload)):
             get_cached("warm:key")
 
         assert "warm:key" in stats_cache._MEMORY_CACHE
@@ -218,9 +214,7 @@ class TestGetCached:
     def test_l2_hit_subsequent_call_is_l1(self):
         """After L2 warms L1, the second request does not hit the DB."""
         payload = {"val": 1}
-        with patch(
-            "stats_cache.get_db_stats_cache", return_value=json.dumps(payload)
-        ):
+        with patch("stats_cache.get_db_stats_cache", return_value=json.dumps(payload)):
             get_cached("warm2:key")
 
         with patch("stats_cache.get_db_stats_cache") as mock_db:
@@ -231,9 +225,7 @@ class TestGetCached:
 
     def test_l2_invalid_json_returns_none(self):
         """Corrupted JSON in the DB cache returns None without raising."""
-        with patch(
-            "stats_cache.get_db_stats_cache", return_value="not-valid-json{{"
-        ):
+        with patch("stats_cache.get_db_stats_cache", return_value="not-valid-json{{"):
             result = get_cached("bad:key")
 
         assert result is None
@@ -262,9 +254,7 @@ class TestGetCached:
     def test_l2_hit_with_list_payload(self):
         """List values (e.g. timeseries) are correctly round-tripped."""
         payload = [{"timestamp": "2026-01-01", "total_queries": 5}]
-        with patch(
-            "stats_cache.get_db_stats_cache", return_value=json.dumps(payload)
-        ):
+        with patch("stats_cache.get_db_stats_cache", return_value=json.dumps(payload)):
             result = get_cached("list:key")
 
         assert result == payload
@@ -325,9 +315,7 @@ class TestStoreCached:
 
     def test_serialization_error_does_not_raise(self):
         """If json.dumps raises, store_cached logs the error but does not propagate."""
-        with patch(
-            "stats_cache.json.dumps", side_effect=TypeError("cannot serialize")
-        ):
+        with patch("stats_cache.json.dumps", side_effect=TypeError("cannot serialize")):
             with patch("stats_cache.upsert_db_stats_cache") as mock_upsert:
                 store_cached("err:key", {"ok": True})  # must not raise
 
@@ -345,9 +333,7 @@ class TestStoreCached:
     def test_nested_structure_stored_correctly(self):
         """Complex nested dicts/lists are JSON round-tripped without loss."""
         value = {
-            "blocked_domains": [
-                {"domain": "evil.com", "count": 10, "percentage": 5.0}
-            ],
+            "blocked_domains": [{"domain": "evil.com", "count": 10, "percentage": 5.0}],
             "allowed_domains": [],
         }
         with patch("stats_cache.upsert_db_stats_cache") as mock_upsert:
@@ -520,9 +506,7 @@ class TestPrecomputeAllStats:
         # 4 profiles (None + p1 + p2 + p3) × 5 ranges
         assert m_ov.call_count == 4 * len(PRECOMPUTE_RANGES)
 
-    def test_overview_error_does_not_abort_other_stat_types(
-        self, mock_stat_functions
-    ):
+    def test_overview_error_does_not_abort_other_stat_types(self, mock_stat_functions):
         """A failing overview computation is isolated; other types still run."""
         mock_stat_functions["overview"].side_effect = Exception("DB timeout")
 
@@ -532,9 +516,7 @@ class TestPrecomputeAllStats:
         assert mock_stat_functions["timeseries"].call_count == 2 * len(
             PRECOMPUTE_RANGES
         )
-        assert mock_stat_functions["domains"].call_count == 2 * len(
-            PRECOMPUTE_RANGES
-        )
+        assert mock_stat_functions["domains"].call_count == 2 * len(PRECOMPUTE_RANGES)
 
     def test_timeseries_error_does_not_abort_other_stat_types(
         self, mock_stat_functions
@@ -544,12 +526,8 @@ class TestPrecomputeAllStats:
 
         precompute_all_stats()
 
-        assert mock_stat_functions["overview"].call_count == 2 * len(
-            PRECOMPUTE_RANGES
-        )
-        assert mock_stat_functions["domains"].call_count == 2 * len(
-            PRECOMPUTE_RANGES
-        )
+        assert mock_stat_functions["overview"].call_count == 2 * len(PRECOMPUTE_RANGES)
+        assert mock_stat_functions["domains"].call_count == 2 * len(PRECOMPUTE_RANGES)
 
     def test_domains_error_does_not_abort_tlds_or_devices(self, mock_stat_functions):
         """Domains failure is isolated; tlds and devices still run."""
@@ -558,9 +536,7 @@ class TestPrecomputeAllStats:
         precompute_all_stats()
 
         assert mock_stat_functions["tlds"].call_count == 2 * len(PRECOMPUTE_RANGES)
-        assert mock_stat_functions["devices"].call_count == 2 * len(
-            PRECOMPUTE_RANGES
-        )
+        assert mock_stat_functions["devices"].call_count == 2 * len(PRECOMPUTE_RANGES)
 
     def test_all_stats_fail_does_not_raise(self, mock_stat_functions):
         """Total failure across all stat types must not propagate to the caller."""
