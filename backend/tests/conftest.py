@@ -8,8 +8,6 @@ Shared test fixtures for the NextDNS Optimized Analytics backend tests.
 import os
 import sys
 from datetime import datetime, timezone, timedelta
-from typing import Generator
-
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -19,7 +17,7 @@ from sqlalchemy.pool import StaticPool
 # Add backend directory to Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from models import Base, DNSLog, FetchStatus  # pylint: disable=wrong-import-position
+from models import Base, DNSLog  # pylint: disable=wrong-import-position
 
 
 @pytest.fixture(scope="function")
@@ -48,6 +46,7 @@ def test_db():
     finally:
         session.close()
         Base.metadata.drop_all(engine)
+        engine.dispose()
 
 
 @pytest.fixture(scope="function")

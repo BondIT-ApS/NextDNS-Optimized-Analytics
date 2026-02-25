@@ -15,7 +15,6 @@ from auth import (
     get_password_hash,
     create_access_token,
     decode_access_token,
-    authenticate_user,
 )
 
 

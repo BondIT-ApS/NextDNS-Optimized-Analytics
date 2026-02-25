@@ -5,8 +5,8 @@ Unit tests for security features in main.py added in PR #260.
 Tests CORS configuration and ALLOWED_ORIGINS environment variable handling.
 """
 
-import os
 import sys
+
 import pytest
 
 

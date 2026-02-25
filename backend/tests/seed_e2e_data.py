@@ -158,7 +158,7 @@ def create_records(n: int) -> list[dict]:
     now = datetime.now(timezone.utc)
     records = []
 
-    for i in range(n):
+    for _ in range(n):
         # Distribute timestamps over last 30 days, denser toward recent
         age_seconds = random.randint(0, 30 * 24 * 3600)
         ts = now - timedelta(seconds=age_seconds)

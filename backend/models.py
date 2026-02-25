@@ -101,7 +101,7 @@ def build_domain_exclusion_filter(domain_column, exclude_domains):
         # Check if pattern contains wildcard
         if "*" in pattern:
             # Validate pattern - reject overly broad patterns for performance
-            if pattern == "*" or pattern == "**" or pattern == "*.*":
+            if pattern in ("*", "**", "*.*"):
                 logger.warning(
                     f"⚠️ Rejecting overly broad wildcard pattern: '{pattern}'"
                 )
@@ -145,13 +145,12 @@ def build_domain_exclusion_filter(domain_column, exclude_domains):
     # Combine all conditions with AND
     if len(conditions) == 0:
         return None
-    elif len(conditions) == 1:
+    if len(conditions) == 1:
         return conditions[0]
-    else:
-        # Both exact and wildcard conditions exist
-        from sqlalchemy import and_
+    # Both exact and wildcard conditions exist
+    from sqlalchemy import and_
 
-        return and_(*conditions)
+    return and_(*conditions)
 
 
 # Custom Text type that forces TEXT without JSON casting
@@ -2163,6 +2162,82 @@ def delete_profile(profile_id: str, delete_data: bool = True) -> dict:
         session.rollback()
         logger.error(f"❌ Error deleting profile '{profile_id}': {e}")
         return {"deleted": False, **cleanup}
+    finally:
+        session.close()
+
+
+# ---------------------------------------------------------------------------
+# Stats cache — pre-computed stats table (issue #183)
+# ---------------------------------------------------------------------------
+
+
+class StatsCache(Base):
+    """Pre-computed statistics cache table.
+
+    Populated by the scheduler after each fetch cycle so that dashboard
+    API requests can be served from cached results instead of running
+    expensive aggregation queries on the full dns_logs table.
+
+    The cache_key encodes stat type + query parameters so each unique
+    combination of (stat_type, profile, time_range, …) has its own row.
+    """
+
+    __tablename__ = "stats_cache"
+
+    cache_key = Column(String(255), primary_key=True)
+    payload = Column(Text, nullable=False)
+    computed_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
+def get_db_stats_cache(cache_key: str) -> Optional[str]:
+    """Retrieve a cached stats payload by key.
+
+    Args:
+        cache_key: The cache key to look up.
+
+    Returns:
+        JSON string payload, or None if not found.
+    """
+    session = session_factory()
+    try:
+        row = session.query(StatsCache).filter_by(cache_key=cache_key).first()
+        return row.payload if row else None
+    except SQLAlchemyError as e:
+        logger.error("❌ Error reading stats cache: %s", type(e).__name__)
+        return None
+    finally:
+        session.close()
+
+
+def upsert_db_stats_cache(cache_key: str, payload: str) -> bool:
+    """Upsert a stats payload into the cache table.
+
+    Args:
+        cache_key: Cache key string.
+        payload: JSON-serialised stats data.
+
+    Returns:
+        True if successful, False otherwise.
+    """
+    session = session_factory()
+    try:
+        row = session.query(StatsCache).filter_by(cache_key=cache_key).first()
+        if row:
+            row.payload = payload
+            row.computed_at = datetime.now(timezone.utc)
+        else:
+            row = StatsCache(cache_key=cache_key, payload=payload)
+            session.add(row)
+        session.commit()
+        return True
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.error("❌ Error writing stats cache: %s", type(e).__name__)
+        return False
     finally:
         session.close()
 

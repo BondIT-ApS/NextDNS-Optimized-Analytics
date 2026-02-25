@@ -6,8 +6,6 @@ Testing the settings LEGO pieces — API key storage, profile management,
 and env-var migration logic.
 """
 
-import os
-from datetime import datetime, timezone
 from unittest.mock import patch, MagicMock
 
 import pytest
