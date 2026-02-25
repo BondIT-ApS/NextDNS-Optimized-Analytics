@@ -40,7 +40,9 @@ def test_db():
     Base.metadata.create_all(engine)
 
     # Create session factory
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    TestingSessionLocal = sessionmaker(
+        autocommit=False, autoflush=False, bind=engine
+    )
     session = TestingSessionLocal()
 
     try:
@@ -48,6 +50,7 @@ def test_db():
     finally:
         session.close()
         Base.metadata.drop_all(engine)
+        engine.dispose()
 
 
 @pytest.fixture(scope="function")
