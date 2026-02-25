@@ -6,8 +6,9 @@ Testing our LEGO automation scheduler setup!
 """
 
 import os
-import pytest
 from unittest.mock import patch, MagicMock
+
+import pytest
 
 # Mark all tests in this module as unit tests
 pytestmark = pytest.mark.unit

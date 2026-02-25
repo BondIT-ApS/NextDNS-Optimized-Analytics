@@ -5,16 +5,12 @@ Unit tests for database query functions in models.py.
 Tests complex query functions like get_logs, get_stats_overview, etc.
 """
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
+
 import pytest
 from sqlalchemy.exc import IntegrityError
-from models import (
-    DNSLog,
-    get_logs,
-    get_total_record_count,
-    get_logs_stats,
-    extract_tld,
-)
+
+from models import DNSLog, extract_tld
 
 
 # Additional extract_tld tests focusing on query-specific scenarios
@@ -23,9 +19,7 @@ def test_extract_tld_with_query_context():
     """Test TLD extraction in query processing context."""
     # Test cases that might come up in actual DNS log processing
     assert extract_tld("cdn.example.com") == "example.com"
-    assert (
-        extract_tld("api.service.domain.co.uk") == "co.uk"
-    )  # Complex TLD extraction
+    assert extract_tld("api.service.domain.co.uk") == "co.uk"  # Complex TLD extraction
     assert extract_tld("subdomain.long-domain-name.org") == "long-domain-name.org"
 
 

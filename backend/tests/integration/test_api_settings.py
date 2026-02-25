@@ -6,8 +6,9 @@ Testing the settings API LEGO bricks — /settings/nextdns/api-key and
 /settings/nextdns/profiles.
 """
 
-import pytest
 from unittest.mock import patch, MagicMock
+
+import pytest
 
 # Mark all tests in this module as integration tests
 pytestmark = pytest.mark.integration
@@ -101,9 +102,7 @@ class TestApiKeyEndpoints:
         response = test_client.get("/settings/nextdns/api-key")
         assert response.status_code in [200, 401, 403]
 
-        response = test_client.put(
-            "/settings/nextdns/api-key", json={"api_key": "x"}
-        )
+        response = test_client.put("/settings/nextdns/api-key", json={"api_key": "x"})
         assert response.status_code in [200, 400, 401, 403, 422, 500]
 
 

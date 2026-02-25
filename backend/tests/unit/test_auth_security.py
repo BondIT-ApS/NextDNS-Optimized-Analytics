@@ -5,8 +5,8 @@ Unit tests for authentication security features added in PR #260.
 Tests the security validation that prevents using default test keys in production.
 """
 
-import os
 import sys
+
 import pytest
 
 
@@ -30,7 +30,7 @@ def test_auth_secret_key_validation_with_default_key(monkeypatch):
 
     # Attempting to import auth should raise ValueError
     with pytest.raises(ValueError) as exc_info:
-        import auth  # noqa: F401
+        import auth  # noqa: F401  # pylint: disable=unused-import
 
     # Verify error message is clear and helpful
     error_message = str(exc_info.value)
@@ -65,8 +65,7 @@ def test_auth_secret_key_validation_with_custom_key(monkeypatch):
         # Verify the custom key is being used
         assert auth.AUTH_ENABLED is True
         assert (
-            auth.AUTH_SECRET_KEY
-            == "my-secure-custom-key-for-production-use-12345678"
+            auth.AUTH_SECRET_KEY == "my-secure-custom-key-for-production-use-12345678"
         )
         assert (
             auth.AUTH_SECRET_KEY
