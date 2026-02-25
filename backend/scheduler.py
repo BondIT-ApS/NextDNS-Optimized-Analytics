@@ -177,6 +177,17 @@ def fetch_logs():  # pylint: disable=too-many-locals,too-many-branches,too-many-
     if total_skipped > 0:
         logger.info("🔄 Duplicate prevention working across all profiles")
 
+    # Pre-compute stats cache after every fetch cycle so that dashboard
+    # API requests are served from cached results rather than live queries.
+    try:
+        from stats_cache import (
+            precompute_all_stats,
+        )  # pylint: disable=import-outside-toplevel
+
+        precompute_all_stats()
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error("❌ Stats pre-computation failed after fetch cycle: %s", e)
+
 
 # Initialize and start scheduler
 scheduler = BackgroundScheduler()  # pylint: disable=invalid-name
