@@ -1,0 +1,103 @@
+# Worker Deployment — NextDNS Optimized Analytics
+#
+# Runs the background scheduler / log fetcher (worker.py).
+# Uses the same backend image as the API pods.
+#
+# This pod runs the NextDNS log-fetch scheduler. Having it separate from
+# the backend ensures only ONE instance ever runs the scheduler regardless
+# of how many backend replicas exist (restartPolicy: Recreate enforces this).
+#
+# CHANGE: Update the image tag before applying.
+#
+# Apply:
+#   kubectl apply -f k8s/worker-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextdns-analytics-worker
+  namespace: nextdns-analytics
+  labels:
+    app.kubernetes.io/name: nextdns-analytics
+    app.kubernetes.io/component: worker
+spec:
+  # Worker must always be a single replica — only one scheduler should run
+  replicas: 1
+  strategy:
+    # Recreate ensures the old worker terminates before the new one starts
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nextdns-analytics
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nextdns-analytics
+        app.kubernetes.io/component: worker
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+      - name: worker
+        # CHANGE: set the image tag — must match the backend-deployment.yaml tag
+        image: maboni82/nextdns-optimized-analytics-backend:<IMAGE_TAG>
+        imagePullPolicy: Always
+        command:
+          - "python"
+          - "worker.py"
+        envFrom:
+        - secretRef:
+            name: nextdns-analytics-backend-env
+        livenessProbe:
+          exec:
+            command:
+              - "python"
+              - "-c"
+              - "import os; os.kill(1, 0)"
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+              - "python"
+              - "-c"
+              - "import os; os.kill(1, 0)"
+          initialDelaySeconds: 15
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          exec:
+            command:
+              - "python"
+              - "-c"
+              - "import os; os.kill(1, 0)"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 12
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            # Worker fetches & processes batches of DNS logs — give it room
+            memory: "1Gi"
+            cpu: "500m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}

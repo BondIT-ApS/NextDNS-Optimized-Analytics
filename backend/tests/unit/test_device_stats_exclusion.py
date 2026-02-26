@@ -55,6 +55,7 @@ def device_stats_db():
             domain=domain,
             action="blocked" if blocked else "allowed",
             device=f'{{"name": "{device_name}"}}',
+            device_name=device_name,  # Pre-extracted for fast GROUP BY queries
             client_ip=f"192.168.1.{i % 255}",
             query_type="A",
             blocked=blocked,

@@ -6,6 +6,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from sqlalchemy import (
+    case,
     create_engine,
     Column,
     Integer,
@@ -219,6 +220,9 @@ class DNSLog(Base):
     tld = Column(
         String(255), nullable=True
     )  # Computed TLD for fast aggregation (Phase 3)
+    device_name = Column(
+        String(255), nullable=True
+    )  # Extracted device name for fast aggregation (avoids JSON parsing per row)
     data = Column(ForceText, nullable=False)  # Store original raw data as JSON string
     created_at = Column(
         DateTime(timezone=True),
@@ -229,7 +233,7 @@ class DNSLog(Base):
     # Add composite indexes and unique constraint for duplicate prevention
     __table_args__ = (
         Index("idx_dns_logs_timestamp_domain", "timestamp", "domain"),
-        Index("idx_dns_logs_domain_action", "domain", "action"),
+        # idx_dns_logs_domain_action removed — had 0 scans, dropped in migration c1d2e3f4a5b6
         Index("idx_dns_logs_profile_timestamp", "profile_id", "timestamp"),
         # Unique constraint to prevent duplicates based on
         # timestamp, domain, and client_ip
@@ -420,6 +424,18 @@ def add_log(log):
         domain = log.get("domain")
         tld = extract_tld(domain) if domain else None
 
+        # Extract device name for fast aggregation (avoids JSON parsing per row at query time)
+        extracted_device_name = None
+        if isinstance(device_info, dict):
+            extracted_device_name = (device_info.get("name") or "").strip() or None
+        elif isinstance(device_info, str):
+            try:
+                d = json.loads(device_info)
+                if isinstance(d, dict):
+                    extracted_device_name = (d.get("name") or "").strip() or None
+            except (json.JSONDecodeError, AttributeError):
+                pass
+
         new_log = DNSLog(
             timestamp=log_timestamp,
             domain=domain,
@@ -430,6 +446,7 @@ def add_log(log):
             blocked=blocked,
             profile_id=log.get("profile_id"),
             tld=tld,  # Phase 3: Pre-computed TLD for fast aggregation
+            device_name=extracted_device_name,  # Pre-extracted for fast GROUP BY queries
             data=data_str,
         )
         session.add(new_log)
@@ -888,20 +905,24 @@ def get_stats_overview(
         hours = hours_map.get(time_range, 24)
         queries_per_hour = total_queries / hours if hours > 0 else 0
 
-        # Get most active device (simplified approach for now)
+        # Get most active device using device_name column (no JSON parsing needed)
         most_active_device = None
         try:
-            # Try to get device name from the most recent record with a device
-            recent_device_log = query.filter(DNSLog.device.isnot(None)).first()
-            if recent_device_log and recent_device_log.device:
-                device_data = (
-                    json.loads(recent_device_log.device)
-                    if isinstance(recent_device_log.device, str)
-                    else recent_device_log.device
+            # pylint: disable=not-callable
+            most_active_result = (
+                query.with_entities(
+                    DNSLog.device_name,
+                    func.count(DNSLog.id).label("count"),
                 )
-                if device_data and "name" in device_data:
-                    most_active_device = device_data["name"]
-        except (json.JSONDecodeError, KeyError, TypeError) as e:
+                .filter(DNSLog.device_name.isnot(None))
+                .group_by(DNSLog.device_name)
+                .order_by(func.count(DNSLog.id).desc())
+                .first()
+            )
+            # pylint: enable=not-callable
+            if most_active_result and most_active_result[0]:
+                most_active_device = most_active_result[0]
+        except SQLAlchemyError as e:
             logger.debug(f"Could not determine most active device: {e}")
             most_active_device = None
 
@@ -911,12 +932,12 @@ def get_stats_overview(
             try:
                 # Use the same filtered query with profile and time range filters applied
                 # We need to build a new query with the same filters for aggregation
+                # pylint: disable=not-callable
                 blocked_domain_query = session.query(
                     DNSLog.domain,
-                    func.count(DNSLog.id).label(
-                        "count"
-                    ),  # pylint: disable=not-callable
+                    func.count(DNSLog.id).label("count"),
                 )
+                # pylint: enable=not-callable
 
                 # Apply the same profile filter
                 if (
@@ -1536,7 +1557,7 @@ def get_stats_tlds(  # pylint: disable=too-many-locals,too-many-branches
 
 
 # Get device usage statistics from database
-def get_stats_devices(  # pylint: disable=too-many-locals,too-many-branches
+def get_stats_devices(  # pylint: disable=too-many-locals
     profile_filter=None,
     time_range="24h",
     limit=10,
@@ -1544,6 +1565,10 @@ def get_stats_devices(  # pylint: disable=too-many-locals,too-many-branches
     exclude_domains=None,
 ):
     """Get device usage statistics showing DNS query activity by device.
+
+    Uses database-side GROUP BY on the pre-extracted ``device_name`` column.
+    This replaces the previous implementation which called ``query.all()`` and
+    parsed JSON for every matching row (438K+ rows for 7d → OOM in the worker).
 
     Args:
         profile_filter (str): Optional profile ID to filter by
@@ -1560,22 +1585,28 @@ def get_stats_devices(  # pylint: disable=too-many-locals,too-many-branches
     """
     session = session_factory()
     try:
-        # Build base query
-        query = session.query(DNSLog)
+        # pylint: disable=not-callable
+        agg_query = session.query(
+            DNSLog.device_name,
+            func.count(DNSLog.id).label("total"),
+            func.sum(case((DNSLog.blocked.is_(True), 1), else_=0)).label(
+                "blocked_count"
+            ),
+            func.max(DNSLog.timestamp).label("last_activity"),
+        )
 
         # Apply profile filter
         if profile_filter and profile_filter.strip() and profile_filter != "all":
-            query = query.filter(DNSLog.profile_id == profile_filter)
+            agg_query = agg_query.filter(DNSLog.profile_id == profile_filter)
 
         # Apply domain exclusion filter
         domain_filter = build_domain_exclusion_filter(DNSLog.domain, exclude_domains)
         if domain_filter is not None:
-            query = query.filter(domain_filter)
+            agg_query = agg_query.filter(domain_filter)
 
         # Apply time range filter
         if time_range != "all":
             now = datetime.now(timezone.utc)
-
             time_deltas = {
                 "30m": timedelta(minutes=30),
                 "1h": timedelta(hours=1),
@@ -1585,85 +1616,51 @@ def get_stats_devices(  # pylint: disable=too-many-locals,too-many-branches
                 "30d": timedelta(days=30),
                 "3m": timedelta(days=90),
             }
-
             if time_range in time_deltas:
                 cutoff_time = now - time_deltas[time_range]
-                query = query.filter(DNSLog.timestamp >= cutoff_time)
+                agg_query = agg_query.filter(DNSLog.timestamp >= cutoff_time)
 
-        # Get all logs and aggregate by device
-        all_logs = query.all()
+        # Only include rows with a known device name
+        agg_query = agg_query.filter(DNSLog.device_name.isnot(None))
 
-        # Aggregate by device name
-        device_stats = {}  # device_name -> {blocked, allowed, total, last_activity}
+        # Apply device exclusion filter at SQL level (case-insensitive)
+        if exclude_devices:
+            exclude_lower = [
+                name.lower() for name in exclude_devices if name and name.strip()
+            ]
+            if exclude_lower:
+                agg_query = agg_query.filter(
+                    ~func.lower(DNSLog.device_name).in_(exclude_lower)
+                )
 
-        for log_entry in all_logs:
-            # Extract device name from JSON device field
-            device_name = "Unidentified Device"  # Default
+        # GROUP BY + ORDER BY + LIMIT — returns at most `limit` rows, not 438K+
+        device_rows = (
+            agg_query.group_by(DNSLog.device_name)
+            .order_by(func.count(DNSLog.id).desc())
+            .limit(limit)
+            .all()
+        )
+        # pylint: enable=not-callable
 
-            if log_entry.device:
-                try:
-                    device_data = (
-                        json.loads(log_entry.device)
-                        if isinstance(log_entry.device, str)
-                        else log_entry.device
-                    )
-                    if isinstance(device_data, dict) and "name" in device_data:
-                        device_name = device_data["name"] or "Unidentified Device"
-                except (json.JSONDecodeError, KeyError, TypeError):
-                    # Keep default "Unidentified Device"
-                    pass
-
-            # Apply device exclusion filter (case-insensitive)
-            if exclude_devices:
-                exclude_lower = [name.lower() for name in exclude_devices]
-                if device_name.lower() in exclude_lower:
-                    continue
-
-            # Initialize device stats if not exists
-            if device_name not in device_stats:
-                device_stats[device_name] = {
-                    "blocked": 0,
-                    "allowed": 0,
-                    "total": 0,
-                    "last_activity": log_entry.timestamp,
-                }
-
-            # Update stats
-            if log_entry.blocked:
-                device_stats[device_name]["blocked"] += 1
-            else:
-                device_stats[device_name]["allowed"] += 1
-            device_stats[device_name]["total"] += 1
-
-            # Update last activity if this log is more recent
-            if log_entry.timestamp > device_stats[device_name]["last_activity"]:
-                device_stats[device_name]["last_activity"] = log_entry.timestamp
-
-        # Format and sort results
         device_results = []
-        for device_name, stats in device_stats.items():
-            blocked_percentage = (
-                (stats["blocked"] / stats["total"] * 100) if stats["total"] > 0 else 0
-            )
-            allowed_percentage = (
-                (stats["allowed"] / stats["total"] * 100) if stats["total"] > 0 else 0
-            )
+        for row in device_rows:
+            total = row.total
+            blocked = int(row.blocked_count or 0)
+            allowed = total - blocked
+            blocked_pct = (blocked / total * 100) if total > 0 else 0
+            allowed_pct = (allowed / total * 100) if total > 0 else 0
 
             device_results.append(
                 {
-                    "device_name": device_name,
-                    "total_queries": stats["total"],
-                    "blocked_queries": stats["blocked"],
-                    "allowed_queries": stats["allowed"],
-                    "blocked_percentage": round(blocked_percentage, 1),
-                    "allowed_percentage": round(allowed_percentage, 1),
-                    "last_activity": stats["last_activity"].isoformat(),
+                    "device_name": row.device_name,
+                    "total_queries": total,
+                    "blocked_queries": blocked,
+                    "allowed_queries": allowed,
+                    "blocked_percentage": round(blocked_pct, 1),
+                    "allowed_percentage": round(allowed_pct, 1),
+                    "last_activity": row.last_activity.isoformat(),
                 }
             )
-
-        # Sort by total queries (most active first) and limit results
-        device_results.sort(key=lambda x: x["total_queries"], reverse=True)
-        device_results = device_results[:limit]
 
         logger.debug(f"📱 Found {len(device_results)} devices with DNS activity")
         return device_results

@@ -1,0 +1,48 @@
+# Services — NextDNS Optimized Analytics
+#
+# ClusterIP services for the backend API and the frontend.
+# These are internal services — external traffic comes in through the Ingress.
+#
+# The frontend nginx config (frontend-configmap.yaml) proxies /api/ to the
+# backend service by name: http://nextdns-analytics-backend:5000/
+#
+# Apply:
+#   kubectl apply -f k8s/services.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextdns-analytics-backend
+  namespace: nextdns-analytics
+  labels:
+    app.kubernetes.io/name: nextdns-analytics
+    app.kubernetes.io/component: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5000
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: nextdns-analytics
+    app.kubernetes.io/component: backend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextdns-analytics-frontend
+  namespace: nextdns-analytics
+  labels:
+    app.kubernetes.io/name: nextdns-analytics
+    app.kubernetes.io/component: frontend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: nextdns-analytics
+    app.kubernetes.io/component: frontend
