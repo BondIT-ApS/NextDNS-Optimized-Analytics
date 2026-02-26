@@ -95,6 +95,29 @@ For detailed setup, configuration, and troubleshooting guidance, check out our c
 
 🔗 **[Complete Documentation](./docs/README.md)** - Everything you need to build, deploy, and maintain your NextDNS analytics solution
 
+## ☸️ Kubernetes Deployment - Advanced Building
+
+For production-grade deployments on Kubernetes, this repo ships a complete set
+of standalone manifests in the [`k8s/`](./k8s/) folder:
+
+| Manifest | Purpose |
+|----------|---------|
+| `k8s/migration-job.yaml` | Run Alembic DB migrations as a one-off Job |
+| `k8s/backend-deployment.yaml` | Backend API (FastAPI / uvicorn) |
+| `k8s/worker-deployment.yaml` | Background worker / log fetcher |
+| `k8s/frontend-deployment.yaml` | React SPA served by nginx |
+| `k8s/frontend-configmap.yaml` | Nginx config (proxies `/api/` to backend) |
+| `k8s/services.yaml` | ClusterIP services |
+| `k8s/ingress.yaml` | Ingress with TLS via cert-manager |
+| `k8s/secrets-template.yaml` | Secret template (Infisical CR or manual) |
+
+For **automated GitOps deployments** (ArgoCD + Helm), see the
+[consultant-portal-infra](https://github.com/BondIT-ApS/consultant-portal-infra/tree/main/charts/nextdns-analytics)
+Helm chart — it handles environment-specific values, autoscaling, image
+version tracking, and runs migrations automatically as a pre-upgrade hook.
+
+👉 **[Full Kubernetes deployment guide →](./k8s/README.md)**
+
 ## 🧰 Project Architecture - The Building Design
 
 Just like a well-designed LEGO set, this solution consists of several key components:
@@ -103,6 +126,7 @@ Just like a well-designed LEGO set, this solution consists of several key compon
 2. **Database (PostgreSQL)** - The stable baseplate that holds all your logs
 3. **Frontend (React/TypeScript)** - The decorative and functional elements that make your data beautiful
 4. **Docker Containers** - The instruction manual that makes assembly a breeze
+5. **Kubernetes / Helm** - The advanced building set for scalable, production deployments
 
 ## 👷‍♂️ Contributing - Join Our Building Team
 
