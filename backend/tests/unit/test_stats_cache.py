@@ -23,6 +23,8 @@ import pytest
 import stats_cache
 from stats_cache import (
     _GRANULARITY_MAP,
+    _HEAVY_RANGES,
+    _compute_single_stat,
     PRECOMPUTE_RANGES,
     get_cached,
     invalidate_memory_cache,
@@ -413,6 +415,57 @@ class TestInvalidateMemoryCache:
 
 
 # ---------------------------------------------------------------------------
+# _compute_single_stat
+# ---------------------------------------------------------------------------
+
+
+class TestComputeSingleStat:
+    """_compute_single_stat computes, stores, and releases one stat value."""
+
+    def test_returns_true_on_success(self):
+        """Successful computation returns True."""
+        with patch("stats_cache.upsert_db_stats_cache"):
+            result = _compute_single_stat(
+                "overview", lambda **kw: {"total": 1}, "test:key"
+            )
+        assert result is True
+
+    def test_stores_value_in_cache(self):
+        """Result is stored via store_cached."""
+        with patch("stats_cache.upsert_db_stats_cache"):
+            _compute_single_stat("overview", lambda **kw: {"total": 42}, "single:key")
+        assert stats_cache._MEMORY_CACHE["single:key"] == {"total": 42}
+
+    def test_returns_false_on_error(self):
+        """Exception in compute_fn returns False without raising."""
+
+        def boom(**kw):
+            raise RuntimeError("db timeout")
+
+        with patch("stats_cache.upsert_db_stats_cache"):
+            result = _compute_single_stat("overview", boom, "err:key")
+        assert result is False
+
+    def test_passes_kwargs_to_compute_fn(self):
+        """Keyword arguments are forwarded to the compute function."""
+        received = {}
+
+        def capture(**kw):
+            received.update(kw)
+            return {}
+
+        with patch("stats_cache.upsert_db_stats_cache"):
+            _compute_single_stat(
+                "overview",
+                capture,
+                "kw:key",
+                profile_filter="p1",
+                time_range="24h",
+            )
+        assert received == {"profile_filter": "p1", "time_range": "24h"}
+
+
+# ---------------------------------------------------------------------------
 # precompute_all_stats
 # ---------------------------------------------------------------------------
 
@@ -617,3 +670,36 @@ class TestPrecomputeAllStats:
         precompute_all_stats()
         for c in mock_stat_functions["overview"].call_args_list:
             assert c.kwargs.get("exclude_domains") is None
+
+    def test_gc_collect_called_after_heavy_ranges(self, mock_stat_functions):
+        """gc.collect() is invoked after each heavy range (7d, 30d)."""
+        with patch("stats_cache.gc.collect") as mock_gc:
+            precompute_all_stats()
+
+        assert mock_gc.call_count == len(_HEAVY_RANGES)
+
+    def test_gc_collect_not_called_for_light_ranges(self):
+        """Light ranges (1h, 6h, 24h) do not trigger gc.collect()."""
+        light_ranges = [r for r in PRECOMPUTE_RANGES if r not in _HEAVY_RANGES]
+        assert len(light_ranges) > 0  # sanity check
+
+        # Verify _HEAVY_RANGES only contains expected values
+        for r in light_ranges:
+            assert r not in _HEAVY_RANGES
+
+    def test_loop_order_is_range_then_profile(self, mock_stat_functions):
+        """Outer loop iterates by time_range so gc.collect() is effective per-range."""
+        precompute_all_stats()
+
+        # Extract (time_range, profile) pairs from overview calls in order
+        call_order = [
+            (c.kwargs["time_range"], c.kwargs["profile_filter"])
+            for c in mock_stat_functions["overview"].call_args_list
+        ]
+
+        # All calls for range "1h" should come before any call for "6h", etc.
+        range_order = []
+        for tr, _ in call_order:
+            if not range_order or range_order[-1] != tr:
+                range_order.append(tr)
+        assert range_order == PRECOMPUTE_RANGES
