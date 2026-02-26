@@ -31,7 +31,7 @@ is the recommended approach. It handles:
 
 - Environment-specific values (dev / prod)
 - Automatic image version tracking via ArgoCD Image Updater
-- Infisical secrets operator integration
+- Secrets management integration
 - Pre-upgrade migration hook (runs `migration-job.yaml` automatically)
 - HPA autoscaling
 
@@ -58,11 +58,10 @@ deploying to a cluster without Helm/ArgoCD.
 
 ### 2. Create the Secret
 
-```bash
-# Option A: Infisical (recommended — secrets synced automatically)
-kubectl apply -f secrets-template.yaml  # contains InfisicalSecret CR
+Edit `secrets-template.yaml` with your real values, then apply it. Or create
+the secret directly (never commit files containing real credentials):
 
-# Option B: Manual secret (development / testing only — never commit real values!)
+```bash
 kubectl create secret generic nextdns-analytics-backend-env \
   --namespace nextdns-analytics \
   --from-literal=POSTGRES_USER=nextdns \

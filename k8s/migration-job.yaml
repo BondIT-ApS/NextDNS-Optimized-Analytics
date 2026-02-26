@@ -15,8 +15,8 @@
 #   kubectl -n nextdns-analytics logs job/nextdns-migration-manual
 #   kubectl delete -f k8s/migration-job.yaml  # clean up when done
 #
-# IMPORTANT: The secret name below must match the actual Infisical-synced
-# secret in your cluster. Check with:
+# IMPORTANT: The secret name below must match the Secret in your cluster.
+# Check what secrets exist with:
 #   kubectl -n nextdns-analytics get secrets
 apiVersion: batch/v1
 kind: Job
