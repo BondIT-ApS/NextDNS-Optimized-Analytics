@@ -29,6 +29,7 @@ Only "default" requests (no custom exclude/wildcard domain filters) are
 cached; requests with custom filters always run live.
 """
 
+import gc
 import json
 from typing import Any, Optional
 
@@ -186,6 +187,38 @@ def invalidate_memory_cache(profile_id: Optional[str] = None) -> None:
 # ---------------------------------------------------------------------------
 
 
+# Time ranges that warrant explicit garbage collection after processing.
+# These ranges aggregate over large data sets and can spike memory usage.
+_HEAVY_RANGES = frozenset({"7d", "30d"})
+
+
+def _compute_single_stat(
+    stat_type: str,
+    compute_fn,
+    cache_key: str,
+    **kwargs,
+) -> bool:
+    """Compute one stat, store the result, and release memory immediately.
+
+    Args:
+        stat_type: Human-readable label for logging (e.g. "overview").
+        compute_fn: Callable that returns the stat value.
+        cache_key: Pre-built cache key string.
+        **kwargs: Keyword arguments forwarded to *compute_fn*.
+
+    Returns:
+        True on success, False on error.
+    """
+    try:
+        value = compute_fn(**kwargs)
+        store_cached(cache_key, value)
+        del value  # release reference before next computation
+        return True
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error("❌ Failed to precompute %s [%s]: %s", stat_type, cache_key, e)
+        return False
+
+
 def precompute_all_stats() -> None:
     """Pre-compute statistics for all active profiles and standard time ranges.
 
@@ -196,6 +229,11 @@ def precompute_all_stats() -> None:
 
     Results are stored in both the in-memory TTL cache and the stats_cache
     DB table so they survive process restarts.
+
+    Memory efficiency:
+        Each stat result is stored and immediately released. After heavy
+        time ranges (7d, 30d) an explicit ``gc.collect()`` reclaims memory
+        from large aggregation result sets before proceeding.
 
     Errors in individual stat types are caught and logged so that one
     failing computation does not abort the rest of the precomputation run.
@@ -208,121 +246,97 @@ def precompute_all_stats() -> None:
     total_errors = 0
 
     logger.info(
-        "🔄 Pre-computing stats cache for %d profile(s) × %d time ranges (%d stat types each)",
+        "🔄 Pre-computing stats cache for %d profile(s) × %d time ranges "
+        "(%d stat types each)",
         len(profiles_to_compute),
         len(PRECOMPUTE_RANGES),
         5,
     )
 
-    for profile in profiles_to_compute:
-        for time_range in PRECOMPUTE_RANGES:
+    for time_range in PRECOMPUTE_RANGES:
+        for profile in profiles_to_compute:
 
             # 1. Overview
-            try:
-                key = make_cache_key("overview", profile, time_range)
-                value = get_stats_overview(
-                    profile_filter=profile,
-                    time_range=time_range,
-                    exclude_domains=None,
-                )
-                store_cached(key, value)
-                total_computed += 1
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.error(
-                    "❌ Failed to precompute overview [%s/%s]: %s",
-                    profile,
-                    time_range,
-                    e,
-                )
-                total_errors += 1
+            ok = _compute_single_stat(
+                "overview",
+                get_stats_overview,
+                make_cache_key("overview", profile, time_range),
+                profile_filter=profile,
+                time_range=time_range,
+                exclude_domains=None,
+            )
+            total_computed += ok
+            total_errors += not ok
 
-            # 2. Timeseries — status grouping only ("profile" grouping is rare and computed live)
-            try:
-                granularity = _GRANULARITY_MAP.get(time_range, "hour")
-                key = make_cache_key(
+            # 2. Timeseries — status grouping only
+            granularity = _GRANULARITY_MAP.get(time_range, "hour")
+            ok = _compute_single_stat(
+                "timeseries",
+                get_stats_timeseries,
+                make_cache_key(
                     "timeseries",
                     profile,
                     time_range,
                     gran=granularity,
                     group="status",
-                )
-                value = get_stats_timeseries(
-                    profile_filter=profile,
-                    time_range=time_range,
-                    granularity=granularity,
-                    group_by="status",
-                )
-                store_cached(key, value)
-                total_computed += 1
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.error(
-                    "❌ Failed to precompute timeseries [%s/%s]: %s",
-                    profile,
-                    time_range,
-                    e,
-                )
-                total_errors += 1
+                ),
+                profile_filter=profile,
+                time_range=time_range,
+                granularity=granularity,
+                group_by="status",
+            )
+            total_computed += ok
+            total_errors += not ok
 
             # 3. Domains (default limit=10)
-            try:
-                key = make_cache_key("domains", profile, time_range, limit=10)
-                value = get_top_domains(
-                    profile_filter=profile,
-                    time_range=time_range,
-                    limit=10,
-                    exclude_domains=None,
-                )
-                store_cached(key, value)
-                total_computed += 1
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.error(
-                    "❌ Failed to precompute domains [%s/%s]: %s",
-                    profile,
-                    time_range,
-                    e,
-                )
-                total_errors += 1
+            ok = _compute_single_stat(
+                "domains",
+                get_top_domains,
+                make_cache_key("domains", profile, time_range, limit=10),
+                profile_filter=profile,
+                time_range=time_range,
+                limit=10,
+                exclude_domains=None,
+            )
+            total_computed += ok
+            total_errors += not ok
 
             # 4. TLDs (default limit=10)
-            try:
-                key = make_cache_key("tlds", profile, time_range, limit=10)
-                value = get_stats_tlds(
-                    profile_filter=profile,
-                    time_range=time_range,
-                    limit=10,
-                    exclude_domains=None,
-                )
-                store_cached(key, value)
-                total_computed += 1
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.error(
-                    "❌ Failed to precompute tlds [%s/%s]: %s",
-                    profile,
-                    time_range,
-                    e,
-                )
-                total_errors += 1
+            ok = _compute_single_stat(
+                "tlds",
+                get_stats_tlds,
+                make_cache_key("tlds", profile, time_range, limit=10),
+                profile_filter=profile,
+                time_range=time_range,
+                limit=10,
+                exclude_domains=None,
+            )
+            total_computed += ok
+            total_errors += not ok
 
             # 5. Devices (default limit=10, no exclusions)
-            try:
-                key = make_cache_key("devices", profile, time_range, limit=10)
-                value = get_stats_devices(
-                    profile_filter=profile,
-                    time_range=time_range,
-                    limit=10,
-                    exclude_devices=None,
-                    exclude_domains=None,
-                )
-                store_cached(key, value)
-                total_computed += 1
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                logger.error(
-                    "❌ Failed to precompute devices [%s/%s]: %s",
-                    profile,
-                    time_range,
-                    e,
-                )
-                total_errors += 1
+            ok = _compute_single_stat(
+                "devices",
+                get_stats_devices,
+                make_cache_key("devices", profile, time_range, limit=10),
+                profile_filter=profile,
+                time_range=time_range,
+                limit=10,
+                exclude_devices=None,
+                exclude_domains=None,
+            )
+            total_computed += ok
+            total_errors += not ok
+
+        # Reclaim memory after heavy time ranges (7d, 30d) where
+        # aggregation queries over millions of rows spike RSS.
+        if time_range in _HEAVY_RANGES:
+            gc.collect()
+            logger.debug(
+                "🗑️  GC after heavy range '%s' (%d profiles)",
+                time_range,
+                len(profiles_to_compute),
+            )
 
     logger.info(
         "✅ Stats pre-computation complete: %d cached, %d errors",
