@@ -3,8 +3,8 @@
 This folder contains standalone Kubernetes manifest templates for deploying
 NextDNS Optimized Analytics to a Kubernetes cluster — **without** Helm.
 
-They also serve as the reference implementation that mirrors the Helm chart
-maintained in [consultant-portal-infra](https://github.com/BondIT-ApS/consultant-portal-infra/tree/main/charts/nextdns-analytics).
+They serve as the reference implementation and can be used directly with
+`kubectl apply` or adapted as the basis for your own Helm chart.
 
 ---
 
@@ -23,23 +23,22 @@ maintained in [consultant-portal-infra](https://github.com/BondIT-ApS/consultant
 
 ---
 
-## 🧱 Recommended: Helm Chart (Production)
+## 🧱 Deploying with Helm (Production)
 
-For production deployments the **Helm chart** in
-[consultant-portal-infra](https://github.com/BondIT-ApS/consultant-portal-infra)
-is the recommended approach. It handles:
+For production deployments, wrapping these manifests in a Helm chart is
+recommended. A Helm chart enables:
 
 - Environment-specific values (dev / prod)
-- Automatic image version tracking via ArgoCD Image Updater
+- Automatic image version tracking (e.g. ArgoCD Image Updater)
 - Secrets management integration
 - Pre-upgrade migration hook (runs `migration-job.yaml` automatically)
 - HPA autoscaling
 
 ```bash
-# Deploy with Helm (from consultant-portal-infra repo)
-helm upgrade --install nextdns-analytics charts/nextdns-analytics \
-  -f charts/nextdns-analytics/values.yaml \
-  -f environments/dev/nextdns-analytics-values.yaml \
+# Example — adapt chart name and values files to your setup
+helm upgrade --install nextdns-analytics ./chart \
+  -f values.yaml \
+  -f values-prod.yaml \
   --namespace nextdns-analytics --create-namespace
 ```
 
@@ -143,7 +142,6 @@ chart defaults and can be left as-is for a standard deployment.
 
 ## 🔗 Related Resources
 
-- **Helm Chart**: [`consultant-portal-infra/charts/nextdns-analytics`](https://github.com/BondIT-ApS/consultant-portal-infra/tree/main/charts/nextdns-analytics)
 - **Docker Hub Backend**: [`maboni82/nextdns-optimized-analytics-backend`](https://hub.docker.com/r/maboni82/nextdns-optimized-analytics-backend)
 - **Docker Hub Frontend**: [`maboni82/nextdns-optimized-analytics-frontend`](https://hub.docker.com/r/maboni82/nextdns-optimized-analytics-frontend)
 - **Full Documentation**: [`docs/`](../docs/README.md)

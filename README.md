@@ -109,12 +109,11 @@ of standalone manifests in the [`k8s/`](./k8s/) folder:
 | `k8s/frontend-configmap.yaml` | Nginx config (proxies `/api/` to backend) |
 | `k8s/services.yaml` | ClusterIP services |
 | `k8s/ingress.yaml` | Ingress with TLS via cert-manager |
-| `k8s/secrets-template.yaml` | Secret template (Infisical CR or manual) |
+|| `k8s/secrets-template.yaml` | Secret template with all required environment variables |
 
-For **automated GitOps deployments** (ArgoCD + Helm), see the
-[consultant-portal-infra](https://github.com/BondIT-ApS/consultant-portal-infra/tree/main/charts/nextdns-analytics)
-Helm chart — it handles environment-specific values, autoscaling, image
-version tracking, and runs migrations automatically as a pre-upgrade hook.
+For **production deployments**, wrapping these manifests in a Helm chart is
+recommended — it enables environment-specific values, autoscaling, and
+automatic pre-upgrade migration hooks.
 
 👉 **[Full Kubernetes deployment guide →](./k8s/README.md)**
 
