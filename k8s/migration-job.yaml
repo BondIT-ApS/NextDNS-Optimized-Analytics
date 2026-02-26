@@ -1,0 +1,71 @@
+# Standalone Kubernetes Job for running Alembic migrations manually.
+#
+# Use this when you need to run migrations outside of a Helm upgrade cycle,
+# for example:
+#   - After a failed Helm hook Job that needs to be re-run
+#   - Troubleshooting migration issues in the cluster
+#   - One-off data backfills
+#
+# Usage:
+#   # 1. Edit the image tag below to match the version you want to migrate to
+#   # 2. Make sure the target namespace and secret name are correct
+#   kubectl apply -f k8s/migration-job.yaml
+#   kubectl -n nextdns-analytics wait --for=condition=complete \
+#     job/nextdns-migration-manual --timeout=300s
+#   kubectl -n nextdns-analytics logs job/nextdns-migration-manual
+#   kubectl delete -f k8s/migration-job.yaml  # clean up when done
+#
+# IMPORTANT: The secret name below must match the Secret in your cluster.
+# Check what secrets exist with:
+#   kubectl -n nextdns-analytics get secrets
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nextdns-migration-manual
+  namespace: nextdns-analytics
+  labels:
+    app.kubernetes.io/name: nextdns-analytics
+    app.kubernetes.io/component: migration
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nextdns-analytics
+        app.kubernetes.io/component: migration
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+      containers:
+      - name: migration
+        # Update the image tag to match the version you want to migrate
+        image: maboni82/nextdns-optimized-analytics-backend:latest
+        imagePullPolicy: Always
+        command:
+          - "python"
+          - "manage_db.py"
+          - "upgrade"
+        envFrom:
+          # The secret name follows the Helm release naming convention:
+          # <release-name>-backend-env
+          # Adjust if your release name differs from "nextdns-analytics"
+          - secretRef:
+              name: nextdns-analytics-backend-env
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
