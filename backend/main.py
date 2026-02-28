@@ -553,9 +553,10 @@ def _fetch_github_latest_release() -> Optional[str]:
     import requests as req_lib  # already in requirements.txt
 
     now = time.time()
-    if _github_release_cache["fetched_at"] and (
-        now - _github_release_cache["fetched_at"]
-    ) < GITHUB_CACHE_TTL_SECONDS:
+    if (
+        _github_release_cache["fetched_at"]
+        and (now - _github_release_cache["fetched_at"]) < GITHUB_CACHE_TTL_SECONDS
+    ):
         return _github_release_cache["tag"]
 
     try:
