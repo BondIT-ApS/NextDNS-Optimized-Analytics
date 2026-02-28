@@ -266,9 +266,17 @@ secrets/
 # AI Agent configuration (could contain project-specific credentials)
 WARP.md
 CLAUDE.md
-.claude/
 CURSOR.md
+AGENTS.md
+HEARTBEAT.md
+IDENTITY.md
+SOUL.md
+TOOLS.md
+USER.md
+# AI Agent specific directories
+.claude/
 .playwright-mcp/
+.openclaw/
 
 # NextDNS specific
 *.nextdns
