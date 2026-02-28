@@ -276,3 +276,14 @@ jobs:
           git tag "${VERSION}" -m "🧱 Build ${VERSION}"
           git push origin "${VERSION}"
           echo "🏷️ Pushed tag: ${VERSION}"
+
+      - name: 🚀 Create GitHub Release
+        run: |
+          VERSION="${{ needs.calculate-version.outputs.version }}"
+          gh release create "${VERSION}" \
+            --title "Release ${VERSION}" \
+            --notes "Automated release ${VERSION}" \
+            --latest
+          echo "🚀 Created GitHub release: ${VERSION}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
