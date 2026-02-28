@@ -26,7 +26,11 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { apiClient } from '@/services/api'
-import type { SettingsProfileItem, SystemSettingsResponse, VersionResponse } from '@/types/api'
+import type {
+  SettingsProfileItem,
+  SystemSettingsResponse,
+  VersionResponse,
+} from '@/types/api'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -763,7 +767,11 @@ function VersionCard() {
       const data = await apiClient.getVersion()
       setState({ data, loading: false, error: null })
     } catch {
-      setState({ data: null, loading: false, error: 'Failed to fetch version info' })
+      setState({
+        data: null,
+        loading: false,
+        error: 'Failed to fetch version info',
+      })
     }
   }, [])
 
@@ -772,10 +780,9 @@ function VersionCard() {
   }, [load])
 
   const { data } = state
-  const releaseUrl =
-    data?.latest
-      ? `${GITHUB_RELEASES_URL}/tag/${data.latest}`
-      : GITHUB_RELEASES_URL
+  const releaseUrl = data?.latest
+    ? `${GITHUB_RELEASES_URL}/tag/${data.latest}`
+    : GITHUB_RELEASES_URL
 
   return (
     <Card>
