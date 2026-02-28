@@ -61,6 +61,9 @@ spec:
         # Worker pod handles the scheduler — disable it in the API pods
         - name: DISABLE_SCHEDULER
           value: "true"
+        # CHANGE: set to match the deployed image tag (e.g. 26.x.xx)
+        - name: APP_VERSION
+          value: "<IMAGE_TAG>"
         envFrom:
         - secretRef:
             name: nextdns-analytics-backend-env

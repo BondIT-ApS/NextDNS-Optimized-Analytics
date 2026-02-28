@@ -179,6 +179,12 @@ export interface SystemSettingsResponse {
   log_level: string
 }
 
+export interface VersionResponse {
+  version: string
+  latest: string | null
+  up_to_date: boolean | null
+}
+
 // Authentication types
 export interface AuthCredentials {
   username: string
