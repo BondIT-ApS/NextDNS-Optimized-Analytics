@@ -1,7 +1,9 @@
 # file: backend/main.py
+import asyncio
 import os
 import platform
 import secrets
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import List, Optional, Dict, Any
@@ -80,6 +82,11 @@ app_start_time = datetime.now(timezone.utc)
 
 # Version from Docker build arg / environment variable
 APP_VERSION = os.getenv("APP_VERSION", "dev")
+
+# GitHub release cache (1-hour TTL) for the /version endpoint
+_github_release_cache: Dict[str, Any] = {"tag": None, "fetched_at": 0.0}
+GITHUB_CACHE_TTL_SECONDS = 3600  # 1 hour
+GITHUB_REPO = "BondIT-ApS/NextDNS-Optimized-Analytics"
 
 # Scheduler initialization (can be disabled for K8s multi-pod deployments)
 # Default: enabled (backward compatible with Docker Compose and single-pod deployments)
@@ -489,6 +496,14 @@ class DetailedHealthResponse(BaseModel):
     timestamp: str
 
 
+class VersionResponse(BaseModel):
+    """Application version and latest GitHub release check."""
+
+    version: str
+    latest: Optional[str] = None
+    up_to_date: Optional[bool] = None
+
+
 # API Endpoints
 
 
@@ -528,6 +543,55 @@ async def health_check():
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"status": "unhealthy", "healthy": False},
         ) from e
+
+
+def _fetch_github_latest_release() -> Optional[str]:
+    """Fetch the latest release tag from GitHub, with 1-hour in-memory cache.
+
+    Returns the tag name (e.g. "26.2.28") or None on failure.
+    """
+    import requests as req_lib  # already in requirements.txt
+
+    now = time.time()
+    if (
+        _github_release_cache["fetched_at"]
+        and (now - _github_release_cache["fetched_at"]) < GITHUB_CACHE_TTL_SECONDS
+    ):
+        return _github_release_cache["tag"]
+
+    try:
+        resp = req_lib.get(
+            f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest",
+            timeout=5,
+            headers={"User-Agent": f"NextDNS-Optimized-Analytics/{APP_VERSION}"},
+        )
+        resp.raise_for_status()
+        tag = resp.json().get("tag_name")
+        _github_release_cache["tag"] = tag
+        _github_release_cache["fetched_at"] = now
+        logger.debug(f"📦 GitHub latest release fetched: {tag}")
+        return tag
+    except Exception as e:
+        logger.warning(f"⚠️  GitHub release check failed (graceful degradation): {e}")
+        # Update timestamp even on failure to avoid hammering GitHub on errors
+        _github_release_cache["fetched_at"] = now
+        return _github_release_cache["tag"]  # stale value or None
+
+
+@app.get("/version", response_model=VersionResponse, tags=["Health"])
+async def get_version():
+    """Return current application version and latest GitHub release.
+
+    Fetches the latest release from GitHub with a 1-hour TTL cache.
+    Degrades gracefully when GitHub is unreachable.
+    """
+    latest = await asyncio.to_thread(_fetch_github_latest_release)
+
+    up_to_date: Optional[bool] = None
+    if latest is not None and APP_VERSION not in ("dev", ""):
+        up_to_date = APP_VERSION.lstrip("v") == latest.lstrip("v")
+
+    return VersionResponse(version=APP_VERSION, latest=latest, up_to_date=up_to_date)
 
 
 def _create_backend_resources(uptime_seconds: float) -> BackendResources:

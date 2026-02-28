@@ -21,9 +21,16 @@ import {
   Save,
   ToggleLeft,
   ToggleRight,
+  Tag,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react'
 import { apiClient } from '@/services/api'
-import type { SettingsProfileItem, SystemSettingsResponse } from '@/types/api'
+import type {
+  SettingsProfileItem,
+  SystemSettingsResponse,
+  VersionResponse,
+} from '@/types/api'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -735,6 +742,110 @@ function SystemSettingsCard() {
 }
 
 // ---------------------------------------------------------------------------
+// Version / update-check card
+// ---------------------------------------------------------------------------
+
+interface VersionState {
+  data: VersionResponse | null
+  loading: boolean
+  error: string | null
+}
+
+const GITHUB_RELEASES_URL =
+  'https://github.com/BondIT-ApS/NextDNS-Optimized-Analytics/releases'
+
+function VersionCard() {
+  const [state, setState] = useState<VersionState>({
+    data: null,
+    loading: true,
+    error: null,
+  })
+
+  const load = useCallback(async () => {
+    setState(s => ({ ...s, loading: true, error: null }))
+    try {
+      const data = await apiClient.getVersion()
+      setState({ data, loading: false, error: null })
+    } catch {
+      setState({
+        data: null,
+        loading: false,
+        error: 'Failed to fetch version info',
+      })
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  const { data } = state
+  const releaseUrl = data?.latest
+    ? `${GITHUB_RELEASES_URL}/tag/${data.latest}`
+    : GITHUB_RELEASES_URL
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Tag className="h-5 w-5" />
+          Application Version
+        </CardTitle>
+        <CardDescription>
+          Installed build version and latest GitHub release.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {state.loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Checking version…
+          </div>
+        ) : state.error ? (
+          <p className="text-sm text-destructive">{state.error}</p>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">Installed version:</span>
+              <Badge variant="outline">{data?.version ?? 'unknown'}</Badge>
+            </div>
+
+            {data?.up_to_date === true && (
+              <div className="flex items-center gap-2 text-sm text-lego-green">
+                <CheckCircle2 className="h-4 w-4" />
+                Up to date
+              </div>
+            )}
+
+            {data?.up_to_date === false && data.latest && (
+              <div className="flex items-center gap-2 text-sm text-amber-500">
+                <AlertCircle className="h-4 w-4" />
+                Update available:{' '}
+                <a
+                  href={releaseUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium underline underline-offset-2"
+                >
+                  {data.latest}
+                </a>
+              </div>
+            )}
+
+            {data?.up_to_date === null && (
+              <p className="text-sm text-muted-foreground">
+                Latest release unavailable — running a dev build or GitHub is
+                unreachable.
+              </p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Main Settings page
 // ---------------------------------------------------------------------------
 
@@ -744,6 +855,7 @@ export function Settings() {
       <ApiKeyCard />
       <ProfilesCard />
       <SystemSettingsCard />
+      <VersionCard />
     </div>
   )
 }
