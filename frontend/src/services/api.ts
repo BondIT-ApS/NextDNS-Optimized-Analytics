@@ -16,6 +16,7 @@ import type {
   AddProfileResponse,
   DeleteProfileResponse,
   SystemSettingsResponse,
+  VersionResponse,
 } from '@/types/api'
 
 // Create axios instance
@@ -172,6 +173,12 @@ export const apiClient = {
   // Root endpoint
   async getRoot() {
     const response = await api.get('/')
+    return response.data
+  },
+
+  // Version endpoint
+  async getVersion(): Promise<VersionResponse> {
+    const response = await api.get('/version')
     return response.data
   },
 
