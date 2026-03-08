@@ -27,7 +27,7 @@ services:
       - backend
 
   db:
-    image: postgres:15
+    image: postgres:18
     env_file: ./config/.env
     restart: always
     volumes:
