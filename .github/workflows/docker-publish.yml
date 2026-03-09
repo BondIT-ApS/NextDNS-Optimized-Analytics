@@ -238,7 +238,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: 🏢 Build & Push Semantic Versioned LEGO Set with Attestations
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./Dockerfile.${{ matrix.service }}
