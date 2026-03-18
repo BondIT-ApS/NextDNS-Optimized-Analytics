@@ -211,14 +211,12 @@ def seed(engine) -> None:
 
         # Bulk insert — fresh test DB so no conflict handling needed
         session.execute(
-            text(
-                """
+            text("""
                 INSERT INTO dns_logs
                     (timestamp, domain, tld, blocked, action, profile_id, device, data, created_at, query_type)
                 VALUES
                     (:timestamp, :domain, :tld, :blocked, :action, :profile_id, :device, :data, :created_at, :query_type)
-                """
-            ),
+                """),
             records,
         )
         session.commit()
