@@ -400,7 +400,7 @@ jobs:
         run: npm run test:coverage
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -464,7 +464,7 @@ jobs:
           python -m pytest tests/ --cov=. --cov-report=xml --cov-report=term -v
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         continue-on-error: true
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
