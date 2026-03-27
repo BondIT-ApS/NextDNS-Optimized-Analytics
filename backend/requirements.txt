@@ -12,7 +12,7 @@ psycopg2-binary==2.9.11
 alembic==1.18.4
 
 # HTTP requests and scheduling
-requests==2.32.5
+requests==2.33.0
 apscheduler==3.11.2
 cachetools>=5.3.0
 
