@@ -1,10 +1,10 @@
 # file: backend/requirements.txt
 
 # FastAPI and ASGI server
-fastapi==0.135.1
-uvicorn[standard]==0.41.0
+fastapi==0.135.2
+uvicorn[standard]==0.42.0
 python-multipart==0.0.22
-starlette==0.49.1  # Updated to fix CVE-2025-62727 DoS vulnerabilities - compatible with FastAPI 0.121.0
+starlette==1.0.0  # Updated to fix CVE-2025-62727 DoS vulnerabilities - compatible with FastAPI 0.135.2
 
 # Database
 sqlalchemy==2.0.48
@@ -12,7 +12,7 @@ psycopg2-binary==2.9.11
 alembic==1.18.4
 
 # HTTP requests and scheduling
-requests==2.32.5
+requests==2.33.0
 apscheduler==3.11.2
 cachetools>=5.3.0
 
@@ -21,7 +21,7 @@ psutil==7.2.2
 
 # Authentication and security
 passlib[bcrypt]==1.7.4
-PyJWT[crypto]==2.12.0  # Replaced python-jose to avoid ecdsa vulnerabilities (CVE-2024-64396, CVE-2024-64459)
+PyJWT[crypto]==2.12.1  # Replaced python-jose to avoid ecdsa vulnerabilities (CVE-2024-64396, CVE-2024-64459)
 slowapi==0.1.9
 
 # Security: Pin transitive dependencies to fix CVE vulnerabilities
