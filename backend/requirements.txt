@@ -2,7 +2,7 @@
 
 # FastAPI and ASGI server
 fastapi==0.135.2
-uvicorn[standard]==0.42.0
+uvicorn[standard]==0.44.0
 python-multipart==0.0.22
 starlette==1.0.0  # Updated to fix CVE-2025-62727 DoS vulnerabilities - compatible with FastAPI 0.135.2
 
