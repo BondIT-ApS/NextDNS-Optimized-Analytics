@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: 🧱 Post Weekly Maintenance Notice
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             // Check if there are any open Dependabot PRs
@@ -152,7 +152,7 @@ jobs:
     
     steps:
       - name: 🎯 Create Maintenance Summary
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const needs = ${{ toJson(needs) }};
