@@ -65,13 +65,13 @@ class LocalStorageMock implements Storage {
 const localStorageMock = new LocalStorageMock()
 
 // Assign localStorage mock to global
-Object.defineProperty(global, 'localStorage', {
+Object.defineProperty(globalThis, 'localStorage', {
   value: localStorageMock,
   writable: true,
 })
 
 // Mock fetch for API calls
-global.fetch = vi.fn(() =>
+globalThis.fetch = vi.fn(() =>
   Promise.resolve({
     ok: true,
     status: 200,
