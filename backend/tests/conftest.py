@@ -175,6 +175,22 @@ def api_key():
     return "test-api-key-123"
 
 
+@pytest.fixture
+def reload_auth_module():
+    """
+    Ensure the `auth` module is freshly imported for tests that depend on
+    environment-driven module-level state.
+
+    Removes any cached `auth` module before and after the test so each test
+    starts from a clean import and never leaks state to subsequent tests.
+    """
+    if "auth" in sys.modules:
+        del sys.modules["auth"]
+    yield
+    if "auth" in sys.modules:
+        del sys.modules["auth"]
+
+
 @pytest.fixture(autouse=True)
 def mock_env_vars(monkeypatch):
     """
