@@ -1,11 +1,17 @@
-# Safety CLI Policy Configuration
+# Safety CLI Policy Configuration (v3)
 # This file configures how Safety CLI scans the project
-# Note: safety check command requires version < 3.0
+# Both `safety scan` and `pyupio/safety-action@v1` require version 3.0
 
-version: '2.0'
+version: '3.0'
 
-# Ignore specific vulnerabilities (if needed)
-# ignore-vulnerabilities:
-#   CVE-2024-12345:
-#     reason: "Accepted risk - explanation here"
-#     expires: "2025-12-31"
+scan:
+  max-severity: critical
+  ignore-unpinned-requirements: []
+
+report:
+  dependency-vulnerabilities:
+    enabled: true
+    auto-ignore-in-report:
+      python:
+        unpinned-specifications:
+          - "*"
