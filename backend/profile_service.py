@@ -8,9 +8,7 @@ from models import get_nextdns_api_key, get_active_profile_ids
 logger = get_logger(__name__)
 
 
-def _create_error_profile_info(
-    profile_id: str, name_suffix: str, error: str
-) -> Dict:
+def _create_error_profile_info(profile_id: str, name_suffix: str, error: str) -> Dict:
     """Helper function to create error profile information."""
     return {
         "id": profile_id,
@@ -23,9 +21,7 @@ def _handle_api_response(response: requests.Response, profile_id: str) -> Dict:
     """Helper function to handle API response based on status code."""
     if response.status_code == 200:
         profile_data = response.json().get("data", {})
-        logger.debug(
-            f"✅ Profile {profile_id}: {profile_data.get('name', 'Unknown')}"
-        )
+        logger.debug(f"✅ Profile {profile_id}: {profile_data.get('name', 'Unknown')}")
         return {
             "id": profile_id,
             "name": profile_data.get("name", f"Profile {profile_id}"),

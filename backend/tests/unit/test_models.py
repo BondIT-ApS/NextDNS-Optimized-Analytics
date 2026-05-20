@@ -131,9 +131,7 @@ class TestFetchStatusModel:
         test_db.commit()
 
         retrieved = (
-            test_db.query(FetchStatus)
-            .filter_by(profile_id="test-profile-123")
-            .first()
+            test_db.query(FetchStatus).filter_by(profile_id="test-profile-123").first()
         )
         assert retrieved is not None
         assert retrieved.profile_id == "test-profile-123"

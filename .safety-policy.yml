@@ -1,0 +1,10 @@
+# Safety CLI Policy Configuration (Version 3.0)
+# This file configures how Safety CLI scans the project
+
+version: '3.0'
+
+# Ignore specific vulnerabilities (if needed)
+# ignore-vulnerabilities:
+#   CVE-2024-12345:
+#     reason: "Accepted risk - explanation here"
+#     expires: "2025-12-31"

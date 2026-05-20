@@ -166,14 +166,10 @@ class ForceText(TypeDecorator):  # pylint: disable=too-many-ancestors
             return str(value)
         return value
 
-    def process_result_value(
-        self, value, dialect
-    ):  # pylint: disable=unused-argument
+    def process_result_value(self, value, dialect):  # pylint: disable=unused-argument
         return value
 
-    def process_literal_param(
-        self, value, dialect
-    ):  # pylint: disable=unused-argument
+    def process_literal_param(self, value, dialect):  # pylint: disable=unused-argument
         """Process literal parameter for SQL compilation."""
         return str(value) if value is not None else value
 
@@ -227,9 +223,7 @@ class DNSLog(Base):
     device_name = Column(
         String(255), nullable=True
     )  # Extracted device name for fast aggregation (avoids JSON parsing per row)
-    data = Column(
-        ForceText, nullable=False
-    )  # Store original raw data as JSON string
+    data = Column(ForceText, nullable=False)  # Store original raw data as JSON string
     created_at = Column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -1078,9 +1072,7 @@ def get_stats_timeseries(
         elif time_range == "7d":
             # For daily data, align to start of today and work backwards
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            start_time = today_start - timedelta(
-                days=6
-            )  # 6 days back + today = 7 days
+            start_time = today_start - timedelta(days=6)  # 6 days back + today = 7 days
             interval_hours = 24
             num_intervals = 7  # 7 x 1day = 7 days
             granularity = "day"
@@ -1266,9 +1258,7 @@ def get_stats_timeseries(
         # Return format depends on grouping mode
         if group_by == "profile":
             # Get list of all available profiles from the query
-            all_profiles = (
-                base_query.with_entities(DNSLog.profile_id).distinct().all()
-            )
+            all_profiles = base_query.with_entities(DNSLog.profile_id).distinct().all()
             available_profiles = [p[0] for p in all_profiles if p[0]]
 
             return {
@@ -1716,9 +1706,7 @@ def get_database_metrics():  # pylint: disable=too-many-branches,too-many-statem
                 text("SELECT count(*) as total_connections FROM pg_stat_activity")
             ).fetchone()
 
-            max_connections = session.execute(
-                text("SHOW max_connections")
-            ).fetchone()
+            max_connections = session.execute(text("SHOW max_connections")).fetchone()
 
             if connection_stats and total_connections and max_connections:
                 active = connection_stats[0]
@@ -2043,9 +2031,7 @@ def get_all_profiles() -> list:
     """Return all NextDNSProfile rows (enabled and disabled)."""
     session = session_factory()
     try:
-        return (
-            session.query(NextDNSProfile).order_by(NextDNSProfile.profile_id).all()
-        )
+        return session.query(NextDNSProfile).order_by(NextDNSProfile.profile_id).all()
     except SQLAlchemyError as e:
         logger.error(f"❌ Error reading profiles: {e}")
         return []

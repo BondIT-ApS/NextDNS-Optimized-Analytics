@@ -209,9 +209,7 @@ def verify_api_key(credentials: HTTPAuthorizationCredentials = Depends(security)
 # Flexible authentication supporting both Bearer and X-API-Key
 def verify_api_key_flexible(
     x_api_key: str = Header(None),
-    credentials: HTTPAuthorizationCredentials = Depends(
-        HTTPBearer(auto_error=False)
-    ),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False)),
 ):
     """Authenticate user with API key via Bearer token or X-API-Key header."""
     api_key = None
@@ -574,9 +572,7 @@ def _fetch_github_latest_release() -> Optional[str]:
         logger.debug(f"📦 GitHub latest release fetched: {tag}")
         return tag
     except Exception as e:
-        logger.warning(
-            f"⚠️  GitHub release check failed (graceful degradation): {e}"
-        )
+        logger.warning(f"⚠️  GitHub release check failed (graceful degradation): {e}")
         # Update timestamp even on failure to avoid hammering GitHub on errors
         _github_release_cache["fetched_at"] = now
         return _github_release_cache["tag"]  # stale value or None
@@ -670,9 +666,7 @@ async def detailed_health_check():
         total_records = get_total_record_count()
 
         # Calculate uptime
-        uptime_seconds = (
-            datetime.now(timezone.utc) - app_start_time
-        ).total_seconds()
+        uptime_seconds = (datetime.now(timezone.utc) - app_start_time).total_seconds()
 
         # Get environment configuration
         fetch_interval = int(os.getenv("FETCH_INTERVAL", "60"))
@@ -680,9 +674,7 @@ async def detailed_health_check():
 
         # Create metrics components
         backend_resources = _create_backend_resources(uptime_seconds)
-        backend_health = BackendHealth(
-            status="healthy", uptime_seconds=uptime_seconds
-        )
+        backend_health = BackendHealth(status="healthy", uptime_seconds=uptime_seconds)
         backend_metrics = BackendMetrics(
             resources=backend_resources, health=backend_health
         )
@@ -948,9 +940,7 @@ async def get_profile_information(current_user: str = Depends(get_current_user))
     profile_info = get_multiple_profiles_info(configured_profiles)
     logger.info(f"🧱 Returning information for {len(profile_info)} profiles")
 
-    return ProfileInfoResponse(
-        profiles=profile_info, total_profiles=len(profile_info)
-    )
+    return ProfileInfoResponse(profiles=profile_info, total_profiles=len(profile_info))
 
 
 @app.get(
@@ -975,9 +965,7 @@ async def get_single_profile_info(
     return NextDNSProfileInfo(**profile_info)
 
 
-@app.get(
-    "/stats/overview", response_model=StatsOverviewResponse, tags=["Statistics"]
-)
+@app.get("/stats/overview", response_model=StatsOverviewResponse, tags=["Statistics"])
 async def get_stats_overview(
     profile: Optional[str] = Query(
         default=None, description="Filter by specific profile ID"
@@ -1199,15 +1187,9 @@ async def get_top_tlds(
         cache_key = make_cache_key("tlds", profile, time_range, limit=limit)
         cached = get_cached(cache_key)
         if cached is not None:
-            blocked_tlds = [
-                TopDomainsItem(**item) for item in cached["blocked_tlds"]
-            ]
-            allowed_tlds = [
-                TopDomainsItem(**item) for item in cached["allowed_tlds"]
-            ]
-            return TopTLDsResponse(
-                blocked_tlds=blocked_tlds, allowed_tlds=allowed_tlds
-            )
+            blocked_tlds = [TopDomainsItem(**item) for item in cached["blocked_tlds"]]
+            allowed_tlds = [TopDomainsItem(**item) for item in cached["allowed_tlds"]]
+            return TopTLDsResponse(blocked_tlds=blocked_tlds, allowed_tlds=allowed_tlds)
 
     # Cache miss or filtered/custom-limit request — compute live
     tlds_data = get_stats_tlds(
@@ -1579,9 +1561,7 @@ class SystemSettingsUpdateRequest(BaseModel):
     log_level: Optional[str] = None
 
 
-@app.get(
-    "/settings/system", response_model=SystemSettingsResponse, tags=["Settings"]
-)
+@app.get("/settings/system", response_model=SystemSettingsResponse, tags=["Settings"])
 async def get_system_settings(
     current_user: str = Depends(get_current_user),
 ):
@@ -1593,9 +1573,7 @@ async def get_system_settings(
     )
 
 
-@app.put(
-    "/settings/system", response_model=SystemSettingsResponse, tags=["Settings"]
-)
+@app.put("/settings/system", response_model=SystemSettingsResponse, tags=["Settings"])
 async def update_system_settings(
     body: SystemSettingsUpdateRequest,
     current_user: str = Depends(get_current_user),
