@@ -308,5 +308,4 @@ frontend/tsconfig.tsbuildinfo
 *bandit-report.json
 
 # Safety checks
-.safety-policy.yml
 .safety-project.ini

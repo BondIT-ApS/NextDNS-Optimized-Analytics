@@ -1,0 +1,8 @@
+# Safety CLI Policy Configuration (v3)
+# This file configures how Safety CLI scans the project
+# Both `safety scan` and `pyupio/safety-action@v1` require version 3.0
+
+version: '3.0'
+
+scan:
+  exclude: []
