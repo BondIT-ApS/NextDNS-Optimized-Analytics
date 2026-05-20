@@ -5,13 +5,4 @@
 version: '3.0'
 
 scan:
-  max-severity: critical
-  ignore-unpinned-requirements: []
-
-report:
-  dependency-vulnerabilities:
-    enabled: true
-    auto-ignore-in-report:
-      python:
-        unpinned-specifications:
-          - "*"
+  exclude: []
