@@ -232,7 +232,8 @@ class DNSLog(Base):
 
     # Add composite indexes and unique constraint for duplicate prevention
     __table_args__ = (
-        Index("idx_dns_logs_timestamp_domain", "timestamp", "domain"),
+        # idx_dns_logs_timestamp_domain removed — 0 scans on both DEV/PROD,
+        # dropped in migration d3e4f5a6b7c8 (issue #183).
         # idx_dns_logs_domain_action removed — had 0 scans, dropped in migration c1d2e3f4a5b6
         Index("idx_dns_logs_profile_timestamp", "profile_id", "timestamp"),
         # Unique constraint to prevent duplicates based on
@@ -582,6 +583,12 @@ def get_logs(  # pylint: disable=too-many-positional-arguments,too-many-locals,t
     try:
         query = session.query(DNSLog).order_by(DNSLog.timestamp.desc())
 
+        # Track whether the caller applied any narrowing filter — if none
+        # were applied we can skip the expensive COUNT(*) and use the
+        # pg_class.reltuples estimate instead (issue #183: COUNT(*) on
+        # 13M rows takes ~2.5s and the dashboard fires it on every page).
+        has_filter = False
+
         # Apply domain exclusions (with wildcard support)
         if exclude_domains:
             exclusion_filter = build_domain_exclusion_filter(
@@ -589,23 +596,28 @@ def get_logs(  # pylint: disable=too-many-positional-arguments,too-many-locals,t
             )
             if exclusion_filter is not None:
                 query = query.filter(exclusion_filter)
+                has_filter = True
 
         # Apply search filter on domain name
         if search_query.strip():
             query = query.filter(DNSLog.domain.ilike(f"%{search_query}%"))
+            has_filter = True
             logger.debug(f"🔍 Filtering by domain search: '{search_query}'")
 
         # Apply status filter (case-insensitive)
         if status_filter and status_filter.lower() == "blocked":
             query = query.filter(DNSLog.blocked.is_(True))
+            has_filter = True
             logger.debug("🚫 Filtering for blocked requests only")
         elif status_filter and status_filter.lower() == "allowed":
             query = query.filter(DNSLog.blocked.is_(False))
+            has_filter = True
             logger.debug("✅ Filtering for allowed requests only")
 
         # Apply profile filter
         if profile_filter and profile_filter.strip():
             query = query.filter(DNSLog.profile_id == profile_filter)
+            has_filter = True
             logger.debug(f"🧱 Filtering for profile: '{profile_filter}'")
 
         # Apply device filter
@@ -620,6 +632,7 @@ def get_logs(  # pylint: disable=too-many-positional-arguments,too-many-locals,t
                     )
             if device_conditions:
                 query = query.filter(or_(*device_conditions))
+                has_filter = True
                 logger.debug(f"📱 Filtering for devices: {device_filter}")
 
         # Apply time range filter
@@ -639,10 +652,16 @@ def get_logs(  # pylint: disable=too-many-positional-arguments,too-many-locals,t
             if time_range in time_deltas:
                 cutoff_time = now - time_deltas[time_range]
                 query = query.filter(DNSLog.timestamp >= cutoff_time)
+                has_filter = True
                 logger.debug(f"📅 Filtering for time range: {time_range}")
 
-        # Get filtered total count before applying pagination
-        filtered_total_records = query.count()
+        # Get the total matching the current filters. With no filters the
+        # answer is "the whole table" — use the pg_class estimate to avoid
+        # a multi-second COUNT(*) on millions of rows.
+        if has_filter:
+            filtered_total_records = query.count()
+        else:
+            filtered_total_records = get_total_record_count()
         logger.info(
             f"📊 Database query: requesting {limit} records from {filtered_total_records:,} filtered records"
         )

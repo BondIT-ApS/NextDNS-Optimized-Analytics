@@ -25,11 +25,15 @@ from stats_cache import (
     _GRANULARITY_MAP,
     _HEAVY_RANGES,
     _compute_single_stat,
+    FREQUENT_PRECOMPUTE_RANGES,
+    HEAVY_PRECOMPUTE_RANGES,
     PRECOMPUTE_RANGES,
     get_cached,
     invalidate_memory_cache,
     make_cache_key,
     precompute_all_stats,
+    precompute_frequent_stats,
+    precompute_heavy_stats,
     store_cached,
 )
 
@@ -703,3 +707,45 @@ class TestPrecomputeAllStats:
             if not range_order or range_order[-1] != tr:
                 range_order.append(tr)
         assert range_order == PRECOMPUTE_RANGES
+
+
+# ---------------------------------------------------------------------------
+# Frequent / heavy split (#183)
+# ---------------------------------------------------------------------------
+
+
+class TestFrequentHeavySplit:
+    """The split between frequent (1h/6h/24h) and heavy (7d/30d) ranges
+    is the single biggest DB-load fix for #183 — guard it with explicit
+    tests so a future refactor cannot silently re-merge them.
+    """
+
+    def test_frequent_ranges_are_short(self):
+        assert FREQUENT_PRECOMPUTE_RANGES == ["1h", "6h", "24h"]
+
+    def test_heavy_ranges_are_long(self):
+        assert HEAVY_PRECOMPUTE_RANGES == ["7d", "30d"]
+
+    def test_no_overlap(self):
+        assert not set(FREQUENT_PRECOMPUTE_RANGES) & set(HEAVY_PRECOMPUTE_RANGES)
+
+    def test_union_matches_full_list(self):
+        assert FREQUENT_PRECOMPUTE_RANGES + HEAVY_PRECOMPUTE_RANGES == PRECOMPUTE_RANGES
+
+    def test_precompute_frequent_only_touches_frequent_ranges(
+        self, mock_stat_functions
+    ):
+        precompute_frequent_stats()
+        ranges_seen = {
+            c.kwargs["time_range"]
+            for c in mock_stat_functions["overview"].call_args_list
+        }
+        assert ranges_seen == set(FREQUENT_PRECOMPUTE_RANGES)
+
+    def test_precompute_heavy_only_touches_heavy_ranges(self, mock_stat_functions):
+        precompute_heavy_stats()
+        ranges_seen = {
+            c.kwargs["time_range"]
+            for c in mock_stat_functions["overview"].call_args_list
+        }
+        assert ranges_seen == set(HEAVY_PRECOMPUTE_RANGES)

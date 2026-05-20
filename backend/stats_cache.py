@@ -57,10 +57,17 @@ logger = get_logger(__name__)
 # ttl: seconds before an entry is evicted
 _MEMORY_CACHE: TTLCache = TTLCache(maxsize=512, ttl=300)  # 5-minute TTL
 
-# Time ranges to precompute after each scheduler fetch cycle.
-# "30m" and "3m"/"all" are omitted: short-range data changes too fast for
-# meaningful pre-computation; long-range is expensive and infrequently viewed.
-PRECOMPUTE_RANGES = ["1h", "6h", "24h", "7d", "30d"]
+# Time ranges to precompute, split by how often the underlying data
+# moves enough to warrant a recompute.
+#
+# Frequent ranges run after every fetch cycle (default: every few minutes).
+# Heavy ranges run only on the nightly cron — aggregating 7d/30d windows
+# over millions of rows is expensive, and the result barely changes when
+# a few hundred new logs land. Issue #183: this used to recompute every
+# 5 minutes and was the dominant source of DB load at 13M+ records.
+FREQUENT_PRECOMPUTE_RANGES = ["1h", "6h", "24h"]
+HEAVY_PRECOMPUTE_RANGES = ["7d", "30d"]
+PRECOMPUTE_RANGES = FREQUENT_PRECOMPUTE_RANGES + HEAVY_PRECOMPUTE_RANGES
 
 # Auto-granularity map (mirrors the logic in main.py)
 _GRANULARITY_MAP = {
@@ -219,12 +226,15 @@ def _compute_single_stat(
         return False
 
 
-def precompute_all_stats() -> None:
-    """Pre-compute statistics for all active profiles and standard time ranges.
+def precompute_stats_for_ranges(time_ranges) -> None:
+    """Pre-compute statistics for all active profiles across given time ranges.
+
+    Args:
+        time_ranges: Iterable of time-range strings (e.g. ["1h", "6h", "24h"]).
 
     Iterates over:
         profiles: [None (all profiles)] + active profile IDs
-        time_ranges: PRECOMPUTE_RANGES (1h, 6h, 24h, 7d, 30d)
+        time_ranges: as supplied
         stat types: overview, timeseries, domains, tlds, devices
 
     Results are stored in both the in-memory TTL cache and the stats_cache
@@ -238,6 +248,7 @@ def precompute_all_stats() -> None:
     Errors in individual stat types are caught and logged so that one
     failing computation does not abort the rest of the precomputation run.
     """
+    time_ranges = list(time_ranges)
     active_profiles = get_active_profile_ids()
     # Include None to represent the "all profiles" combined view
     profiles_to_compute = [None] + list(active_profiles)
@@ -246,14 +257,15 @@ def precompute_all_stats() -> None:
     total_errors = 0
 
     logger.info(
-        "🔄 Pre-computing stats cache for %d profile(s) × %d time ranges "
-        "(%d stat types each)",
+        "🔄 Pre-computing stats cache for %d profile(s) × %d time range(s) "
+        "(%d stat types each): %s",
         len(profiles_to_compute),
-        len(PRECOMPUTE_RANGES),
+        len(time_ranges),
         5,
+        time_ranges,
     )
 
-    for time_range in PRECOMPUTE_RANGES:
+    for time_range in time_ranges:
         for profile in profiles_to_compute:
 
             # 1. Overview
@@ -343,3 +355,33 @@ def precompute_all_stats() -> None:
         total_computed,
         total_errors,
     )
+
+
+def precompute_frequent_stats() -> None:
+    """Pre-compute the cheap, fast-moving ranges (1h/6h/24h).
+
+    Designed to run after every fetch cycle. Cheap enough that running it
+    every few minutes does not meaningfully load the database.
+    """
+    precompute_stats_for_ranges(FREQUENT_PRECOMPUTE_RANGES)
+
+
+def precompute_heavy_stats() -> None:
+    """Pre-compute the expensive long-range stats (7d/30d).
+
+    Designed to run once per day on a quiet hour. Aggregating millions of
+    rows for these ranges is expensive and the result is essentially
+    unchanged when a few hundred new logs are added.
+    """
+    precompute_stats_for_ranges(HEAVY_PRECOMPUTE_RANGES)
+
+
+def precompute_all_stats() -> None:
+    """Pre-compute every range (frequent + heavy).
+
+    Kept for backwards compatibility and for one-off priming (e.g. after a
+    deploy or when manually invoking from a shell). Production scheduling
+    should call ``precompute_frequent_stats`` and ``precompute_heavy_stats``
+    on their own cadences.
+    """
+    precompute_stats_for_ranges(PRECOMPUTE_RANGES)
