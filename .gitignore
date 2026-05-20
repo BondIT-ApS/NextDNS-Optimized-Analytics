@@ -326,3 +326,4 @@ frontend/tsconfig.tsbuildinfo
 
 # Safety checks
 .safety-project.ini
+.mcp.json
