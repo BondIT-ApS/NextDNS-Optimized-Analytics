@@ -263,18 +263,35 @@ pids
 *.crt
 secrets/
 
-# AI Agent configuration (could contain project-specific credentials)
+# AI Agent configuration
+# Tool-specific configs (personal, not shared)
 WARP.md
-CLAUDE.md
 CURSOR.md
-AGENTS.md
 HEARTBEAT.md
 IDENTITY.md
 SOUL.md
 TOOLS.md
 USER.md
-# AI Agent specific directories
-.claude/
+
+# Claude Code — personal files (do NOT commit)
+CLAUDE.local.md
+.claude/settings.local.json
+# Nested .claude/ in subdirectories (personal artifacts)
+.claude/*
+
+# AI Code — Personal files (do NOT commit)
+CLAUDE.md
+AGENTS.md
+WARP.md
+CURSOR.md
+HEARTBEAT.md
+IDENTITY.md
+SOUL.md
+TOOLS.md
+USER.md
+.mcp.json
+
+# Other AI agent directories
 .playwright-mcp/
 .openclaw/
 
