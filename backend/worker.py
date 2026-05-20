@@ -78,12 +78,15 @@ def main():
         active_profiles = get_active_profile_ids()
 
         logger.info(f"⏰ Fetch interval: {fetch_interval} minutes")
-        logger.info("🔑 API Key configured: %s", "Yes" if api_key_configured else "No")
+        logger.info(
+            "🔑 API Key configured: %s", "Yes" if api_key_configured else "No"
+        )
         logger.info(f"📊 Monitoring {len(active_profiles)} active profile(s)")
 
         if not api_key_configured or not active_profiles:
             logger.warning(
-                "⚠️  Worker started but NextDNS API credentials" " not fully configured"
+                "⚠️  Worker started but NextDNS API credentials"
+                " not fully configured"
             )
             logger.warning(
                 "⚠️  Scheduler will not fetch logs until" " credentials are set"

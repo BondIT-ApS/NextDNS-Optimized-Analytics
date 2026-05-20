@@ -67,7 +67,9 @@ class TestNextDNSProfileModel:
         test_db.add(profile)
         test_db.commit()
 
-        retrieved = test_db.query(NextDNSProfile).filter_by(profile_id="abc123").first()
+        retrieved = (
+            test_db.query(NextDNSProfile).filter_by(profile_id="abc123").first()
+        )
         assert retrieved is not None
         assert retrieved.enabled is True
         assert retrieved.created_at is not None
@@ -78,7 +80,9 @@ class TestNextDNSProfileModel:
         test_db.add(profile)
         test_db.commit()
 
-        retrieved = test_db.query(NextDNSProfile).filter_by(profile_id="def456").first()
+        retrieved = (
+            test_db.query(NextDNSProfile).filter_by(profile_id="def456").first()
+        )
         assert retrieved.enabled is True
 
     def test_disable_profile(self, test_db):
@@ -90,7 +94,9 @@ class TestNextDNSProfileModel:
         profile.enabled = False
         test_db.commit()
 
-        retrieved = test_db.query(NextDNSProfile).filter_by(profile_id="ghi789").first()
+        retrieved = (
+            test_db.query(NextDNSProfile).filter_by(profile_id="ghi789").first()
+        )
         assert retrieved.enabled is False
 
     def test_profile_primary_key_uniqueness(self, test_db):
@@ -180,7 +186,9 @@ class TestApiKeyHelpers:
 
         with _make_session_patcher(test_db):
             assert set_nextdns_api_key("my-secret-key") is True
-            row = test_db.query(SystemSetting).filter_by(key="nextdns_api_key").first()
+            row = (
+                test_db.query(SystemSetting).filter_by(key="nextdns_api_key").first()
+            )
             assert row is not None
             assert row.value == "my-secret-key"
 
@@ -321,7 +329,9 @@ class TestDeleteProfileData:
             add_profile("victim")
             result = delete_profile("victim", delete_data=False)
             assert result["deleted"] is True
-            row = test_db.query(NextDNSProfile).filter_by(profile_id="victim").first()
+            row = (
+                test_db.query(NextDNSProfile).filter_by(profile_id="victim").first()
+            )
             assert row is None
 
     def test_delete_nonexistent_profile_returns_deleted_false(self, test_db):
@@ -368,7 +378,9 @@ class TestMigrateConfigFromEnv:
             seeded = migrate_config_from_env()
             assert seeded is False
             # Original values must not be overwritten
-            row = test_db.query(SystemSetting).filter_by(key="nextdns_api_key").first()
+            row = (
+                test_db.query(SystemSetting).filter_by(key="nextdns_api_key").first()
+            )
             assert row.value == "existing-key"
 
     def test_migration_without_env_vars(self, test_db, monkeypatch):
