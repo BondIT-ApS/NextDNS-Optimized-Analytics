@@ -25,5 +25,5 @@ PyJWT[crypto]==2.12.1  # Replaced python-jose to avoid ecdsa vulnerabilities (CV
 slowapi==0.1.9
 
 # Security: Pin transitive dependencies to fix CVE vulnerabilities
-urllib3>=2.6.2  # CVE-2025-66471, CVE-2025-66418
-authlib>=1.6.6  # CVE-2025-62706, CVE-2025-61920 (if installed by transitive deps)
+urllib3>=2.7.0  # CVE-2025-66471, CVE-2025-66418
+authlib>=1.6.12  # CVE-2025-62706, CVE-2025-61920 (if installed by transitive deps)
