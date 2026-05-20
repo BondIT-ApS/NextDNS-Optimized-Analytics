@@ -2,18 +2,18 @@
 # Development and testing dependencies
 
 # Testing framework
-pytest>=8.0.0
-pytest-asyncio>=0.23.0
+pytest>=9.0.3
+pytest-asyncio>=1.3.0
 pytest-cov>=4.1.0
 httpx>=0.27.0  # For FastAPI test client
-faker>=24.0.0  # For test data generation
+faker>=40.18.0  # For test data generation
 pytest-mock>=3.12.0  # For mocking
-freezegun>=1.4.0  # For time-based testing
+freezegun>=1.5.5  # For time-based testing
 
 # Code quality and linting
-pylint>=3.0.0
+pylint>=4.0.5
 black==26.3.1
-bandit>=1.7.5  # Security linting
+bandit>=1.9.4  # Security linting
 
 # Additional security scanning
 safety>=3.0.0
