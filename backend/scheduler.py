@@ -4,6 +4,7 @@ from datetime import datetime
 
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from models import (
     add_log,
     get_total_record_count,
@@ -177,25 +178,50 @@ def fetch_logs():  # pylint: disable=too-many-locals,too-many-branches,too-many-
     if total_skipped > 0:
         logger.info("🔄 Duplicate prevention working across all profiles")
 
-    # Pre-compute stats cache after every fetch cycle so that dashboard
-    # API requests are served from cached results rather than live queries.
+    # Pre-compute the cheap, fast-moving ranges (1h/6h/24h) after every
+    # fetch cycle so dashboard requests for these ranges are served from
+    # cache. Heavy ranges (7d/30d) are recomputed by a separate nightly
+    # job — recomputing them every cycle was the dominant source of DB
+    # load at 13M+ records (#183).
     try:
         from stats_cache import (
-            precompute_all_stats,
+            precompute_frequent_stats,
         )  # pylint: disable=import-outside-toplevel
 
-        precompute_all_stats()
+        precompute_frequent_stats()
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error("❌ Stats pre-computation failed after fetch cycle: %s", e)
+
+
+def precompute_heavy_stats_job():
+    """Nightly job: refresh the expensive 7d/30d stats cache entries."""
+    try:
+        from stats_cache import (
+            precompute_heavy_stats,
+        )  # pylint: disable=import-outside-toplevel
+
+        logger.info("🌙 Running nightly heavy stats pre-computation (7d/30d)")
+        precompute_heavy_stats()
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error("❌ Nightly heavy stats pre-computation failed: %s", e)
 
 
 # Initialize and start scheduler
 scheduler = BackgroundScheduler()  # pylint: disable=invalid-name
 scheduler.add_job(fetch_logs, "interval", minutes=FETCH_INTERVAL, id="fetch_logs")
+# Nightly job: recompute the heavy stats ranges (7d/30d) at 01:00 UTC.
+# Skipping these from every fetch cycle is the biggest single DB win for #183.
+scheduler.add_job(
+    precompute_heavy_stats_job,
+    CronTrigger(hour=1, minute=0),
+    id="precompute_heavy_stats",
+    replace_existing=True,
+)
 scheduler.start()
 logger.info(
     f"🔄 NextDNS log fetching scheduler started (runs every {FETCH_INTERVAL} minutes)"
 )
+logger.info("🌙 Nightly heavy stats pre-computation scheduled for 01:00 UTC")
 logger.info(
     f"🕰️ Fetch interval configured: {FETCH_INTERVAL} minutes ({FETCH_INTERVAL/60:.1f} hours)"
 )
