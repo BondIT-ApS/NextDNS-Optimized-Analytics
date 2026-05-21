@@ -206,9 +206,46 @@ def precompute_heavy_stats_job():
         logger.error("❌ Nightly heavy stats pre-computation failed: %s", e)
 
 
+def retention_cleanup_job():
+    """Nightly job: delete dns_logs older than the configured retention.
+
+    Reads the policy from the database on every run so changes via the
+    Settings UI take effect on the next nightly cycle without a restart.
+    A retention value of 0 (unlimited) is treated as a no-op.
+    """
+    try:
+        from models import (
+            get_retention_days,
+            delete_logs_older_than,
+        )  # pylint: disable=import-outside-toplevel
+
+        retention = get_retention_days()
+        if retention <= 0:
+            logger.debug("🪟 Retention cleanup skipped (unlimited / disabled)")
+            return
+        logger.info(
+            "🪟 Running nightly retention cleanup (keeping last %d days)",
+            retention,
+        )
+        delete_logs_older_than(retention)
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logger.error("❌ Nightly retention cleanup failed: %s", e)
+
+
 # Initialize and start scheduler
 scheduler = BackgroundScheduler()  # pylint: disable=invalid-name
 scheduler.add_job(fetch_logs, "interval", minutes=FETCH_INTERVAL, id="fetch_logs")
+# Nightly retention cleanup at 00:30 UTC. Runs BEFORE the heavy-stats job
+# so the 01:00 precompute reflects the post-cleanup row set immediately.
+# Reads the retention_days setting from the DB on every run, so changes
+# via the UI take effect on the next nightly cycle without a restart.
+scheduler.add_job(
+    retention_cleanup_job,
+    CronTrigger(hour=0, minute=30),
+    id="retention_cleanup",
+    replace_existing=True,
+)
+
 # Nightly job: recompute the heavy stats ranges (7d/30d) at 01:00 UTC.
 # Skipping these from every fetch cycle is the biggest single DB win for #183.
 scheduler.add_job(
@@ -221,6 +258,7 @@ scheduler.start()
 logger.info(
     f"🔄 NextDNS log fetching scheduler started (runs every {FETCH_INTERVAL} minutes)"
 )
+logger.info("🪟 Nightly retention cleanup scheduled for 00:30 UTC")
 logger.info("🌙 Nightly heavy stats pre-computation scheduled for 01:00 UTC")
 logger.info(
     f"🕰️ Fetch interval configured: {FETCH_INTERVAL} minutes ({FETCH_INTERVAL/60:.1f} hours)"

@@ -54,6 +54,9 @@ from models import (
     set_fetch_limit,
     get_log_level,
     set_log_level,
+    get_retention_days,
+    set_retention_days,
+    RETENTION_MIN_DAYS,
 )
 from models import get_available_profiles as get_profiles_from_db
 from models import (
@@ -1551,6 +1554,7 @@ class SystemSettingsResponse(BaseModel):
     fetch_interval: int
     fetch_limit: int
     log_level: str
+    retention_days: int
 
 
 class SystemSettingsUpdateRequest(BaseModel):
@@ -1559,6 +1563,7 @@ class SystemSettingsUpdateRequest(BaseModel):
     fetch_interval: Optional[int] = None
     fetch_limit: Optional[int] = None
     log_level: Optional[str] = None
+    retention_days: Optional[int] = None
 
 
 @app.get("/settings/system", response_model=SystemSettingsResponse, tags=["Settings"])
@@ -1570,6 +1575,7 @@ async def get_system_settings(
         fetch_interval=get_fetch_interval(),
         fetch_limit=get_fetch_limit(),
         log_level=get_log_level(),
+        retention_days=get_retention_days(),
     )
 
 
@@ -1619,10 +1625,36 @@ async def update_system_settings(
         set_log_level(level)
         apply_log_level(level)
 
+    if body.retention_days is not None:
+        # 0 = unlimited (no cleanup). Any non-zero value must be >= 30
+        # to prevent typos like "3" or "1" from wiping data.
+        if body.retention_days != 0 and body.retention_days < RETENTION_MIN_DAYS:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"retention_days must be 0 (unlimited) or at least "
+                    f"{RETENTION_MIN_DAYS} days"
+                ),
+            )
+        if body.retention_days > 3650:  # 10 years — sanity ceiling
+            raise HTTPException(
+                status_code=422,
+                detail="retention_days must be at most 3650 (10 years)",
+            )
+        set_retention_days(body.retention_days)
+        if body.retention_days == 0:
+            logger.info("🪟 Log retention disabled (unlimited)")
+        else:
+            logger.info(
+                f"🪟 Log retention updated to {body.retention_days} days "
+                f"(cleanup runs nightly at 00:30 UTC)"
+            )
+
     return SystemSettingsResponse(
         fetch_interval=get_fetch_interval(),
         fetch_limit=get_fetch_limit(),
         log_level=get_log_level(),
+        retention_days=get_retention_days(),
     )
 
 
