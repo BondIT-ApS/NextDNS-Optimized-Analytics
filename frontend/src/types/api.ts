@@ -177,6 +177,8 @@ export interface SystemSettingsResponse {
   fetch_interval: number
   fetch_limit: number
   log_level: string
+  /** Days of dns_logs to keep. 0 = unlimited (no cleanup). */
+  retention_days: number
 }
 
 export interface VersionResponse {
