@@ -153,6 +153,7 @@ def populated_test_db(test_db):
             domain=f"test{i}.example.com",
             action="allowed" if i % 2 == 0 else "blocked",
             device='{"name": "Test Device", "id": "device-123"}',
+            device_name="Test Device",
             client_ip="192.168.1.100",
             query_type="A",
             blocked=i % 2 != 0,
