@@ -23,6 +23,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.exc import SQLAlchemyError
+from cachetools import TTLCache
 
 # Set up logging
 from logging_config import get_logger
@@ -620,20 +621,18 @@ def get_logs(  # pylint: disable=too-many-positional-arguments,too-many-locals,t
             has_filter = True
             logger.debug(f"🧱 Filtering for profile: '{profile_filter}'")
 
-        # Apply device filter
-        if device_filter and len(device_filter) > 0:
-            # Filter logs based on device names
-            device_conditions = []
-            for device_name in device_filter:
-                if device_name.strip():
-                    # Check for devices where the JSON device field contains the name
-                    device_conditions.append(
-                        DNSLog.device.ilike(f'%"name": "{device_name}"%')
-                    )
-            if device_conditions:
-                query = query.filter(or_(*device_conditions))
+        # Apply device filter — use the indexed ``device_name`` column
+        # added in migration c1d2e3f4a5b6. The old code did
+        # ``device.ilike('%"name": "X"%')`` which is a substring scan on
+        # JSON TEXT and triggered full-table scans (>40 s on 6M rows).
+        # ``device_name`` is the trimmed value from the JSON and is
+        # covered by ``idx_dns_logs_timestamp_device_name``.
+        if device_filter:
+            cleaned = [d.strip() for d in device_filter if d and d.strip()]
+            if cleaned:
+                query = query.filter(DNSLog.device_name.in_(cleaned))
                 has_filter = True
-                logger.debug(f"📱 Filtering for devices: {device_filter}")
+                logger.debug(f"📱 Filtering for devices: {cleaned}")
 
         # Apply time range filter
         if time_range != "all":
@@ -796,12 +795,32 @@ def get_logs_stats(profile_filter=None, time_range="all", exclude_domains=None):
 
 
 # Get list of available profiles in the database
+# ---------------------------------------------------------------------------
+# /profiles cache
+# ---------------------------------------------------------------------------
+# get_available_profiles() runs ``COUNT(*) + MAX(timestamp) GROUP BY profile_id``
+# over the full dns_logs table — ~6 M rows on DEV, ~14 M on PROD — and is hit
+# on every page load. The result barely changes minute-to-minute (a new fetch
+# only updates counts by a few hundred), so a short TTL cache is plenty.
+_PROFILES_CACHE: TTLCache = TTLCache(maxsize=1, ttl=300)  # 5-minute TTL
+_PROFILES_CACHE_KEY = "available_profiles"
+
+
 def get_available_profiles():
     """Get list of profile IDs that have data in the database.
+
+    Cached in-process for 5 minutes — the underlying full-table aggregate
+    is expensive (multi-second on multi-million-row tables) and the result
+    is not time-critical.
 
     Returns:
         list: List of profile IDs with record counts
     """
+    cached = _PROFILES_CACHE.get(_PROFILES_CACHE_KEY)
+    if cached is not None:
+        logger.debug("⚡ /profiles cache hit (%d profiles)", len(cached))
+        return cached
+
     session = session_factory()
     try:
         # Query for distinct profile IDs and their counts
@@ -834,13 +853,23 @@ def get_available_profiles():
                 }
             )
 
-        logger.debug(f"🧱 Found {len(profiles)} profiles with data")
+        _PROFILES_CACHE[_PROFILES_CACHE_KEY] = profiles
+        logger.debug(f"🧱 Found {len(profiles)} profiles with data (cached 5 min)")
         return profiles
     except SQLAlchemyError as e:
         logger.error(f"❌ Error getting available profiles: {e}")
         return []
     finally:
         session.close()
+
+
+def invalidate_profiles_cache() -> None:
+    """Clear the cached /profiles result.
+
+    Call after operations that change the profile set (e.g. profile
+    deletion) so the next request reflects the change immediately.
+    """
+    _PROFILES_CACHE.clear()
 
 
 # Get real stats overview data from database
@@ -2131,6 +2160,10 @@ def delete_profile_data(profile_id: str) -> dict:
             .delete(synchronize_session=False)
         )
         session.commit()
+        # Profile set changed — drop the cached /profiles result so the
+        # next request reflects the deletion immediately rather than
+        # showing the deleted profile for up to 5 more minutes.
+        invalidate_profiles_cache()
         logger.info(
             f"🗑️  Profile '{profile_id}' data cleaned up: "
             f"{logs_deleted} DNS logs, {fetch_deleted} fetch status rows deleted"
