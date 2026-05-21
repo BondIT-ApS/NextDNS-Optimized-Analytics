@@ -1973,6 +1973,14 @@ NEXTDNS_API_KEY_SETTING = "nextdns_api_key"
 FETCH_INTERVAL_SETTING = "fetch_interval"
 FETCH_LIMIT_SETTING = "fetch_limit"
 LOG_LEVEL_SETTING = "log_level"
+RETENTION_DAYS_SETTING = "retention_days"
+
+# Retention policy constants
+RETENTION_UNLIMITED = 0  # 0 means "keep everything"
+RETENTION_MIN_DAYS = 30  # Lowest non-unlimited value allowed
+RETENTION_DELETE_BATCH_SIZE = (
+    10_000  # Rows per DELETE batch; keeps WAL/lock pressure bounded
+)
 
 
 def get_nextdns_api_key() -> Optional[str]:
@@ -2042,6 +2050,95 @@ def get_log_level() -> str:
 def set_log_level(level: str) -> bool:
     """Persist the log level to the database."""
     return set_setting(LOG_LEVEL_SETTING, level.upper())
+
+
+# ---------------------------------------------------------------------------
+# Log retention policy
+# ---------------------------------------------------------------------------
+# A ``retention_days`` setting (DB-backed, no env var) controls automatic
+# cleanup of old dns_logs rows. ``0`` means unlimited / disabled. Any other
+# value must be >= RETENTION_MIN_DAYS to avoid catastrophic data loss from a
+# typo. The nightly worker calls ``delete_logs_older_than()`` at 00:30 UTC.
+
+
+def get_retention_days() -> int:
+    """Return the configured retention in days. ``0`` means unlimited."""
+    val = get_setting(RETENTION_DAYS_SETTING)
+    if val is None:
+        return RETENTION_UNLIMITED
+    try:
+        return max(int(val), 0)
+    except ValueError:
+        return RETENTION_UNLIMITED
+
+
+def set_retention_days(days: int) -> bool:
+    """Persist the retention policy. Validation lives at the API layer."""
+    return set_setting(RETENTION_DAYS_SETTING, str(max(days, 0)))
+
+
+def delete_logs_older_than(
+    retention_days: int,
+    batch_size: int = RETENTION_DELETE_BATCH_SIZE,
+) -> int:
+    """Delete dns_logs rows older than *retention_days* in bounded batches.
+
+    Batching keeps each transaction short, which keeps WAL volume bounded
+    and avoids long locks on the (busy) table while the worker also runs
+    INSERTs. Returns the total number of rows deleted across all batches.
+
+    A retention value of ``0`` is treated as a no-op so the caller can
+    safely invoke this from a cron without checking the policy first.
+    """
+    if retention_days <= 0:
+        logger.debug("🪟 Retention disabled (retention_days=0); skipping cleanup")
+        return 0
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+    logger.info(
+        "🪟 Retention cleanup starting: deleting dns_logs older than %s "
+        "(retention=%d days, batch=%d)",
+        cutoff.isoformat(),
+        retention_days,
+        batch_size,
+    )
+
+    session = session_factory()
+    total_deleted = 0
+    try:
+        while True:
+            # Subquery: pick a bounded set of old row IDs. Bounding the
+            # delete by ID set (rather than running one huge DELETE) keeps
+            # each transaction predictable in size and runtime.
+            subq = (
+                session.query(DNSLog.id)
+                .filter(DNSLog.timestamp < cutoff)
+                .limit(batch_size)
+                .subquery()
+            )
+            deleted = (
+                session.query(DNSLog)
+                .filter(DNSLog.id.in_(subq.select()))
+                .delete(synchronize_session=False)
+            )
+            session.commit()
+            if not deleted:
+                break
+            total_deleted += deleted
+            logger.debug("🪟 Retention batch deleted %d rows", deleted)
+
+        logger.info(
+            "✅ Retention cleanup complete: %d rows deleted (older than %s)",
+            total_deleted,
+            cutoff.isoformat(),
+        )
+        return total_deleted
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.error("❌ Retention cleanup failed: %s", e)
+        return total_deleted
+    finally:
+        session.close()
 
 
 # ---------------------------------------------------------------------------

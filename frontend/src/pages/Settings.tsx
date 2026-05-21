@@ -66,9 +66,16 @@ interface SystemState {
   fetchInterval: string
   fetchLimit: string
   logLevel: string
+  // Retention is split into two pieces so the UI can show a checkbox
+  // ("Unlimited") that disables the days input without losing the user's
+  // previously-typed number.
+  retentionUnlimited: boolean
+  retentionDays: string
 }
 
 const LOG_LEVELS = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'] as const
+const RETENTION_MIN_DAYS = 30
+const RETENTION_DEFAULT_DAYS = 90 // Sensible default when unchecking "Unlimited"
 
 // ---------------------------------------------------------------------------
 // NextDNS API Key card
@@ -519,6 +526,8 @@ function SystemSettingsCard() {
     fetchInterval: '',
     fetchLimit: '',
     logLevel: 'INFO',
+    retentionUnlimited: true,
+    retentionDays: String(RETENTION_DEFAULT_DAYS),
   })
 
   const load = useCallback(async () => {
@@ -532,6 +541,13 @@ function SystemSettingsCard() {
         fetchInterval: String(data.fetch_interval),
         fetchLimit: String(data.fetch_limit),
         logLevel: data.log_level,
+        retentionUnlimited: data.retention_days === 0,
+        // Keep displaying the previous days value when "Unlimited" is on,
+        // so unchecking it doesn't reset to the global default.
+        retentionDays:
+          data.retention_days === 0
+            ? String(RETENTION_DEFAULT_DAYS)
+            : String(data.retention_days),
       }))
     } catch {
       setState(s => ({
@@ -565,12 +581,33 @@ function SystemSettingsCard() {
       return
     }
 
+    // Retention: 0 = unlimited; otherwise must be >= RETENTION_MIN_DAYS.
+    let retention = 0
+    if (!state.retentionUnlimited) {
+      retention = parseInt(state.retentionDays, 10)
+      if (isNaN(retention) || retention < RETENTION_MIN_DAYS) {
+        setState(s => ({
+          ...s,
+          error: `Retention must be at least ${RETENTION_MIN_DAYS} days, or check Unlimited`,
+        }))
+        return
+      }
+      if (retention > 3650) {
+        setState(s => ({
+          ...s,
+          error: 'Retention must be at most 3650 days (10 years)',
+        }))
+        return
+      }
+    }
+
     setState(s => ({ ...s, saving: true, error: null, success: null }))
     try {
       const updated = await apiClient.updateSystemSettings({
         fetch_interval: interval,
         fetch_limit: limit,
         log_level: state.logLevel,
+        retention_days: retention,
       })
       setState(s => ({
         ...s,
@@ -579,6 +616,11 @@ function SystemSettingsCard() {
         fetchInterval: String(updated.fetch_interval),
         fetchLimit: String(updated.fetch_limit),
         logLevel: updated.log_level,
+        retentionUnlimited: updated.retention_days === 0,
+        retentionDays:
+          updated.retention_days === 0
+            ? s.retentionDays
+            : String(updated.retention_days),
         success: 'Settings saved — changes are now active',
       }))
       setTimeout(() => setState(s => ({ ...s, success: null })), 4000)
@@ -596,11 +638,15 @@ function SystemSettingsCard() {
     }
   }
 
+  const currentRetention = state.retentionUnlimited
+    ? 0
+    : parseInt(state.retentionDays, 10) || 0
   const isDirty =
     state.settings !== null &&
     (state.fetchInterval !== String(state.settings.fetch_interval) ||
       state.fetchLimit !== String(state.settings.fetch_limit) ||
-      state.logLevel !== state.settings.log_level)
+      state.logLevel !== state.settings.log_level ||
+      currentRetention !== state.settings.retention_days)
 
   return (
     <Card>
@@ -714,6 +760,52 @@ function SystemSettingsCard() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Log Retention */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium" htmlFor="retention-days">
+                Log Retention
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Automatically delete DNS logs older than this many days. Runs
+                nightly at 00:30 UTC. Minimum {RETENTION_MIN_DAYS} days, or
+                check Unlimited to keep everything.
+              </p>
+              <div className="flex items-center gap-3">
+                <Input
+                  id="retention-days"
+                  type="number"
+                  min={RETENTION_MIN_DAYS}
+                  max={3650}
+                  value={state.retentionDays}
+                  disabled={state.retentionUnlimited}
+                  onChange={e =>
+                    setState(s => ({
+                      ...s,
+                      retentionDays: e.target.value,
+                      error: null,
+                    }))
+                  }
+                  className="w-32"
+                />
+                <span className="text-sm text-muted-foreground">days</span>
+                <label className="ml-4 flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={state.retentionUnlimited}
+                    onChange={e =>
+                      setState(s => ({
+                        ...s,
+                        retentionUnlimited: e.target.checked,
+                        error: null,
+                      }))
+                    }
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  Unlimited
+                </label>
+              </div>
             </div>
 
             {/* Actions */}
