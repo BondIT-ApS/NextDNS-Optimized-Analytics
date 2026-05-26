@@ -18,8 +18,12 @@ updates:
     commit-message:
       prefix: "🧱"
       include: "scope"
+    groups:
+      pip:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
 
-  # ⚛️ Frontend npm dependencies  
+  # ⚛️ Frontend npm dependencies
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:
@@ -34,6 +38,10 @@ updates:
     commit-message:
       prefix: "🧱"
       include: "scope"
+    groups:
+      npm:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   # 🐳 Docker base images
   - package-ecosystem: "docker"
@@ -49,6 +57,10 @@ updates:
     commit-message:
       prefix: "🧱"
       include: "scope"
+    groups:
+      docker:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   # 🔧 GitHub Actions
   - package-ecosystem: "github-actions"
@@ -64,3 +76,7 @@ updates:
     commit-message:
       prefix: "🧱"
       include: "scope"
+    groups:
+      github-actions:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
