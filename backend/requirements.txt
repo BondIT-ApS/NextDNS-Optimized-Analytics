@@ -14,16 +14,16 @@ alembic==1.18.4
 # HTTP requests and scheduling
 requests==2.33.1
 apscheduler==3.11.2
-cachetools>=5.3.0
+cachetools>=7.1.4
 
 # System monitoring
 psutil==7.2.2
 
 # Authentication and security
 passlib[bcrypt]==1.7.4
-PyJWT[crypto]==2.12.1  # Replaced python-jose to avoid ecdsa vulnerabilities (CVE-2024-64396, CVE-2024-64459)
+PyJWT[crypto]==2.13.0  # Replaced python-jose to avoid ecdsa vulnerabilities (CVE-2024-64396, CVE-2024-64459)
 slowapi==0.1.9
 
 # Security: Pin transitive dependencies to fix CVE vulnerabilities
 urllib3>=2.7.0  # CVE-2025-66471, CVE-2025-66418
-authlib>=1.6.12  # CVE-2025-62706, CVE-2025-61920 (if installed by transitive deps)
+authlib>=1.7.2  # CVE-2025-62706, CVE-2025-61920 (if installed by transitive deps)
