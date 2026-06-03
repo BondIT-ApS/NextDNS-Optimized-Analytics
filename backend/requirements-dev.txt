@@ -16,4 +16,4 @@ black==26.5.1
 bandit>=1.9.4  # Security linting
 
 # Additional security scanning
-safety>=3.7.0
+safety>=3.8.1
