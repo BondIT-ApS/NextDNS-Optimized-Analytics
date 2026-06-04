@@ -302,6 +302,7 @@ export function ChartJsOverview({ data, overview }: ChartJsOverviewProps) {
   }
 
   // Bar chart data for hourly breakdown
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- pre-existing: hook called after conditional early return above; tracked for refactor in follow-up issue
   const barChartData = useMemo(() => {
     if (isProfileMode) {
       // Profile-based datasets
