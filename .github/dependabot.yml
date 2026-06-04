@@ -1,5 +1,10 @@
 # 🧱 LEGO Dependabot Configuration
-# Automated dependency updates to keep our building blocks current!
+# Routine version-update PRs are disabled (open-pull-requests-limit: 0).
+# The weekly digest at .github/workflows/weekly-security-report.yml is the
+# source of truth for routine bumps.
+# Security-update PRs (CVE response) still flow — they are a separate
+# Dependabot mode controlled at Settings → Code security → Dependabot
+# security updates (toggle stays ON).
 
 version: 2
 updates:
@@ -11,6 +16,7 @@ updates:
       day: "monday"
       time: "21:12"
       timezone: "Europe/Copenhagen"
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "python"
@@ -18,10 +24,6 @@ updates:
     commit-message:
       prefix: "🧱"
       include: "scope"
-    groups:
-      pip:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
 
   # ⚛️ Frontend npm dependencies
   - package-ecosystem: "npm"
@@ -31,6 +33,7 @@ updates:
       day: "monday"
       time: "21:12"
       timezone: "Europe/Copenhagen"
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "npm"
@@ -38,10 +41,6 @@ updates:
     commit-message:
       prefix: "🧱"
       include: "scope"
-    groups:
-      npm:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
 
   # 🐳 Docker base images
   - package-ecosystem: "docker"
@@ -51,16 +50,13 @@ updates:
       day: "monday"
       time: "21:12"
       timezone: "Europe/Copenhagen"
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "docker"
     commit-message:
       prefix: "🧱"
       include: "scope"
-    groups:
-      docker:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
 
   # 🔧 GitHub Actions
   - package-ecosystem: "github-actions"
@@ -70,13 +66,10 @@ updates:
       day: "monday"
       time: "21:12"
       timezone: "Europe/Copenhagen"
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "github-actions"
     commit-message:
       prefix: "🧱"
       include: "scope"
-    groups:
-      github-actions:
-        patterns: ["*"]
-        update-types: ["minor", "patch"]
