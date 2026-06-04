@@ -1,0 +1,430 @@
+# ============================================================================
+# 🛡️ Weekly Security Report
+# ============================================================================
+# Single weekly digest covering BOTH vulnerabilities AND outdated dependencies.
+#
+# DESIGN INTENT
+# -------------
+# A developer should be able to open ONE issue per Monday and know everything
+# that needs attention this week — no need to babysit 10 Dependabot PRs.
+#
+#   • Python: Safety CLI (preferred, richer DB) → fallback to pip-audit if
+#             SAFETY_API_KEY is not configured on the repo.
+#   • Node:   npm audit (no API key needed).
+#   • Outdated: pip list --outdated + npm outdated, surfaced inline.
+#   • Issue opens whenever vulns > 0 OR outdated > 0 (the whole point).
+#   • Updates the existing weekly issue in place — no inbox flood.
+#   • Auto-closes the previous week's issue when the new scan is fully clean.
+#   • Assigns @MaBoNi, labels security/automated/maintenance, sets Type: Task.
+#
+# REQUIREMENTS
+# ------------
+# Repo or org-level secret SAFETY_API_KEY (optional — falls back to pip-audit).
+#
+# MAINTENANCE
+# -----------
+# Author:   Rosie (for Mr. Bond)
+# Cadence:  Mondays 09:00 UTC (10:00 CET); also workflow_dispatch.
+# ============================================================================
+
+name: 🛡️ Weekly Security Report
+
+on:
+  schedule:
+    # Mondays 09:00 UTC = 10:00 CET / 11:00 CEST
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  scan:
+    name: 🔍 Vulnerability & freshness scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # ── Detect Python projects ──────────────────────────────────────────
+      - name: Detect Python project
+        id: detect-py
+        run: |
+          if find . -maxdepth 3 \( -name "requirements*.txt" -o -name "pyproject.toml" \) \
+               -not -path "./node_modules/*" -not -path "./.venv/*" -print -quit | grep -q .; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Python
+        if: steps.detect-py.outputs.present == 'true'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Install Python audit tooling
+        if: steps.detect-py.outputs.present == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety pip-audit
+
+      # ── Python vulnerability scan (Safety preferred, pip-audit fallback)
+      - name: Python vulnerability scan
+        if: steps.detect-py.outputs.present == 'true'
+        id: py-vulns
+        env:
+          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
+        run: |
+          mkdir -p .audit
+          : > .audit/python_findings.json
+
+          # Pick scanner: Safety if API key set, else pip-audit
+          if [ -n "$SAFETY_API_KEY" ]; then
+            scanner="safety"
+            echo "Using Safety CLI"
+          else
+            scanner="pip-audit"
+            echo "SAFETY_API_KEY not set — falling back to pip-audit"
+          fi
+          echo "scanner=$scanner" >> "$GITHUB_OUTPUT"
+
+          total=0
+          # Iterate over each requirements*.txt and each pyproject.toml directory
+          paths=()
+          while IFS= read -r req; do
+            paths+=("$req")
+          done < <(find . -maxdepth 3 -name "requirements*.txt" -not -path "./node_modules/*" -not -path "./.venv/*")
+          while IFS= read -r pyp; do
+            paths+=("$(dirname "$pyp")")
+          done < <(find . -maxdepth 3 -name "pyproject.toml" -not -path "./node_modules/*" -not -path "./.venv/*")
+
+          for p in "${paths[@]}"; do
+            slug=$(echo "$p" | tr '/.' '__')
+            out=".audit/py_${slug}.json"
+            echo "::group::scan $p"
+            if [ "$scanner" = "safety" ]; then
+              # `safety scan` is the v3 interface; --output json emits a structured report
+              if [ -f "$p" ]; then
+                target="$(dirname "$p")"
+              else
+                target="$p"
+              fi
+              # Tell Safety this is the *repo* — without this it derives the
+              # project name from the target directory, which makes scans of
+              # backend/, api/, etc. report as those generic folder names on
+              # the Safety platform instead of the actual repo.
+              repo_name="${GITHUB_REPOSITORY##*/}"
+              printf '[project]\nid = %s\nname = %s\n' "$repo_name" "$repo_name" > "$target/.safety-project.ini"
+              safety scan --target "$target" --output json > "$out" 2>/dev/null || true
+              rm -f "$target/.safety-project.ini"
+              # Best-effort vuln count
+              n=$(jq '[(.scan_results.projects // [])[]?.files[]?.results.dependencies[]?.vulnerabilities[]?] | length' "$out" 2>/dev/null)
+              n="${n:-0}"
+            else
+              if [ -f "$p" ]; then
+                pip-audit --requirement "$p" --format json --output "$out" || true
+              else
+                (cd "$p" && pip-audit --format json --output "/tmp/${slug}.json") || true
+                cp "/tmp/${slug}.json" "$out" 2>/dev/null || true
+              fi
+              n=$(jq '[(.dependencies // [])[]? | (.vulns // [])[]?] | length' "$out" 2>/dev/null)
+              n="${n:-0}"
+            fi
+            echo "  $p: $n vulns"
+            total=$((total + n))
+            echo "::endgroup::"
+          done
+          echo "vuln_count=$total" >> "$GITHUB_OUTPUT"
+
+      # ── Python outdated check ───────────────────────────────────────────
+      - name: Python outdated packages
+        if: steps.detect-py.outputs.present == 'true'
+        id: py-outdated
+        run: |
+          mkdir -p .audit
+          : > .audit/py_outdated.json
+          total=0
+          # Install each requirements file into a tmp venv to ask pip what's outdated
+          while IFS= read -r req; do
+            slug=$(echo "$req" | tr '/.' '__')
+            venv="/tmp/venv_${slug}"
+            python -m venv "$venv" >/dev/null 2>&1
+            # shellcheck disable=SC1090
+            source "$venv/bin/activate"
+            pip install --quiet --upgrade pip >/dev/null 2>&1
+            pip install --quiet -r "$req" >/dev/null 2>&1 || true
+            out=$(pip list --outdated --format json 2>/dev/null || echo "[]")
+            echo "$out" > ".audit/py_outdated_${slug}.json"
+            n=$(echo "$out" | jq 'length' 2>/dev/null)
+            n="${n:-0}"
+            echo "  $req: $n outdated"
+            total=$((total + n))
+            deactivate
+          done < <(find . -maxdepth 3 -name "requirements*.txt" -not -path "./node_modules/*" -not -path "./.venv/*")
+          echo "outdated_count=$total" >> "$GITHUB_OUTPUT"
+
+      # ── Node detect ─────────────────────────────────────────────────────
+      - name: Detect Node project(s)
+        id: detect-node
+        run: |
+          mapfile -t pkgs < <(find . -maxdepth 3 -name "package.json" -not -path "*/node_modules/*")
+          if [ "${#pkgs[@]}" -gt 0 ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            printf '%s\n' "${pkgs[@]}" > .npm-projects.txt
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node
+        if: steps.detect-node.outputs.present == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+
+      # ── Node vulnerability + outdated scan ──────────────────────────────
+      - name: Node audit & outdated
+        if: steps.detect-node.outputs.present == 'true'
+        id: node
+        run: |
+          mkdir -p .audit
+          vulns_total=0
+          outdated_total=0
+          while IFS= read -r pkg; do
+            dir=$(dirname "$pkg")
+            slug=$(echo "$dir" | tr '/.' '__')
+            echo "::group::npm install + audit + outdated ($dir)"
+            (cd "$dir" && npm install --ignore-scripts --no-audit --no-fund --silent) || true
+
+            # Vulnerabilities (prod-only — dev tooling vulns are rarely actionable)
+            audit_out=$( (cd "$dir" && npm audit --omit=dev --audit-level=low --json) 2>/dev/null || true )
+            echo "$audit_out" > ".audit/node_audit_${slug}.json"
+            if [ -n "$audit_out" ]; then
+              n=$(echo "$audit_out" | jq '(.metadata.vulnerabilities // {}) | [.info, .low, .moderate, .high, .critical] | map(. // 0) | add' 2>/dev/null)
+            fi
+            n="${n:-0}"
+            echo "  $dir vulns: $n"
+            vulns_total=$((vulns_total + n))
+
+            # Outdated (includes dev, devs care about test-tooling freshness too)
+            outdated_out=$( (cd "$dir" && npm outdated --json) 2>/dev/null || true )
+            echo "$outdated_out" > ".audit/node_outdated_${slug}.json"
+            if [ -n "$outdated_out" ]; then
+              m=$(echo "$outdated_out" | jq 'length' 2>/dev/null)
+            fi
+            m="${m:-0}"
+            echo "  $dir outdated: $m"
+            outdated_total=$((outdated_total + m))
+            echo "::endgroup::"
+          done < .npm-projects.txt
+          echo "vuln_count=$vulns_total" >> "$GITHUB_OUTPUT"
+          echo "outdated_count=$outdated_total" >> "$GITHUB_OUTPUT"
+
+      # ── Aggregate totals ────────────────────────────────────────────────
+      - name: Compute totals
+        id: totals
+        run: |
+          py_v="${{ steps.py-vulns.outputs.vuln_count || 0 }}"
+          py_o="${{ steps.py-outdated.outputs.outdated_count || 0 }}"
+          n_v="${{ steps.node.outputs.vuln_count || 0 }}"
+          n_o="${{ steps.node.outputs.outdated_count || 0 }}"
+          scanner="${{ steps.py-vulns.outputs.scanner || 'n/a' }}"
+          vulns=$((py_v + n_v))
+          outdated=$((py_o + n_o))
+          {
+            echo "py_vulns=$py_v"
+            echo "py_outdated=$py_o"
+            echo "node_vulns=$n_v"
+            echo "node_outdated=$n_o"
+            echo "py_scanner=$scanner"
+            echo "vulns=$vulns"
+            echo "outdated=$outdated"
+          } >> "$GITHUB_OUTPUT"
+          echo "📊 Vulnerabilities: $vulns (py=$py_v, node=$n_v)"
+          echo "📊 Outdated:        $outdated (py=$py_o, node=$n_o)"
+
+      # ── Build report body when there's anything to report ───────────────
+      - name: Build report body
+        if: steps.totals.outputs.vulns != '0' || steps.totals.outputs.outdated != '0'
+        id: body
+        run: |
+          {
+            echo 'body<<EOF_BODY'
+            echo "## 🛡️ Weekly Security Report"
+            echo ""
+            echo "**Date**: $(date +%Y-%m-%d)"
+            echo "**Workflow run**: [#${GITHUB_RUN_NUMBER}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})"
+            echo "**Python scanner**: ${{ steps.totals.outputs.py_scanner }}"
+            echo ""
+            echo "### 📊 Summary"
+            echo ""
+            echo "| Stack | Vulnerabilities | Outdated |"
+            echo "|---|---:|---:|"
+            echo "| Python | ${{ steps.totals.outputs.py_vulns }} | ${{ steps.totals.outputs.py_outdated }} |"
+            echo "| Node (prod-vulns / all-outdated) | ${{ steps.totals.outputs.node_vulns }} | ${{ steps.totals.outputs.node_outdated }} |"
+            echo "| **Total** | **${{ steps.totals.outputs.vulns }}** | **${{ steps.totals.outputs.outdated }}** |"
+            echo ""
+            if [ "${{ steps.totals.outputs.vulns }}" != "0" ]; then
+              echo "### 🚨 Vulnerabilities"
+              echo ""
+              echo "<details><summary>Python (raw JSON from ${{ steps.totals.outputs.py_scanner }})</summary>"
+              echo ""
+              echo '```json'
+              # Surface findings only (drop noise)
+              if [ "${{ steps.totals.outputs.py_scanner }}" = "safety" ]; then
+                jq -s '[.[] | (.scan_results.projects // [])[]?.files[]?.results.dependencies[]? | select((.vulnerabilities // []) | length > 0)]' .audit/py_*.json 2>/dev/null | head -300 || echo "(no python findings parsed)"
+              else
+                jq -s '[.[] | (.dependencies // [])[]? | select((.vulns // []) | length > 0)]' .audit/py_*.json 2>/dev/null | head -300 || echo "(no python findings parsed)"
+              fi
+              echo '```'
+              echo "</details>"
+              echo ""
+              echo "<details><summary>Node (npm audit JSON, prod-only)</summary>"
+              echo ""
+              echo '```json'
+              jq -s '[.[] | (.vulnerabilities // {}) | to_entries[] | select(.value.severity != "info")]' .audit/node_audit_*.json 2>/dev/null | head -300 || echo "(no node findings)"
+              echo '```'
+              echo "</details>"
+              echo ""
+            fi
+            if [ "${{ steps.totals.outputs.outdated }}" != "0" ]; then
+              echo "### 📦 Outdated dependencies"
+              echo ""
+              # Python outdated table
+              for f in .audit/py_outdated_*.json; do
+                [ -f "$f" ] || continue
+                [ "$(jq 'length' "$f" 2>/dev/null)" = "0" ] && continue
+                label=$(basename "$f" .json | sed 's/py_outdated_//' | tr '_' '/')
+                echo "**Python — $label**"
+                echo ""
+                echo "| Package | Current | Latest | Type |"
+                echo "|---|---|---|---|"
+                jq -r '.[] | "| \(.name) | \(.version) | \(.latest_version // .latest) | \(.latest_filetype // "wheel") |"' "$f" 2>/dev/null
+                echo ""
+              done
+              # Node outdated table
+              for f in .audit/node_outdated_*.json; do
+                [ -f "$f" ] || continue
+                content=$(cat "$f")
+                [ -z "$content" ] || [ "$content" = "{}" ] && continue
+                label=$(basename "$f" .json | sed 's/node_outdated_//' | tr '_' '/')
+                echo "**Node — $label**"
+                echo ""
+                echo "| Package | Current | Wanted | Latest |"
+                echo "|---|---|---|---|"
+                echo "$content" | jq -r 'to_entries[] | "| \(.key) | \(.value.current // "—") | \(.value.wanted // "—") | \(.value.latest // "—") |"' 2>/dev/null
+                echo ""
+              done
+            fi
+            echo "### 🛠️ Suggested fixes"
+            echo ""
+            echo "- **Python**: \`safety scan --apply-updates\` (or \`pip-audit --fix\`); for pinned files bump the version and re-run."
+            echo "- **Node**: \`npm audit fix\` for non-breaking; \`npm update\` for outdated; \`npx npm-check-updates -u\` for major bumps."
+            echo "- Review breaking changes carefully — outdated ≠ broken."
+            echo ""
+            echo "---"
+            echo "_Automated by \`.github/workflows/weekly-security-report.yml\`. Next run: Monday 09:00 UTC._"
+            echo EOF_BODY
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Find existing open report
+        id: find
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { data } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'security,automated',
+              per_page: 50,
+            });
+            const existing = data.find(i => i.title.startsWith('🛡️ Weekly Security Report'));
+            core.setOutput('existing_number', existing ? existing.number : '');
+
+      - name: Create or update issue (findings present)
+        if: steps.totals.outputs.vulns != '0' || steps.totals.outputs.outdated != '0'
+        uses: actions/github-script@v9
+        env:
+          BODY: ${{ steps.body.outputs.body }}
+          EXISTING: ${{ steps.find.outputs.existing_number }}
+        with:
+          script: |
+            const title = `🛡️ Weekly Security Report - ${new Date().toISOString().slice(0,10)}`;
+            const body  = process.env.BODY;
+            const labels = ['security', 'automated', 'maintenance'];
+            const assignees = ['MaBoNi'];
+
+            if (process.env.EXISTING) {
+              const num = parseInt(process.env.EXISTING, 10);
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: num,
+                title, body,
+              });
+              core.notice(`Updated existing report #${num}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title, body, labels, assignees,
+              });
+              core.notice(`Created report #${created.data.number}`);
+
+              // Best-effort: tag with org-wide "Task" issue type via GraphQL.
+              // Soft-fails if the type is unavailable on this repo/token.
+              try {
+                const issueId = created.data.node_id;
+                const types = await github.graphql(`
+                  query($org: String!) {
+                    organization(login: $org) {
+                      issueTypes(first: 20) { nodes { id name } }
+                    }
+                  }
+                `, { org: context.repo.owner });
+                const task = types.organization.issueTypes.nodes.find(t => t.name === 'Task');
+                if (task) {
+                  await github.graphql(`
+                    mutation($issueId: ID!, $typeId: ID!) {
+                      updateIssueIssueType(input: { issueId: $issueId, issueTypeId: $typeId }) {
+                        issue { id }
+                      }
+                    }
+                  `, { issueId, typeId: task.id });
+                  core.notice('Tagged issue as Type: Task');
+                }
+              } catch (e) {
+                core.warning(`Could not set issue type: ${e.message}`);
+              }
+            }
+
+      - name: Close stale clean-week report
+        if: steps.totals.outputs.vulns == '0' && steps.totals.outputs.outdated == '0' && steps.find.outputs.existing_number != ''
+        uses: actions/github-script@v9
+        env:
+          EXISTING: ${{ steps.find.outputs.existing_number }}
+        with:
+          script: |
+            const num = parseInt(process.env.EXISTING, 10);
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: num,
+              body: `✅ This week's scan is clean (0 vulnerabilities, 0 outdated). Auto-closing — next run on Monday 09:00 UTC.`,
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: num,
+              state: 'closed',
+              state_reason: 'completed',
+            });
+            core.notice(`Auto-closed clean-week report #${num}`);
+
+      - name: All clear
+        if: steps.totals.outputs.vulns == '0' && steps.totals.outputs.outdated == '0'
+        run: |
+          echo "✅ No vulnerabilities and no outdated dependencies."
