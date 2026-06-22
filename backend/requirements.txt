@@ -1,13 +1,13 @@
 # file: backend/requirements.txt
 
 # FastAPI and ASGI server
-fastapi==0.137.0
+fastapi==0.138.0
 uvicorn[standard]==0.49.0
 python-multipart==0.0.32
 starlette==1.3.1  # Updated to fix CVE-2025-62727 DoS vulnerabilities - compatible with FastAPI 0.135.2
 
 # Database
-sqlalchemy==2.0.50
+sqlalchemy==2.0.51
 psycopg2-binary==2.9.12
 alembic==1.18.4
 
