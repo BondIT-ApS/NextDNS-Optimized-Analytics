@@ -33,10 +33,7 @@ interface DeviceAnalyticsProps {
 }
 
 type SortField =
-  | 'device_name'
-  | 'total_queries'
-  | 'blocked_percentage'
-  | 'last_activity'
+  'device_name' | 'total_queries' | 'blocked_percentage' | 'last_activity'
 type SortOrder = 'asc' | 'desc'
 
 export function DeviceAnalytics({
