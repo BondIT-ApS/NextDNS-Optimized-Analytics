@@ -287,48 +287,81 @@ jobs:
           echo "🚀 Created GitHub release: ${VERSION}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   # ─────────────────────────────────────────────────────────────
-  # 🚀 BUMP DEV VALUES (CI-driven tag commit, cross-repo, multi-image)
+  # 🚀 BUMP DEV VALUES (inline — public repo cannot call private reusable)
   # ─────────────────────────────────────────────────────────────
-  # Writes the new image tag into charts/nextdns-analytics/values-dev.yaml
-  # on bondit-cloud-gitops (Tier C — chart lives in the gitops repo).
-  # Multi-image: sequential frontend then backend to serialise on the
-  # same values-dev.yaml file.
+  # NextDNS-Optimized-Analytics is a PUBLIC repo. Calling a reusable
+  # workflow that lives in a PRIVATE repo (BondIT-ApS/bondit-cloud-gitops)
+  # is prohibited by GH — it would leak the private workflow definition.
+  # We therefore inline the same steps here. Logic mirrors
+  # bondit-cloud-gitops/.github/workflows/tag-bump-dev-values.yml @ main.
   # See BondIT-ApS/bondit-cloud-gitops#241 and
   # docs/tier-c-cross-repo-bump-dev-values.md in that repo.
-  bump-dev-values-frontend:
-    name: "🚀 Bump Dev Values (frontend)"
+  bump-dev-values:
+    name: "🚀 Bump Dev Values"
+    runs-on: ubuntu-latest
     needs: [calculate-version, production-build]
     if: |
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       github.actor != 'dependabot[bot]' &&
       needs.calculate-version.outputs.version != ''
-    uses: BondIT-ApS/bondit-cloud-gitops/.github/workflows/tag-bump-dev-values.yml@main
-    with:
-      new_version: ${{ needs.calculate-version.outputs.version }}
-      target_repo: BondIT-ApS/bondit-cloud-gitops
-      values_path: charts/nextdns-analytics/values-dev.yaml
-      image_key: frontend.image.tag
-      commit_message_prefix: "build: bump dev nextdns-analytics frontend"
-    secrets:
-      SSH_PRIVATE_KEY: ${{ secrets.BUMP_DEV_VALUES_GITOPS_SSH_KEY }}
+    env:
+      NEW_VERSION: ${{ needs.calculate-version.outputs.version }}
+      GITOPS_REPO: BondIT-ApS/bondit-cloud-gitops
+      VALUES_PATH: charts/nextdns-analytics/values-dev.yaml
+    steps:
+      - name: "🔑 Configure SSH deploy key"
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.BUMP_DEV_VALUES_GITOPS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
 
-  bump-dev-values-backend:
-    name: "🚀 Bump Dev Values (backend)"
-    needs: [calculate-version, production-build, bump-dev-values-frontend]
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      github.actor != 'dependabot[bot]' &&
-      needs.calculate-version.outputs.version != ''
-    uses: BondIT-ApS/bondit-cloud-gitops/.github/workflows/tag-bump-dev-values.yml@main
-    with:
-      new_version: ${{ needs.calculate-version.outputs.version }}
-      target_repo: BondIT-ApS/bondit-cloud-gitops
-      values_path: charts/nextdns-analytics/values-dev.yaml
-      image_key: backend.image.tag
-      commit_message_prefix: "build: bump dev nextdns-analytics backend"
-    secrets:
-      SSH_PRIVATE_KEY: ${{ secrets.BUMP_DEV_VALUES_GITOPS_SSH_KEY }}
+      - name: "📦 Checkout bondit-cloud-gitops (main) over SSH"
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          ref: main
+          fetch-depth: 1
+          ssh-key: ${{ secrets.BUMP_DEV_VALUES_GITOPS_SSH_KEY }}
+          persist-credentials: true
+
+      - name: "🔧 Install yq"
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: "📝 Bump frontend.image.tag + backend.image.tag"
+        run: |
+          if [ ! -f "${VALUES_PATH}" ]; then
+            echo "❌ values file not found: ${VALUES_PATH}"
+            exit 1
+          fi
+          yq -i ".frontend.image.tag = \"${NEW_VERSION}\"" "${VALUES_PATH}"
+          yq -i ".backend.image.tag  = \"${NEW_VERSION}\"" "${VALUES_PATH}"
+          echo "=== diff ==="
+          git --no-pager diff "${VALUES_PATH}" || true
+
+      - name: "📤 Commit & push"
+        run: |
+          if git diff --quiet "${VALUES_PATH}"; then
+            echo "✅ No change — tag already at ${NEW_VERSION}. Skipping."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${VALUES_PATH}"
+          git commit -m "build: bump dev nextdns-analytics to ${NEW_VERSION} (frontend+backend) [skip ci]"
+          for attempt in 1 2 3; do
+            if git push origin main; then
+              echo "✅ Pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "⚠️  Push attempt $attempt failed — pulling + rebasing"
+            git pull --rebase origin main
+          done
+          echo "❌ Push failed after 3 attempts"
+          exit 1
