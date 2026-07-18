@@ -287,3 +287,48 @@ jobs:
           echo "🚀 Created GitHub release: ${VERSION}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─────────────────────────────────────────────────────────────
+  # 🚀 BUMP DEV VALUES (CI-driven tag commit, cross-repo, multi-image)
+  # ─────────────────────────────────────────────────────────────
+  # Writes the new image tag into charts/nextdns-analytics/values-dev.yaml
+  # on bondit-cloud-gitops (Tier C — chart lives in the gitops repo).
+  # Multi-image: sequential frontend then backend to serialise on the
+  # same values-dev.yaml file.
+  # See BondIT-ApS/bondit-cloud-gitops#241 and
+  # docs/tier-c-cross-repo-bump-dev-values.md in that repo.
+  bump-dev-values-frontend:
+    name: "🚀 Bump Dev Values (frontend)"
+    needs: [calculate-version, production-build]
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      github.actor != 'dependabot[bot]' &&
+      needs.calculate-version.outputs.version != ''
+    uses: BondIT-ApS/bondit-cloud-gitops/.github/workflows/tag-bump-dev-values.yml@main
+    with:
+      new_version: ${{ needs.calculate-version.outputs.version }}
+      target_repo: BondIT-ApS/bondit-cloud-gitops
+      values_path: charts/nextdns-analytics/values-dev.yaml
+      image_key: frontend.image.tag
+      commit_message_prefix: "build: bump dev nextdns-analytics frontend"
+    secrets:
+      SSH_PRIVATE_KEY: ${{ secrets.BUMP_DEV_VALUES_GITOPS_SSH_KEY }}
+
+  bump-dev-values-backend:
+    name: "🚀 Bump Dev Values (backend)"
+    needs: [calculate-version, production-build, bump-dev-values-frontend]
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      github.actor != 'dependabot[bot]' &&
+      needs.calculate-version.outputs.version != ''
+    uses: BondIT-ApS/bondit-cloud-gitops/.github/workflows/tag-bump-dev-values.yml@main
+    with:
+      new_version: ${{ needs.calculate-version.outputs.version }}
+      target_repo: BondIT-ApS/bondit-cloud-gitops
+      values_path: charts/nextdns-analytics/values-dev.yaml
+      image_key: backend.image.tag
+      commit_message_prefix: "build: bump dev nextdns-analytics backend"
+    secrets:
+      SSH_PRIVATE_KEY: ${{ secrets.BUMP_DEV_VALUES_GITOPS_SSH_KEY }}
