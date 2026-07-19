@@ -288,15 +288,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   # ─────────────────────────────────────────────────────────────
-  # 🚀 BUMP DEV VALUES (inline — public repo cannot call private reusable)
+  # 🚀 Bump downstream values
   # ─────────────────────────────────────────────────────────────
-  # NextDNS-Optimized-Analytics is a PUBLIC repo. Calling a reusable
-  # workflow that lives in a PRIVATE repo (BondIT-ApS/bondit-cloud-gitops)
-  # is prohibited by GH — it would leak the private workflow definition.
-  # We therefore inline the same steps here. Logic mirrors
-  # bondit-cloud-gitops/.github/workflows/tag-bump-dev-values.yml @ main.
-  # See BondIT-ApS/bondit-cloud-gitops#241 and
-  # docs/tier-c-cross-repo-bump-dev-values.md in that repo.
+  # After a successful build, update the deployment values file in the
+  # downstream ops repo so the newly published tag rolls out automatically.
+  # Repo path and target file are provided via repo variables + secrets
+  # so this workflow stays portable and doesn't hard-code any downstream
+  # topology in source.
   bump-dev-values:
     name: "🚀 Bump Dev Values"
     runs-on: ubuntu-latest
@@ -312,25 +310,25 @@ jobs:
       needs.calculate-version.outputs.version != ''
     env:
       NEW_VERSION: ${{ needs.calculate-version.outputs.version }}
-      GITOPS_REPO: BondIT-ApS/bondit-cloud-gitops
-      VALUES_PATH: charts/nextdns-analytics/values-dev.yaml
+      DOWNSTREAM_REPO: ${{ secrets.DOWNSTREAM_VALUES_REPO }}
+      VALUES_PATH: ${{ secrets.DOWNSTREAM_VALUES_PATH }}
     steps:
       - name: "🔑 Configure SSH deploy key"
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.BUMP_DEV_VALUES_GITOPS_SSH_KEY }}
+          SSH_PRIVATE_KEY: ${{ secrets.DOWNSTREAM_VALUES_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: "📦 Checkout bondit-cloud-gitops (main) over SSH"
+      - name: "📦 Checkout downstream repo (main) over SSH"
         uses: actions/checkout@v6
         with:
-          repository: ${{ env.GITOPS_REPO }}
+          repository: ${{ env.DOWNSTREAM_REPO }}
           ref: main
           fetch-depth: 1
-          ssh-key: ${{ secrets.BUMP_DEV_VALUES_GITOPS_SSH_KEY }}
+          ssh-key: ${{ secrets.DOWNSTREAM_VALUES_SSH_KEY }}
           persist-credentials: true
 
       - name: "🔧 Install yq"
