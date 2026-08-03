@@ -11,7 +11,7 @@ import { DeviceFilter } from '@/components/DeviceFilter'
 import { DomainExclusionInput } from '@/components/DomainExclusionInput'
 import { useExcludedDomains } from '@/hooks/useExcludedDomains'
 import { useState, useMemo, useEffect, useCallback, useTransition } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router'
 
 export function Logs() {
   const [searchParams] = useSearchParams()
