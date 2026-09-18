@@ -356,6 +356,14 @@ jobs:
             const body  = process.env.BODY;
             const labels = ['security', 'automated', 'maintenance'];
             const assignees = ['MaBoNi'];
+            // Org-wide issue type, set through the REST `type` field rather
+            // than the GraphQL updateIssueIssueType mutation the org copy
+            // used: that needs an organization-level read of issueTypes,
+            // which the repo-scoped GITHUB_TOKEN doesn't have ("Resource not
+            // accessible by integration"). REST resolves the type by name
+            // inside the repo, so issues: write is enough. Passed on update
+            // too so an issue created before this change gets typed.
+            const type = 'Task';
 
             if (process.env.EXISTING) {
               const num = parseInt(process.env.EXISTING, 10);
@@ -363,42 +371,16 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: num,
-                title, body,
+                title, body, type,
               });
               core.notice(`Updated existing report #${num}`);
             } else {
               const created = await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title, body, labels, assignees,
+                title, body, labels, assignees, type,
               });
               core.notice(`Created report #${created.data.number}`);
-
-              // Best-effort: tag with org-wide "Task" issue type via GraphQL.
-              // Soft-fails if the type is unavailable on this repo/token.
-              try {
-                const issueId = created.data.node_id;
-                const types = await github.graphql(`
-                  query($org: String!) {
-                    organization(login: $org) {
-                      issueTypes(first: 20) { nodes { id name } }
-                    }
-                  }
-                `, { org: context.repo.owner });
-                const task = types.organization.issueTypes.nodes.find(t => t.name === 'Task');
-                if (task) {
-                  await github.graphql(`
-                    mutation($issueId: ID!, $typeId: ID!) {
-                      updateIssueIssueType(input: { issueId: $issueId, issueTypeId: $typeId }) {
-                        issue { id }
-                      }
-                    }
-                  `, { issueId, typeId: task.id });
-                  core.notice('Tagged issue as Type: Task');
-                }
-              } catch (e) {
-                core.warning(`Could not set issue type: ${e.message}`);
-              }
             }
 
       - name: Close stale clean-week report
